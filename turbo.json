@@ -12,7 +12,7 @@
     "dev": {
       "dependsOn": ["^dev"],
       "cache": false,
-      "persistent": false
+      "persistent": true
     },
     "format": {
       "outputs": [".cache/.prettiercache"],
@@ -32,9 +32,15 @@
     "//#clean": {
       "cache": false
     },
+    "generate": {
+      "cache": false,
+      "interactive": true,
+      "inputs": ["src/schema.ts", "drizzle.config.ts", "env.ts"]
+    },
     "push": {
       "cache": false,
-      "interactive": true
+      "interactive": true,
+      "inputs": ["drizzle/**", "src/schema.ts", "drizzle.config.ts"]
     },
     "studio": {
       "cache": false,
@@ -46,12 +52,14 @@
     }
   },
   "globalEnv": [
-    "POSTGRES_URL",
     "AUTH_DISCORD_ID",
     "AUTH_DISCORD_SECRET",
     "AUTH_REDIRECT_PROXY_URL",
     "AUTH_SECRET",
-    "PORT"
+    "DATABASE_URL",
+    "DIRECT_URL",
+    "PORT",
+    "REDIS_URL"
   ],
   "globalPassThroughEnv": [
     "NODE_ENV",

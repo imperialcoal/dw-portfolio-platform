@@ -2,9 +2,8 @@ import "server-only";
 
 import { cache } from "react";
 import { headers } from "next/headers";
+import { initAuth } from "@dw/auth";
 import { nextCookies } from "better-auth/next-js";
-
-import { initAuth } from "@acme/auth";
 
 import { env } from "~/env";
 
