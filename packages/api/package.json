@@ -25,7 +25,7 @@
     "@dw/validators": "workspace:*",
     "@t3-oss/env-core": "^0.13.10",
     "@trpc/server": "catalog:",
-    "superjson": "2.2.3",
+    "superjson": "2.2.6",
     "zod": "catalog:"
   },
   "devDependencies": {
