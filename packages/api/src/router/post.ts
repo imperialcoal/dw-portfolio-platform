@@ -36,7 +36,7 @@ export const postRouter = {
       const cacheKey = cacheKeys.postById(input.id);
 
       type PostRow = typeof Post.$inferSelect;
-      const cached = await ctx.redis.get<PostRow[]>(cacheKey);
+      const cached = await ctx.redis.get<PostRow>(cacheKey);
 
       if (cached) return cached;
 
