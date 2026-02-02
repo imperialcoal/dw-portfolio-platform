@@ -41,6 +41,12 @@ yarn-error.log*
 .env
 .env.local
 .env*.local
+.env.preview
+.env*.preview
+.env.staging
+.env*.staging
+.env.production
+.env*.production
 
 # vercel
 .vercel
@@ -54,3 +60,5 @@ dist/
 
 # tanstack
 .tanstack
+
+.pnpm-store

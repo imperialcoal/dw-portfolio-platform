@@ -1,16 +1,51 @@
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
 import { dbEnv } from "../env";
 import * as schema from "./schema";
 
-const env = dbEnv();
+export type DbInstance = PostgresJsDatabase<typeof schema>;
 
 const globalForDb = globalThis as unknown as {
-  conn: postgres.Sql | undefined;
+  _db?: DbInstance;
+  _conn?: postgres.Sql;
 };
 
-const conn = globalForDb.conn ?? postgres(env.DATABASE_URL);
-if (env.NODE_ENV !== "production") globalForDb.conn = conn;
+export function getDb(): DbInstance {
+  if (globalForDb._db) {
+    return globalForDb._db;
+  }
 
-export const db = drizzle(conn, { schema, casing: "snake_case" });
+  const env = dbEnv();
+
+  const conn =
+    globalForDb._conn ??
+    postgres(env.DATABASE_URL, {
+      max: 5,
+      idle_timeout: 30,
+    });
+
+  if (env.NODE_ENV !== "production") {
+    globalForDb._conn = conn;
+  }
+
+  const db: DbInstance = drizzle(conn, {
+    schema,
+    casing: "snake_case",
+  });
+
+  globalForDb._db = db;
+
+  return db;
+}
+
+/**
+ * Lazy T3-compatible proxy
+ */
+export const db: DbInstance = new Proxy({} as DbInstance, {
+  get(_target, prop: keyof DbInstance) {
+    const realDb = getDb();
+    return realDb[prop];
+  },
+});

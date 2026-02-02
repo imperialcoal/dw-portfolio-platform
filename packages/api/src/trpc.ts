@@ -6,11 +6,33 @@
  * tl;dr - this is where all the tRPC server stuff is created and plugged in.
  * The pieces you will need to use are documented accordingly near the end
  */
-import type { Auth } from "@dw/auth";
-import { db } from "@dw/db/client";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { z, ZodError } from "zod/v4";
+
+import type { Auth } from "@dw/auth";
+import { db } from "@dw/db/client";
+import { getRedis, rateLimit, redis } from "@dw/redis";
+
+import { bootstrapInfra } from "./bootstrap";
+import { apiEnv } from "../env";
+
+const env = apiEnv();
+
+// Eagerly bootstrap infra in dev/staging
+if (env.NODE_ENV !== "production") {
+  try {
+    await bootstrapInfra();
+  } catch (err) {
+    console.error("❌ Failed to bootstrap infra", err);
+  }
+}
+
+// initialize redis once per process
+getRedis({
+  url: env.UPSTASH_REDIS_REST_URL,
+  token: env.UPSTASH_REDIS_REST_TOKEN,
+});
 
 /**
  * 1. CONTEXT
@@ -37,6 +59,8 @@ export const createTRPCContext = async (opts: {
     authApi,
     session,
     db,
+    redis,
+    headers: opts.headers,
   };
 };
 /**
@@ -95,6 +119,40 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
   return result;
 });
 
+const rateLimitMiddleware = (opts: {
+  windowSeconds: number;
+  maxRequests: number;
+  prefix?: string;
+}) =>
+  t.middleware(async ({ ctx, path, next }) => {
+    const ip =
+      ctx.headers.get("x-forwarded-for") ??
+      ctx.headers.get("x-real-ip") ??
+      "local";
+
+    await rateLimit(ctx.redis, `${ip}:${path}`, opts);
+
+    return next();
+  });
+
+const publicRateLimit = rateLimitMiddleware({
+  windowSeconds: 60,
+  maxRequests: 100,
+  prefix: "public",
+});
+
+const authRateLimit = rateLimitMiddleware({
+  windowSeconds: 60,
+  maxRequests: 20,
+  prefix: "auth",
+});
+
+const protectedRateLimit = rateLimitMiddleware({
+  windowSeconds: 60,
+  maxRequests: 300,
+  prefix: "protected",
+});
+
 /**
  * Public (unauthed) procedure
  *
@@ -102,7 +160,18 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
  * tRPC API. It does not guarantee that a user querying is authorized, but you
  * can still access user session data if they are logged in
  */
-export const publicProcedure = t.procedure.use(timingMiddleware);
+export const publicProcedure = t.procedure
+  .use(timingMiddleware)
+  .use(publicRateLimit);
+
+/**
+ * Auth procedure
+ *
+ * This is used for rate limiting for login.
+ */
+export const authProcedure = t.procedure
+  .use(timingMiddleware)
+  .use(authRateLimit);
 
 /**
  * Protected (authenticated) procedure
@@ -114,6 +183,7 @@ export const publicProcedure = t.procedure.use(timingMiddleware);
  */
 export const protectedProcedure = t.procedure
   .use(timingMiddleware)
+  .use(protectedRateLimit)
   .use(({ ctx, next }) => {
     if (!ctx.session?.user) {
       throw new TRPCError({ code: "UNAUTHORIZED" });
@@ -125,3 +195,12 @@ export const protectedProcedure = t.procedure
       },
     });
   });
+
+/**
+ * Internal procedure
+ *
+ * If you want a query or mutation to be accessible for internal procedures (health, cron, admin, background jobs), use this.
+ *
+ * @see https://trpc.io/docs/procedures
+ */
+export const internalProcedure = t.procedure.use(timingMiddleware);

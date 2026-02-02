@@ -1,12 +1,9 @@
 {
-  "name": "@dw/api",
+  "name": "@dw/redis",
   "private": true,
   "type": "module",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./src/index.ts"
-    }
+    ".": "./src/index.ts"
   },
   "license": "MIT",
   "scripts": {
@@ -14,27 +11,22 @@
     "clean": "git clean -xdf .cache .turbo dist node_modules",
     "dev": "tsc",
     "format": "prettier --check . --ignore-path ../../.gitignore",
-    "lint": "eslint --flag unstable_native_nodejs_ts_config",
+    "lint": "eslint",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
-  },
-  "dependencies": {
-    "@dw/auth": "workspace:*",
-    "@dw/db": "workspace:*",
-    "@dw/health": "workspace:*",
-    "@dw/redis": "workspace:*",
-    "@dw/validators": "workspace:*",
-    "@t3-oss/env-core": "^0.13.10",
-    "@trpc/server": "catalog:",
-    "superjson": "2.2.3",
-    "zod": "catalog:"
   },
   "devDependencies": {
     "@dw/eslint-config": "workspace:*",
     "@dw/prettier-config": "workspace:*",
     "@dw/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
     "eslint": "catalog:",
     "prettier": "catalog:",
     "typescript": "catalog:"
   },
-  "prettier": "@dw/prettier-config"
+  "prettier": "@dw/prettier-config",
+  "dependencies": {
+    "@t3-oss/env-core": "^0.13.10",
+    "@trpc/server": "catalog:",
+    "@upstash/redis": "^1.36.1"
+  }
 }

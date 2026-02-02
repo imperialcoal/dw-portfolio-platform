@@ -1,11 +1,11 @@
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
 
-export function dbEnv() {
+export function apiEnv() {
   return createEnv({
     server: {
-      DATABASE_URL: z.url(),
-      DIRECT_URL: z.url(),
+      UPSTASH_REDIS_REST_URL: z.string().min(1),
+      UPSTASH_REDIS_REST_TOKEN: z.string().min(1),
       NODE_ENV: z
         .enum(["development", "test", "production"])
         .default("development"),

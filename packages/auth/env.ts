@@ -10,7 +10,9 @@ export function authEnv() {
         process.env.NODE_ENV === "production"
           ? z.string().min(1)
           : z.string().min(1).optional(),
-      NODE_ENV: z.enum(["development", "production"]).optional(),
+      NODE_ENV: z
+        .enum(["development", "test", "production"])
+        .default("development"),
     },
     runtimeEnv: process.env,
     skipValidation:

@@ -4,13 +4,21 @@ services:
     container_name: dw-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: dw_user
-      POSTGRES_PASSWORD: dw_password
-      POSTGRES_DB: dw_portfolio
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
     ports:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - dw-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7
@@ -18,9 +26,36 @@ services:
     restart: unless-stopped
     ports:
       - "6379:6379"
-    command: redis-server --appendonly yes
+    command: redis-server --requirepass ${UPSTASH_REDIS_REST_TOKEN}
     volumes:
       - redis_data:/data
+    networks:
+      - dw-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${UPSTASH_REDIS_REST_TOKEN}", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # This acts as the "Upstash Emulator" for local dev
+  redis-proxy:
+    image: hiett/serverless-redis-http:latest
+    container_name: dw-redis-proxy
+    environment:
+      - SRH_MODE=env
+      - SRH_TOKEN=${UPSTASH_REDIS_REST_TOKEN}
+      - SRH_CONNECTION_STRING=redis://:${UPSTASH_REDIS_REST_TOKEN}@dw-redis:6379
+    ports:
+      - "8079:80"
+    networks:
+      - dw-network
+    depends_on:
+      redis:
+        condition: service_healthy
+
+networks:
+  dw-network:
+    driver: bridge
 
 volumes:
   postgres_data:
