@@ -1,7 +1,7 @@
-import { headers } from "next/headers";
-import { Webhook } from "svix";
 import type { WebhookEvent } from "@clerk/backend";
+import { headers } from "next/headers";
 import { eq } from "drizzle-orm";
+import { Webhook } from "svix";
 
 import { authEnv } from "@dw/auth";
 import { db } from "@dw/db/client";
@@ -54,7 +54,7 @@ export async function POST(req: Request) {
     switch (type) {
       case "user.created": {
         const primaryEmail = data.email_addresses.find(
-          (e) => e.id === data.primary_email_address_id
+          (e) => e.id === data.primary_email_address_id,
         );
 
         if (!primaryEmail) {
@@ -67,7 +67,8 @@ export async function POST(req: Request) {
             id: data.id,
             email: primaryEmail.email_address,
             emailVerified: primaryEmail.verification?.status === "verified",
-            name: `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim() || null,
+            name:
+              `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim() || null,
             image: data.image_url || null,
             createdAt: new Date(data.created_at),
             updatedAt: new Date(data.updated_at),
@@ -81,7 +82,7 @@ export async function POST(req: Request) {
 
         if (newUser) {
           void redis.set(cacheKeys.userById(data.id), newUser, { ex: 300 });
-        }          
+        }
 
         console.log(`✅ User created: ${data.id}`);
         break;
@@ -89,7 +90,7 @@ export async function POST(req: Request) {
 
       case "user.updated": {
         const primaryEmail = data.email_addresses.find(
-          (e) => e.id === data.primary_email_address_id
+          (e) => e.id === data.primary_email_address_id,
         );
 
         if (!primaryEmail) {
@@ -101,14 +102,15 @@ export async function POST(req: Request) {
           .set({
             email: primaryEmail.email_address,
             emailVerified: primaryEmail.verification?.status === "verified",
-            name: `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim() || null,
+            name:
+              `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim() || null,
             image: data.image_url || null,
             updatedAt: new Date(data.updated_at),
           })
           .where(eq(user.id, data.id));
 
         // Invalidate user cache after update
-        void redis.del(cacheKeys.userById(data.id));          
+        void redis.del(cacheKeys.userById(data.id));
 
         console.log(`✅ User updated: ${data.id}`);
         break;
@@ -125,7 +127,7 @@ export async function POST(req: Request) {
           .where(eq(user.id, data.id));
 
         // Invalidate user cache after soft delete
-        void redis.del(cacheKeys.userById(data.id));          
+        void redis.del(cacheKeys.userById(data.id));
 
         console.log(`✅ User deleted: ${data.id}`);
         break;

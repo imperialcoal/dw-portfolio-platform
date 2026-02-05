@@ -1,10 +1,7 @@
 import type { TRPCRouterRecord } from "@trpc/server";
 
 // Add authProcedure later for login rate limiting
-import {
-  internalProcedure,
-  protectedProcedure,
-} from "../trpc";
+import { internalProcedure, protectedProcedure } from "../trpc";
 
 export const authRouter = {
   getUser: protectedProcedure.query(({ ctx }) => {
@@ -31,7 +28,7 @@ export const authRouter = {
       result,
     };
   }),
-  
+
   getSecretMessage: protectedProcedure.query(() => {
     return "you can see this secret message!";
   }),

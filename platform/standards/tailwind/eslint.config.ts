@@ -1,4 +1,5 @@
-import { baseConfig } from "@dw/eslint-config/base";
 import { defineConfig } from "eslint/config";
+
+import { baseConfig } from "@dw/eslint-config/base";
 
 export default defineConfig(baseConfig);

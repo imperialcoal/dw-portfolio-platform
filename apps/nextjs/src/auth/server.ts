@@ -8,11 +8,11 @@ export { auth, currentUser };
  */
 export async function requireAuth() {
   const authResult = await auth();
-  
+
   if (!authResult.userId) {
     throw new Error("Unauthorized");
   }
-  
+
   return authResult;
 }
 
@@ -22,10 +22,10 @@ export async function requireAuth() {
  */
 export async function requireUser() {
   const user = await currentUser();
-  
+
   if (!user) {
     throw new Error("Unauthorized");
   }
-  
+
   return user;
 }

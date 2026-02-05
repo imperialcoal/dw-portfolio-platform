@@ -1,7 +1,8 @@
 "use client";
 
-import { cn } from "@dw/ui";
 import { Label as LabelPrimitive } from "radix-ui";
+
+import { cn } from "@dw/ui";
 
 export function Label({
   className,

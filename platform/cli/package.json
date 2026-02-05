@@ -19,8 +19,8 @@
     "@dw/db": "workspace:*",
     "@dw/redis": "workspace:*",
     "uuid": "^13.0.0"
-},
-"devDependencies": {
+  },
+  "devDependencies": {
     "@dw/eslint-config": "workspace:*",
     "@dw/prettier-config": "workspace:*",
     "@dw/tsconfig": "workspace:*",

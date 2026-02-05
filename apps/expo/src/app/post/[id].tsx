@@ -1,5 +1,5 @@
 import { Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context"; 
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack, useGlobalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 

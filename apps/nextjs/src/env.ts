@@ -10,16 +10,14 @@ export const env = createEnv({
     NODE_ENV: z
       .enum(["development", "production", "test"])
       .default("development"),
-    APP_ENV: z
-      .enum(["local", "staging", "production"])
-      .default("local"),
+    APP_ENV: z.enum(["local", "staging", "production"]).default("local"),
   },
   /**
    * Specify your server-side environment variables schema here.
    * This way you can ensure the app isn't built with invalid env vars.
    */
   server: {
-  DATABASE_URL: z.url(),
+    DATABASE_URL: z.url(),
   },
 
   /**
@@ -36,7 +34,8 @@ export const env = createEnv({
   experimental__runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
     APP_ENV: process.env.APP_ENV,
-    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
+      process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
     // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
   },
   skipValidation:

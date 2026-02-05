@@ -1,0 +1,9 @@
+# Ignore Drizzle migrations
+**/drizzle/meta/*
+**/drizzle/*.sql
+
+# Ignore generated files
+.next
+.turbo
+dist
+node_modules

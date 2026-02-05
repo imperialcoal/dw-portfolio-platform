@@ -1,11 +1,12 @@
 import { eq } from "drizzle-orm";
+
 import { getDb } from "@dw/db/client";
 import { Post, user } from "@dw/db/schema";
 import { cacheKeys, redis } from "@dw/redis";
 
 /**
  * Seed script for local development
- * 
+ *
  * Creates test users and posts for development/testing
  * Note: In production, users are created via Clerk webhooks
  */
@@ -16,9 +17,9 @@ async function seed() {
 
   // -------- USERS --------
   console.log("👥 Seeding users...");
-  
+
   const existingUsers = await db.query.user.findMany();
-  
+
   if (existingUsers.length === 0) {
     // Create test users (simulating Clerk webhook data)
     const testUsers = [
@@ -63,12 +64,14 @@ async function seed() {
     }
     console.log("✅ Cached test users in Redis\n");
   } else {
-    console.log(`ℹ️  Found ${existingUsers.length} existing users, skipping user seed\n`);
+    console.log(
+      `ℹ️  Found ${existingUsers.length} existing users, skipping user seed\n`,
+    );
   }
 
   // -------- POSTS --------
   console.log("📝 Seeding posts...");
-  
+
   const existingPosts = await db.query.Post.findMany();
 
   if (existingPosts.length === 0) {
@@ -125,7 +128,9 @@ async function seed() {
     await redis.set(cacheKeys.postsAll, insertedPosts, { ex: 3600 });
     console.log("✅ Cached test posts in Redis\n");
   } else {
-    console.log(`ℹ️  Found ${existingPosts.length} existing posts, skipping post seed\n`);
+    console.log(
+      `ℹ️  Found ${existingPosts.length} existing posts, skipping post seed\n`,
+    );
   }
 
   // -------- REDIS --------
@@ -139,7 +144,9 @@ async function seed() {
   console.log("  - admin@test.com (Admin)");
   console.log("  - john@test.com (User)");
   console.log("  - jane@test.com (User)");
-  console.log("\nYou can use these emails to test Clerk authentication in development.");
+  console.log(
+    "\nYou can use these emails to test Clerk authentication in development.",
+  );
 }
 
 seed()

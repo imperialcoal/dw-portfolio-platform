@@ -9,9 +9,7 @@ export function dbEnv() {
       NODE_ENV: z
         .enum(["development", "test", "production"])
         .default("development"),
-      APP_ENV: z
-        .enum(["local", "staging", "production"])
-        .default("local"),        
+      APP_ENV: z.enum(["local", "staging", "production"]).default("local"),
     },
     runtimeEnv: process.env,
     skipValidation:

@@ -2,4 +2,4 @@
 export { clerkConfig } from "./clerk";
 export type { ClerkAuth, ClerkUser } from "./clerk";
 
-export {authEnv} from "../env";
+export { authEnv } from "../env";

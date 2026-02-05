@@ -1,8 +1,8 @@
 import type { NextRequest } from "next/server";
-import { appRouter, createTRPCContext } from "@dw/api";
+import { auth } from "@clerk/nextjs/server";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 
-import { auth } from "@clerk/nextjs/server";
+import { appRouter, createTRPCContext } from "@dw/api";
 
 /**
  * Configure basic CORS headers

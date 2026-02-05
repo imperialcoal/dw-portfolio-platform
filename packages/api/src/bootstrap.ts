@@ -1,7 +1,8 @@
 // packages/api/src/bootstrap.ts
 import { getDb } from "@dw/db/client";
-import { getRedis } from "@dw/redis";
 import { verifyInfra } from "@dw/health";
+import { getRedis } from "@dw/redis";
+
 import { apiEnv } from "../env";
 
 const env = apiEnv();
@@ -33,7 +34,7 @@ export async function bootstrapInfra() {
       },
       {
         ping: () => redis.ping(),
-      }
+      },
     );
 
     console.log("🎉 Local infra verified successfully");

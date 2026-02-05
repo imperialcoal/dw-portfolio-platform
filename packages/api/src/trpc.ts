@@ -6,18 +6,18 @@
  * tl;dr - this is where all the tRPC server stuff is created and plugged in.
  * The pieces you will need to use are documented accordingly near the end
  */
+import type { AuthObject } from "@clerk/backend";
 import { initTRPC, TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
 import superjson from "superjson";
 import { z, ZodError } from "zod/v4";
-import { eq } from "drizzle-orm";
 
-import type { AuthObject } from "@clerk/backend";
 import { db } from "@dw/db/client";
 import { user } from "@dw/db/schema";
-import { getRedis, rateLimit, redis, cacheKeys } from "@dw/redis";
+import { cacheKeys, getRedis, rateLimit, redis } from "@dw/redis";
 
-import { bootstrapInfra } from "./bootstrap";
 import { apiEnv } from "../env";
+import { bootstrapInfra } from "./bootstrap";
 
 const env = apiEnv();
 
@@ -59,7 +59,7 @@ export const createTRPCContext = (opts: {
   headers: Headers;
   auth: AuthObject;
 }) => {
-   return {
+  return {
     db,
     redis,
     headers: opts.headers,
@@ -216,9 +216,9 @@ export const protectedProcedure = t.procedure
     }
 
     if (!profile || profile.deletedAt) {
-      throw new TRPCError({ 
+      throw new TRPCError({
         code: "UNAUTHORIZED",
-        message: "User not found or deleted"
+        message: "User not found or deleted",
       });
     }
 
@@ -244,7 +244,7 @@ export const protectedProcedure = t.procedure
         headers: ctx.headers,
         userId,
         user: profile,
-      } 
+      },
     });
   });
 
