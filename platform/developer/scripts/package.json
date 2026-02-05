@@ -1,0 +1,36 @@
+{
+  "name": "@dw/dev-scripts",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+    "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "git clean -xdf .cache .turbo dist node_modules",
+    "dev": "tsc",
+    "format": "prettier --check . --ignore-path ../../../.gitignore",
+    "lint": "eslint",
+    "seed": "pnpm with-env tsx typescript/seed.ts",
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false",
+    "with-env": "dotenv -e ../../../.env.local --"
+  },
+  "dependencies": {
+    "@dw/db": "workspace:*",
+    "@dw/redis": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "uuid": "^13.0.0"
+},
+"devDependencies": {
+    "@dw/eslint-config": "workspace:*",
+    "@dw/prettier-config": "workspace:*",
+    "@dw/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "prettier": "catalog:",
+    "tsx": "^4.21.0",
+    "typescript": "catalog:"
+  },
+  "prettier": "@dw/prettier-config"
+}

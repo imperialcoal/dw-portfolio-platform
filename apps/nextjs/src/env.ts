@@ -19,7 +19,7 @@ export const env = createEnv({
    * This way you can ensure the app isn't built with invalid env vars.
    */
   server: {
-    DATABASE_URL: z.url(),
+  DATABASE_URL: z.url(),
   },
 
   /**
