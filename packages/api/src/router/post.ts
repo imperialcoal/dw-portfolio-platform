@@ -54,10 +54,12 @@ export const postRouter = {
   create: protectedProcedure
     .input(CreatePostSchema)
     .mutation(async ({ ctx, input }) => {
-      const result = await ctx.db.insert(Post).values(input);
+      const result = await ctx.db.insert(Post).values({
+        ...input,
+        authorId: ctx.user.id,
+      });
 
-      // invalidate relevant caches
-      void Promise.all([ctx.redis.del(cacheKeys.postsAll)]);
+      void ctx.redis.del(cacheKeys.postsAll);
 
       return result;
     }),

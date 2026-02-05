@@ -12,6 +12,7 @@ const config = {
     "@dw/api",
     "@dw/auth",
     "@dw/db",
+    "@dw/redis",
     "@dw/ui",
     "@dw/validators",
   ],

@@ -14,11 +14,12 @@
     "lint": "eslint",
     "seed": "pnpm with-env tsx typescript/seed.ts",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false",
-    "with-env": "dotenv -e ../../.env --"
+    "with-env": "dotenv -e ../../.env.local --"
   },
   "dependencies": {
     "@dw/db": "workspace:*",
     "@dw/redis": "workspace:*",
+    "drizzle-orm": "catalog:",
     "uuid": "^13.0.0"
 },
 "devDependencies": {

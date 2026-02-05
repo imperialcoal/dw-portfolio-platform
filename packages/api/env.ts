@@ -9,6 +9,9 @@ export function apiEnv() {
       NODE_ENV: z
         .enum(["development", "test", "production"])
         .default("development"),
+      APP_ENV: z
+        .enum(["local", "staging", "production"])
+        .default("local"),
     },
     runtimeEnv: process.env,
     skipValidation:

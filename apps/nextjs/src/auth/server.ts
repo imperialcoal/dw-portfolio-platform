@@ -1,28 +1,31 @@
-import "server-only";
+import { auth, currentUser } from "@clerk/nextjs/server";
 
-import { cache } from "react";
-import { headers } from "next/headers";
-import { initAuth } from "@dw/auth";
-import { nextCookies } from "better-auth/next-js";
+export { auth, currentUser };
 
-import { env } from "~/env";
+/**
+ * Helper to get auth or throw
+ * Use this in Server Components or Server Actions
+ */
+export async function requireAuth() {
+  const authResult = await auth();
+  
+  if (!authResult.userId) {
+    throw new Error("Unauthorized");
+  }
+  
+  return authResult;
+}
 
-const baseUrl =
-  env.VERCEL_ENV === "production"
-    ? `https://${env.VERCEL_PROJECT_PRODUCTION_URL}`
-    : env.VERCEL_ENV === "preview"
-      ? `https://${env.VERCEL_URL}`
-      : "http://localhost:3000";
-
-export const auth = initAuth({
-  baseUrl,
-  productionUrl: `https://${env.VERCEL_PROJECT_PRODUCTION_URL ?? "turbo.t3.gg"}`,
-  secret: env.AUTH_SECRET,
-  discordClientId: env.AUTH_DISCORD_ID,
-  discordClientSecret: env.AUTH_DISCORD_SECRET,
-  extraPlugins: [nextCookies()],
-});
-
-export const getSession = cache(async () =>
-  auth.api.getSession({ headers: await headers() }),
-);
+/**
+ * Helper to get current user or throw
+ * Use this when you need full user data
+ */
+export async function requireUser() {
+  const user = await currentUser();
+  
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
+  
+  return user;
+}

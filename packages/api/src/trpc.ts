@@ -9,10 +9,12 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { z, ZodError } from "zod/v4";
+import { eq } from "drizzle-orm";
 
-import type { Auth } from "@dw/auth";
+import type { AuthObject } from "@clerk/backend";
 import { db } from "@dw/db/client";
-import { getRedis, rateLimit, redis } from "@dw/redis";
+import { user } from "@dw/db/schema";
+import { getRedis, rateLimit, redis, cacheKeys } from "@dw/redis";
 
 import { bootstrapInfra } from "./bootstrap";
 import { apiEnv } from "../env";
@@ -35,6 +37,13 @@ getRedis({
 });
 
 /**
+ * Type guard to check if auth is a user session (not M2M)
+ */
+function hasUserId(auth: AuthObject): auth is AuthObject & { userId: string } {
+  return "userId" in auth && typeof auth.userId === "string";
+}
+
+/**
  * 1. CONTEXT
  *
  * This section defines the "contexts" that are available in the backend API.
@@ -46,23 +55,18 @@ getRedis({
  *
  * @see https://trpc.io/docs/server/context
  */
-
-export const createTRPCContext = async (opts: {
+export const createTRPCContext = (opts: {
   headers: Headers;
-  auth: Auth;
+  auth: AuthObject;
 }) => {
-  const authApi = opts.auth.api;
-  const session = await authApi.getSession({
-    headers: opts.headers,
-  });
-  return {
-    authApi,
-    session,
+   return {
     db,
     redis,
     headers: opts.headers,
+    auth: opts.auth,
   };
 };
+
 /**
  * 2. INITIALIZATION
  *
@@ -184,15 +188,63 @@ export const authProcedure = t.procedure
 export const protectedProcedure = t.procedure
   .use(timingMiddleware)
   .use(protectedRateLimit)
-  .use(({ ctx, next }) => {
-    if (!ctx.session?.user) {
+  .use(async ({ ctx, next }) => {
+    // Check if user is authenticated with a session (not M2M token)
+    if (!hasUserId(ctx.auth)) {
       throw new TRPCError({ code: "UNAUTHORIZED" });
     }
+
+    const userId = ctx.auth.userId;
+
+    // Try to get user from Redis cache first
+    const cacheKey = cacheKeys.userById(userId);
+    let profile = await ctx.redis.get<typeof user.$inferSelect>(cacheKey);
+
+    // If not in cache, load from DB
+    if (!profile) {
+      const dbProfile = await ctx.db.query.user.findFirst({
+        where: eq(user.id, userId),
+      });
+
+      // Convert undefined to null for consistency
+      profile = dbProfile ?? null;
+
+      // Cache the user profile if found (5 min TTL)
+      if (profile) {
+        void ctx.redis.set(cacheKey, profile, { ex: 300 });
+      }
+    }
+
+    if (!profile || profile.deletedAt) {
+      throw new TRPCError({ 
+        code: "UNAUTHORIZED",
+        message: "User not found or deleted"
+      });
+    }
+
+    if (profile.banned) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "User is banned",
+      });
+    }
+
+    // Update lastSeenAt (fire-and-forget)
+    void ctx.db
+      .update(user)
+      .set({ lastSeenAt: new Date() })
+      .where(eq(user.id, userId));
+
+    // Return enriched context
     return next({
       ctx: {
-        // infers the `session` as non-nullable
-        session: { ...ctx.session, user: ctx.session.user },
-      },
+        // Don't spread ...ctx here - be explicit about what is passed
+        db: ctx.db,
+        redis: ctx.redis,
+        headers: ctx.headers,
+        userId,
+        user: profile,
+      } 
     });
   });
 

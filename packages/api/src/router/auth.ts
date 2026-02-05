@@ -4,12 +4,11 @@ import type { TRPCRouterRecord } from "@trpc/server";
 import {
   internalProcedure,
   protectedProcedure,
-  publicProcedure,
 } from "../trpc";
 
 export const authRouter = {
-  getSession: publicProcedure.query(({ ctx }) => {
-    return ctx.session;
+  getUser: protectedProcedure.query(({ ctx }) => {
+    return ctx.user;
   }),
 
   // Redis test

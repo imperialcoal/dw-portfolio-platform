@@ -23,15 +23,15 @@
     "dev": "tsc",
     "format": "prettier --check . --ignore-path ../../.gitignore",
     "lint": "eslint --flag unstable_native_nodejs_ts_config",
-    "generate": "pnpm with-env drizzle-kit generate",
-    "push": "pnpm with-env drizzle-kit push",
-    "studio": "pnpm with-env drizzle-kit studio",
+    "db:generate": "pnpm with-env drizzle-kit generate",
+    "db:push": "pnpm with-env drizzle-kit push",
+    "db:studio": "pnpm with-env drizzle-kit studio",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false",
-    "with-env": "dotenv -e ../../.env --"
+    "with-env": "dotenv -e ../../.env.local --"
   },
   "dependencies": {
     "@t3-oss/env-core": "catalog:",
-    "drizzle-orm": "^0.44.7",
+    "drizzle-orm": "catalog:",
     "drizzle-zod": "^0.8.3",
     "postgres": "^3.4.8",
     "zod": "catalog:"

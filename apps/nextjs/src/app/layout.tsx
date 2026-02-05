@@ -1,11 +1,15 @@
 import type { Metadata, Viewport } from "next";
+import { ClerkProvider } from "@clerk/nextjs";
 import { Geist, Geist_Mono } from "next/font/google";
+
 import { cn } from "@dw/ui";
 import { ThemeProvider, ThemeToggle } from "@dw/ui/theme";
 import { Toaster } from "@dw/ui/toast";
 
 import { env } from "~/env";
 import { TRPCReactProvider } from "~/trpc/react";
+import { AuthHeader } from "./_components/auth-header";
+
 
 import "~/app/styles.css";
 
@@ -48,22 +52,25 @@ const geistMono = Geist_Mono({
 
 export default function RootLayout(props: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={cn(
-          "bg-background text-foreground min-h-screen font-sans antialiased",
-          geistSans.variable,
-          geistMono.variable,
-        )}
-      >
-        <ThemeProvider>
-          <TRPCReactProvider>{props.children}</TRPCReactProvider>
-          <div className="absolute right-4 bottom-4">
-            <ThemeToggle />
-          </div>
-          <Toaster />
-        </ThemeProvider>
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en" suppressHydrationWarning>
+        <body
+          className={cn(
+            "bg-background text-foreground min-h-screen font-sans antialiased",
+            geistSans.variable,
+            geistMono.variable,
+          )}
+        >
+          <ThemeProvider>
+            <AuthHeader />
+            <TRPCReactProvider>{props.children}</TRPCReactProvider>
+            <div className="absolute right-4 bottom-4">
+              <ThemeToggle />
+            </div>
+            <Toaster />
+          </ThemeProvider>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

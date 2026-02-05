@@ -6,7 +6,7 @@ import { appRouter, createTRPCContext } from "@dw/api";
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query";
 
-import { auth } from "~/auth/server";
+import { auth } from "@clerk/nextjs/server";
 import { createQueryClient } from "./query-client";
 
 /**
@@ -17,9 +17,11 @@ const createContext = cache(async () => {
   const heads = new Headers(await headers());
   heads.set("x-trpc-source", "rsc");
 
+  const authObject = await auth();
+
   return createTRPCContext({
     headers: heads,
-    auth,
+    auth: authObject,
   });
 });
 

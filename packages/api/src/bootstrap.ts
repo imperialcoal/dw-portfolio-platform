@@ -7,7 +7,7 @@ import { apiEnv } from "../env";
 const env = apiEnv();
 
 export async function bootstrapInfra() {
-  if (env.NODE_ENV === "production") {
+  if (env.APP_ENV === "production") {
     // In production, remain lazy — don't eagerly connect
     return;
   }

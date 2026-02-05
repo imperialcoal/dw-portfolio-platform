@@ -1,40 +1,34 @@
 import { Redis } from "@upstash/redis";
 
-type RedisClient = Redis;
-
 const globalForRedis = globalThis as unknown as {
-  _redis?: RedisClient;
+  redis?: Redis;
 };
 
-export function getRedis(opts: { url: string; token: string }): RedisClient {
-  if (globalForRedis._redis) {
-    return globalForRedis._redis;
+export function getRedis(config: { url: string; token: string }): Redis {
+  if (globalForRedis.redis) {
+    return globalForRedis.redis;
   }
 
   const client = new Redis({
-    url: opts.url,
-    token: opts.token,
+    url: config.url,
+    token: config.token,
   });
 
-  globalForRedis._redis = client;
+  globalForRedis.redis = client;
 
   return client;
 }
 
-/**
- * Lazy ergonomic proxy
- * Allows: redis.get(), redis.set()
- */
-export const redis: RedisClient = new Proxy({} as RedisClient, {
-  get(_target, prop: keyof RedisClient) {
-    const realRedis = globalForRedis._redis;
-
-    if (!realRedis) {
-      throw new Error(
-        "Redis client accessed before initialization. Call getRedis() first.",
-      );
+// Export typed redis instance
+export const redis = new Proxy({} as Redis, {
+  get(_target, prop: string) {
+    if (!globalForRedis.redis) {
+      throw new Error("Redis not initialized. Call getRedis() first.");
     }
-
-    return realRedis[prop];
+    const value = globalForRedis.redis[prop as keyof Redis];
+    if (typeof value === "function") {
+      return value.bind(globalForRedis.redis);
+    }
+    return value;
   },
 });

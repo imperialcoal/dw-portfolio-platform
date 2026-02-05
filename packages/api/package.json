@@ -18,6 +18,7 @@
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {
+    "@clerk/backend": "^2.29.7",
     "@dw/auth": "workspace:*",
     "@dw/db": "workspace:*",
     "@dw/health": "workspace:*",
@@ -25,6 +26,7 @@
     "@dw/validators": "workspace:*",
     "@t3-oss/env-core": "catalog:",
     "@trpc/server": "catalog:",
+    "drizzle-orm": "catalog:",
     "superjson": "2.2.6",
     "zod": "catalog:"
   },
@@ -32,6 +34,7 @@
     "@dw/eslint-config": "workspace:*",
     "@dw/prettier-config": "workspace:*",
     "@dw/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
     "eslint": "catalog:",
     "prettier": "catalog:",
     "typescript": "catalog:"

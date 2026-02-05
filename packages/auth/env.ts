@@ -4,15 +4,14 @@ import { z } from "zod/v4";
 export function authEnv() {
   return createEnv({
     server: {
-      AUTH_DISCORD_ID: z.string().min(1),
-      AUTH_DISCORD_SECRET: z.string().min(1),
-      AUTH_SECRET:
-        process.env.NODE_ENV === "production"
-          ? z.string().min(1)
-          : z.string().min(1).optional(),
+      CLERK_SECRET_KEY: z.string().min(1),
+      CLERK_WEBHOOK_SECRET: z.string().min(1),
       NODE_ENV: z
         .enum(["development", "test", "production"])
         .default("development"),
+      APP_ENV: z
+        .enum(["local", "staging", "production"])
+        .default("local"),        
     },
     runtimeEnv: process.env,
     skipValidation:
