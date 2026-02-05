@@ -25,7 +25,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Setup
-        uses: ./tooling/github/setup
+        uses: ./platform/standards/github/setup
 
       - name: Copy env
         shell: bash
@@ -40,7 +40,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Setup
-        uses: ./tooling/github/setup
+        uses: ./platform/standards/github/setup
 
       - name: Format
         run: pnpm format
@@ -51,7 +51,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Setup
-        uses: ./tooling/github/setup
+        uses: ./platform/standards/github/setup
 
       - name: Typecheck
         run: pnpm typecheck
