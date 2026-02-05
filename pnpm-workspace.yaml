@@ -2,7 +2,7 @@ packages:
   - apps/*
   - packages/*
   - platform/cli
-  - platform/developer/*
+  - platform/dev-tools/*
   - platform/standards/*
 
 catalog:
