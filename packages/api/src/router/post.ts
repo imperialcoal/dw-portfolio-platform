@@ -5,12 +5,12 @@ import { desc, eq } from "@dw/db";
 import { CreatePostSchema, Post } from "@dw/db/schema";
 import { cacheKeys } from "@dw/redis";
 
-import { protectedProcedure, publicProcedure } from "../trpc";
+// Add protectedProcedure when all registered users have writing privileges
+import { adminProcedure, publicProcedure } from "../trpc";
 
 export const postRouter = {
   all: publicProcedure.query(async ({ ctx }) => {
     const cacheKey = cacheKeys.postsAll;
-
     const cached = await ctx.redis.get<(typeof Post.$inferSelect)[]>(cacheKey);
 
     if (cached) {
@@ -34,7 +34,6 @@ export const postRouter = {
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
       const cacheKey = cacheKeys.postById(input.id);
-
       type PostRow = typeof Post.$inferSelect;
       const cached = await ctx.redis.get<PostRow>(cacheKey);
 
@@ -51,7 +50,24 @@ export const postRouter = {
       return post;
     }),
 
-  create: protectedProcedure
+  // Currently Admin is the only user that can create posts
+  // create: protectedProcedure
+  //   .input(CreatePostSchema)
+  //   .mutation(async ({ ctx, input }) => {
+  //     const result = await ctx.db.insert(Post).values({
+  //       ...input,
+  //       authorId: ctx.user.id,
+  //     });
+
+  //     void ctx.redis.del(cacheKeys.postsAll);
+
+  //     return result;
+  //   }),
+
+  // ADMIN ONLY: Currently only Admin can create posts
+  // In the future, I will change this back to `protectedProcedure`
+  // and add logic to enforce `authorId` matches `ctx.user.id`.
+  create: adminProcedure
     .input(CreatePostSchema)
     .mutation(async ({ ctx, input }) => {
       const result = await ctx.db.insert(Post).values({
@@ -64,16 +80,29 @@ export const postRouter = {
       return result;
     }),
 
-  delete: protectedProcedure
-    .input(z.string())
-    .mutation(async ({ ctx, input }) => {
-      const res = await ctx.db.delete(Post).where(eq(Post.id, input));
+  // Currently Admin is the only user that can delete posts
+  // delete: protectedProcedure
+  //   .input(z.string())
+  //   .mutation(async ({ ctx, input }) => {
+  //     const res = await ctx.db.delete(Post).where(eq(Post.id, input));
 
-      void Promise.all([
-        ctx.redis.del(cacheKeys.postsAll),
-        ctx.redis.del(cacheKeys.postById(input)),
-      ]);
+  //     void Promise.all([
+  //       ctx.redis.del(cacheKeys.postsAll),
+  //       ctx.redis.del(cacheKeys.postById(input)),
+  //     ]);
 
-      return res;
-    }),
+  //     return res;
+  //   }),
+
+  // ADMIN ONLY: Currently only admin can delete
+  delete: adminProcedure.input(z.string()).mutation(async ({ ctx, input }) => {
+    const res = await ctx.db.delete(Post).where(eq(Post.id, input));
+
+    void Promise.all([
+      ctx.redis.del(cacheKeys.postsAll),
+      ctx.redis.del(cacheKeys.postById(input)),
+    ]);
+
+    return res;
+  }),
 } satisfies TRPCRouterRecord;

@@ -1,8 +1,10 @@
 import type { WebhookEvent } from "@clerk/backend";
 import { headers } from "next/headers";
+import { clerkClient } from "@clerk/nextjs/server";
 import { eq } from "drizzle-orm";
 import { Webhook } from "svix";
 
+import type { ClerkPublicMetadata, Role } from "@dw/auth";
 import { authEnv } from "@dw/auth";
 import { db } from "@dw/db/client";
 import { user } from "@dw/db/schema";
@@ -97,19 +99,86 @@ export async function POST(req: Request) {
           return new Response("Error: Missing email", { status: 400 });
         }
 
+        // 1. UPSERT (Avoid Race Condition)
+        // If the user doesn't exist (missed 'user.created'), create them.
+        // If they do exist, update them.
+        // CRITICAL: Do NOT include 'role' in the update set. DB role persists.
         await db
-          .update(user)
-          .set({
+          .insert(user)
+          .values({
+            id: data.id,
             email: primaryEmail.email_address,
             emailVerified: primaryEmail.verification?.status === "verified",
             name:
               `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim() || null,
             image: data.image_url || null,
+            role: "user", // Default for NEW rows only
+            createdAt: new Date(data.created_at),
             updatedAt: new Date(data.updated_at),
           })
-          .where(eq(user.id, data.id));
+          .onConflictDoUpdate({
+            target: user.id,
+            set: {
+              email: primaryEmail.email_address,
+              emailVerified: primaryEmail.verification?.status === "verified",
+              name:
+                `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim() ||
+                null,
+              image: data.image_url || null,
+              updatedAt: new Date(data.updated_at),
+              // NO ROLE UPDATE HERE -> Preserves existing DB role
+            },
+          });
 
-        // Invalidate user cache after update
+        // 2. Fetch the "Source of Truth"
+        // Fetch strictly the role to minimize data transfer
+        const dbUser = await db.query.user.findFirst({
+          where: eq(user.id, data.id),
+          columns: { role: true },
+        });
+
+        // 3. Anti-Recursion Back-Sync
+        // Only call Clerk if there is a strict mismatch.
+        // This breaks the loop: Clerk updates -> Webhook fires -> Roles match -> Stop.
+        const metadata = data.public_metadata as ClerkPublicMetadata;
+        const clerkRole = metadata.role;
+
+        if (dbUser && clerkRole !== dbUser.role) {
+          // Distributed lock: prevents multiple webhook workers syncing simultaneously
+          const lockKey = `lock:user-role-sync:${data.id}`;
+          const acquired = await redis.set(lockKey, "1", { nx: true, ex: 15 });
+          if (!acquired) return new Response("OK");
+
+          try {
+            // Optimistic concurrency guard: re-read the role once more and prevent stale read overwriting newer DB changes
+            const latest = await db.query.user.findFirst({
+              where: eq(user.id, data.id),
+              columns: { role: true },
+            });
+
+            const dbRole = dbUser.role as Role | undefined; // Type assertion safe due to DB schema
+            const latestRole = latest?.role as Role | undefined;
+
+            if (!latest || latestRole !== dbRole) return;
+
+            const client = await clerkClient();
+
+            await client.users.updateUserMetadata(data.id, {
+              publicMetadata: {
+                role: latestRole,
+              },
+            });
+
+            console.log(
+              `🔄 Synced Role: Clerk (${clerkRole}) -> DB (${latestRole})`,
+            );
+          } finally {
+            // ALWAYS release the lock even if an error occurs
+            await redis.del(lockKey);
+          }
+        }
+
+        // 4. Invalidate Cache
         void redis.del(cacheKeys.userById(data.id));
 
         console.log(`✅ User updated: ${data.id}`);

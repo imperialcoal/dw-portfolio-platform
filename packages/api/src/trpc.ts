@@ -12,6 +12,7 @@ import { eq } from "drizzle-orm";
 import superjson from "superjson";
 import { z, ZodError } from "zod/v4";
 
+import { ROLES } from "@dw/auth";
 import { db } from "@dw/db/client";
 import { user } from "@dw/db/schema";
 import { cacheKeys, getRedis, rateLimit, redis } from "@dw/redis";
@@ -209,6 +210,15 @@ export const protectedProcedure = t.procedure
       // Convert undefined to null for consistency
       profile = dbProfile ?? null;
 
+      // Future consideration:
+      // If a user signs up and immediately gets redirected to the dashboard,
+      // there is a tiny chance the webhook hasn't finished writing to Postgres yet.
+      // --- JIT (Just-In-Time) FALLBACK START ---
+      // If DB missed the webhook, fetch from Clerk directly and insert NOW.
+      // Insert basic record so the user isn't blocked
+      // Default to "user" role safely
+      // --- JIT FALLBACK END ---
+
       // Cache the user profile if found (5 min TTL)
       if (profile) {
         void ctx.redis.set(cacheKey, profile, { ex: 300 });
@@ -247,6 +257,30 @@ export const protectedProcedure = t.procedure
       },
     });
   });
+
+/**
+ * Admin procedure
+ *
+ * ONLY accessible to users with the 'admin' role in the database.
+ * Uses protectedProcedure first to ensure user exists and is not banned.
+ */
+export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+  // I trust the DB/Redis user object here.
+  // I cast to string comparison to be safe, or import Role type if preferred.
+  if (ctx.user.role !== ROLES.ADMIN) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "You are not authorized to perform this action.",
+    });
+  }
+
+  return next({
+    ctx: {
+      // Pass through the same context, but now I technically know the role is admin
+      ...ctx,
+    },
+  });
+});
 
 /**
  * Internal procedure

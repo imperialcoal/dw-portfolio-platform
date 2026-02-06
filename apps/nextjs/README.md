@@ -62,8 +62,8 @@ Create a `.env.local` file at the monorepo root:
 
 ```bash
 # Database (PostgreSQL)
-DATABASE_URL=postgresql://user:password@localhost:5433/dbname
-DIRECT_URL=postgresql://user:password@localhost:5433/dbname
+DATABASE_URL=postgresql://user:password@127.0.0.1:5433/dbname
+DIRECT_URL=postgresql://user:password@127.0.0.1:5433/dbname
 
 # Clerk Authentication
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
