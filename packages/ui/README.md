@@ -60,7 +60,7 @@ import { Label } from "@dw/ui/label";
 <div>
   <Label htmlFor="email">Email</Label>
   <Input id="email" type="email" placeholder="you@example.com" />
-</div>
+</div>;
 ```
 
 ### Field (Form Field)
@@ -69,9 +69,13 @@ import { Label } from "@dw/ui/label";
 import { Field } from "@dw/ui/field";
 import { Input } from "@dw/ui/input";
 
-<Field label="Username" error={errors.username} description="Choose a unique username">
+<Field
+  label="Username"
+  error={errors.username}
+  description="Choose a unique username"
+>
   <Input {...register("username")} />
-</Field>
+</Field>;
 ```
 
 ### Toast Notifications
@@ -95,7 +99,7 @@ import { ThemeProvider } from "@dw/ui/theme";
 
 <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
   {children}
-</ThemeProvider>
+</ThemeProvider>;
 ```
 
 ## Adding New Components
@@ -133,9 +137,7 @@ Components use Tailwind CSS with CSS variables for theming:
 Components reference these variables:
 
 ```tsx
-<div className="bg-background text-foreground">
-  Content
-</div>
+<div className="bg-background text-foreground">Content</div>
 ```
 
 ## Component Variants
@@ -152,7 +154,7 @@ const buttonVariants = cva(
       variant: {
         default: "bg-primary text-primary-foreground",
         destructive: "bg-destructive text-destructive-foreground",
-        outline: "border border-input bg-background",
+        outline: "border-input bg-background border",
       },
       size: {
         default: "h-10 px-4 py-2",
@@ -164,7 +166,7 @@ const buttonVariants = cva(
       variant: "default",
       size: "default",
     },
-  }
+  },
 );
 ```
 

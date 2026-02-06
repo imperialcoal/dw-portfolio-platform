@@ -55,9 +55,12 @@ export const Post = pgTable("post", (t) => ({
   content: t.text().notNull(),
   createdAt: t.timestamp().defaultNow().notNull(),
   updatedAt: t.timestamp().$onUpdateFn(() => sql`now()`),
-  authorId: t.text().notNull().references(() => user.id, {
-    onDelete: "cascade"
-  }),
+  authorId: t
+    .text()
+    .notNull()
+    .references(() => user.id, {
+      onDelete: "cascade",
+    }),
 }));
 ```
 
@@ -98,6 +101,7 @@ The Drizzle client is configured with connection pooling:
 // src/client.ts
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
+
 import * as schema from "./schema";
 
 const queryClient = postgres(env.DATABASE_URL);
@@ -132,9 +136,9 @@ DIRECT_URL=postgres://user:password@host:5432/db
 ### Querying
 
 ```typescript
+import { desc, eq } from "@dw/db";
 import { db } from "@dw/db/client";
 import { Post, user } from "@dw/db/schema";
-import { eq, desc } from "@dw/db";
 
 // Query all posts
 const posts = await db.query.Post.findMany({
@@ -173,9 +177,9 @@ const result = await db.insert(Post).values({
 ### Updating
 
 ```typescript
+import { eq } from "@dw/db";
 import { db } from "@dw/db/client";
 import { Post } from "@dw/db/schema";
-import { eq } from "@dw/db";
 
 await db
   .update(Post)
@@ -186,9 +190,9 @@ await db
 ### Deleting
 
 ```typescript
+import { eq } from "@dw/db";
 import { db } from "@dw/db/client";
 import { Post } from "@dw/db/schema";
-import { eq } from "@dw/db";
 
 await db.delete(Post).where(eq(Post.id, postId));
 ```
@@ -272,6 +276,7 @@ pnpm db:studio
 Drizzle Studio will open at `https://local.drizzle.studio`.
 
 Features:
+
 - Browse tables and data
 - Run queries
 - Edit records
@@ -283,13 +288,13 @@ Features:
 
 ```typescript
 export default {
-  schema: "./src/schema.ts",      // Schema definition
-  out: "./drizzle",               // Migration output directory
-  dialect: "postgresql",          // Database type
+  schema: "./src/schema.ts", // Schema definition
+  out: "./drizzle", // Migration output directory
+  dialect: "postgresql", // Database type
   dbCredentials: {
-    url: env.DIRECT_URL,          // Direct connection (no pooling)
+    url: env.DIRECT_URL, // Direct connection (no pooling)
   },
-  casing: "snake_case",           // Column naming convention
+  casing: "snake_case", // Column naming convention
 } satisfies Config;
 ```
 
@@ -315,12 +320,18 @@ Drizzle automatically converts between camelCase (TypeScript) and snake_case (SQ
 export const Comment = pgTable("comment", (t) => ({
   id: t.uuid().notNull().primaryKey().defaultRandom(),
   content: t.text().notNull(),
-  postId: t.uuid().notNull().references(() => Post.id, {
-    onDelete: "cascade",
-  }),
-  authorId: t.text().notNull().references(() => user.id, {
-    onDelete: "cascade",
-  }),
+  postId: t
+    .uuid()
+    .notNull()
+    .references(() => Post.id, {
+      onDelete: "cascade",
+    }),
+  authorId: t
+    .text()
+    .notNull()
+    .references(() => user.id, {
+      onDelete: "cascade",
+    }),
   createdAt: t.timestamp().defaultNow().notNull(),
 }));
 ```

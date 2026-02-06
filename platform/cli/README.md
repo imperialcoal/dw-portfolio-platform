@@ -13,6 +13,7 @@ This package provides CLI tools for common platform operations, database managem
 **Name**: `@dw/cli`
 
 **Dependencies**:
+
 - `@dw/api` - API operations
 - `@dw/db` - Database operations
 - `@dw/redis` - Redis operations

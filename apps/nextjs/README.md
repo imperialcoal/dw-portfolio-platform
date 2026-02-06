@@ -89,6 +89,7 @@ See [`.env.example`](../../.env.example) for a complete reference.
 ### Prerequisites
 
 1. **Infrastructure running**: PostgreSQL, Redis, Upstash emulator
+
    ```bash
    pnpm infra:up
    ```
@@ -262,11 +263,13 @@ export const env = createEnv({
 Webhook endpoint: `/api/webhooks/clerk`
 
 Handles Clerk user events:
+
 - `user.created`: Create user in database
 - `user.updated`: Update user info
 - `user.deleted`: Soft delete or archive user
 
 Configure in Clerk Dashboard:
+
 - URL: `https://your-domain.com/api/webhooks/clerk`
 - Events: `user.created`, `user.updated`, `user.deleted`
 - Secret: Set `CLERK_WEBHOOK_SECRET` in environment

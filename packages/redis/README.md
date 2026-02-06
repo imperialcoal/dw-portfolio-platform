@@ -61,12 +61,12 @@ const results = await pipeline.exec();
 Token bucket rate limiting for API endpoints:
 
 ```typescript
-import { redis, rateLimit } from "@dw/redis";
+import { rateLimit, redis } from "@dw/redis";
 
 await rateLimit(redis, "user-123:api-call", {
-  windowSeconds: 60,    // 60-second window
-  maxRequests: 100,     // 100 requests per window
-  prefix: "ratelimit",  // Key prefix
+  windowSeconds: 60, // 60-second window
+  maxRequests: 100, // 100 requests per window
+  prefix: "ratelimit", // Key prefix
 });
 
 // Throws TRPCError if limit exceeded
@@ -92,7 +92,7 @@ const rateLimitMiddleware = t.middleware(async ({ ctx, path, next }) => {
 Centralized cache key definitions for consistency:
 
 ```typescript
-import { redis, cacheKeys } from "@dw/redis";
+import { cacheKeys, redis } from "@dw/redis";
 
 // Use predefined keys
 const posts = await redis.get(cacheKeys.postsAll);
@@ -126,6 +126,7 @@ pnpm infra:up
 ```
 
 This starts:
+
 - **Redis**: Port 6379 (standard Redis)
 - **Upstash HTTP Proxy**: Port 8079 (REST API)
 
@@ -190,9 +191,9 @@ Defined in `@dw/api`:
 Organized by resource type:
 
 ```typescript
-cacheKeys.postsAll           // "posts:all"
-cacheKeys.postById("123")    // "post:123"
-cacheKeys.userById("u-123")  // "user:u-123"
+cacheKeys.postsAll; // "posts:all"
+cacheKeys.postById("123"); // "post:123"
+cacheKeys.userById("u-123"); // "user:u-123"
 ```
 
 ### TTL Guidelines

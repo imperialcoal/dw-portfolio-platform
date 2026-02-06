@@ -54,6 +54,7 @@ post.delete(id)         // Delete post (protected)
 ```
 
 **Features**:
+
 - Public queries with Redis caching (1-hour TTL)
 - Cache invalidation on mutations
 - Author ID automatically set from authenticated user
@@ -64,13 +65,14 @@ Authentication and health check endpoints.
 
 ```typescript
 // Procedures
-auth.getUser()          // Get current user profile (protected)
-auth.getSecretMessage() // Example protected endpoint
-auth.testRedis()        // Redis health check (internal)
-auth.testDb()           // Database health check (internal)
+auth.getUser(); // Get current user profile (protected)
+auth.getSecretMessage(); // Example protected endpoint
+auth.testRedis(); // Redis health check (internal)
+auth.testDb(); // Database health check (internal)
 ```
 
 **Features**:
+
 - User profile retrieval with caching
 - Infrastructure health checks for monitoring
 
@@ -111,6 +113,7 @@ export const exampleRouter = {
 ```
 
 **Protected context includes**:
+
 - `ctx.userId`: Clerk user ID (string)
 - `ctx.user`: Full user profile from database
 - `ctx.db`: Drizzle database client
@@ -118,6 +121,7 @@ export const exampleRouter = {
 - `ctx.headers`: Request headers
 
 **Automatic checks**:
+
 - User exists in database
 - User is not soft-deleted (`deletedAt` is null)
 - User is not banned
@@ -129,11 +133,9 @@ For login/registration endpoints. Rate limited to 20 requests/minute per IP.
 
 ```typescript
 export const authRouter = {
-  login: authProcedure
-    .input(loginSchema)
-    .mutation(({ ctx, input }) => {
-      // Strict rate limiting for auth endpoints
-    }),
+  login: authProcedure.input(loginSchema).mutation(({ ctx, input }) => {
+    // Strict rate limiting for auth endpoints
+  }),
 };
 ```
 
@@ -155,16 +157,16 @@ The tRPC context provides access to infrastructure and user data:
 
 ```typescript
 type Context = {
-  db: DrizzleDB;           // Database client
-  redis: RedisClient;       // Redis client
-  headers: Headers;         // Request headers
-  auth: AuthObject;         // Clerk auth object
+  db: DrizzleDB; // Database client
+  redis: RedisClient; // Redis client
+  headers: Headers; // Request headers
+  auth: AuthObject; // Clerk auth object
 };
 
 // In protected procedures, context is enriched:
 type ProtectedContext = Context & {
-  userId: string;           // Clerk user ID
-  user: UserProfile;        // Full user from database
+  userId: string; // Clerk user ID
+  user: UserProfile; // Full user from database
 };
 ```
 
@@ -231,7 +233,8 @@ input(z.object({ title: z.string().min(3) }))
 // src/router/example.ts
 import type { TRPCRouterRecord } from "@trpc/server";
 import { z } from "zod/v4";
-import { publicProcedure, protectedProcedure } from "../trpc";
+
+import { protectedProcedure, publicProcedure } from "../trpc";
 
 export const exampleRouter = {
   list: publicProcedure.query(({ ctx }) => {
@@ -336,6 +339,7 @@ Queries are cached in Redis with appropriate TTLs:
 - **User profile**: 5 minutes (in protected procedure middleware)
 
 Cache invalidation:
+
 - `post.create`: Invalidates `postsAll` cache
 - `post.delete`: Invalidates `postsAll` and `postById` cache
 

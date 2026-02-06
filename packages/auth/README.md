@@ -47,6 +47,7 @@ packages/auth/
 Clerk is used for OAuth social logins in Next.js.
 
 **Features**:
+
 - Social login (Google, GitHub, etc.)
 - Managed authentication UI
 - User management dashboard
@@ -77,6 +78,7 @@ CLERK_WEBHOOK_SECRET=whsec_...
 Better Auth provides email/password authentication with full control.
 
 **Features**:
+
 - Email/password authentication
 - Session management
 - Custom auth flows
@@ -150,8 +152,8 @@ AUTH_REDIRECT_PROXY_URL=https://your-app.vercel.app/api/auth
 ### Better Auth Client
 
 ```typescript
-import { authClient } from "@better-auth/expo";
 import * as SecureStore from "expo-secure-store";
+import { authClient } from "@better-auth/expo";
 
 // Configure auth client
 export const auth = authClient({
@@ -185,8 +187,8 @@ const session = await auth.getSession();
 ### OAuth Flow (via Clerk Proxy)
 
 ```typescript
-import * as WebBrowser from "expo-web-browser";
 import { makeRedirectUri } from "expo-auth-session";
+import * as WebBrowser from "expo-web-browser";
 
 // Open OAuth proxy in browser
 const redirectUri = makeRedirectUri();
@@ -211,6 +213,7 @@ The `auth:generate` script uses the Better Auth CLI to create database tables.
 // script/auth-cli.ts (CLI only - do NOT import)
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+
 import { db } from "@dw/db/client";
 
 export const auth = betterAuth({
@@ -303,6 +306,7 @@ Configure Clerk webhook to sync users to database:
 **Endpoint**: `https://your-app.com/api/webhooks/clerk`
 
 **Events**:
+
 - `user.created` - Create user in database
 - `user.updated` - Update user info
 - `user.deleted` - Soft delete user
@@ -312,6 +316,7 @@ Configure Clerk webhook to sync users to database:
 ```typescript
 // app/api/webhooks/clerk/route.ts
 import { Webhook } from "svix";
+
 import { db } from "@dw/db/client";
 import { user } from "@dw/db/schema";
 

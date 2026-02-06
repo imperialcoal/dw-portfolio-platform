@@ -73,6 +73,7 @@ Note: For production, update `EXPO_PUBLIC_API_URL` to your deployed Next.js URL.
 ### Prerequisites
 
 1. **Infrastructure running**: Next.js backend must be running
+
    ```bash
    # From monorepo root
    pnpm dev:next
@@ -94,6 +95,7 @@ pnpm dev
 ```
 
 Then:
+
 - Press `i` for iOS Simulator
 - Press `a` for Android Emulator
 - Scan QR code with Expo Go app (iOS/Android)
@@ -143,6 +145,7 @@ This app uses **Better Auth** for authentication:
 - OAuth via Next.js proxy (configured with Clerk)
 
 **OAuth Flow**:
+
 1. User taps "Sign in with Google" in Expo app
 2. App opens Next.js OAuth proxy in web browser
 3. User authenticates via Clerk on Next.js
