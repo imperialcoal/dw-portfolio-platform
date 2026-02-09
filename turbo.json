@@ -49,15 +49,15 @@
       "cache": false,
       "interactive": true
     },
-    "api:infrastructure:test": {
-      "outputs": ["coverage/**"],
-      "dependsOn": ["dev-tools:test:setup"]
-    },
     "dev-tools:test:setup": {
       "cache": false
     },
     "dev-tools:db:seed": {
       "cache": false
+    },
+    "api:infrastructure:test": {
+      "dependsOn": ["dev-tools:test:setup", "dev-tools:db:seed"],
+      "outputs": ["coverage/**"]
     }
   },
   "globalEnv": [

@@ -43,9 +43,13 @@ async function setupTestDb() {
   // 4. Push Schema
   console.log("🔄 Pushing schema to test database...");
   try {
-    execSync(`DATABASE_URL=${testDbUrl} pnpm db:push`, {
+    execSync(`pnpm db:push`, {
       stdio: "inherit",
       cwd: "../../../packages/db",
+      env: {
+        ...process.env,
+        DATABASE_URL: testDbUrl,
+      },
     });
     console.log("✅ Schema synced.");
   } catch (e) {
@@ -54,9 +58,6 @@ async function setupTestDb() {
   }
 }
 
-setupTestDb()
-  .then(() => process.exit(0))
-  .catch((err) => {
-    console.error("Test DB setup failed:", err);
-    process.exit(1);
-  });
+export default async function () {
+  await setupTestDb();
+}
