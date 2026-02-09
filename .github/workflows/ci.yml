@@ -99,4 +99,4 @@ jobs:
           echo "CLERK_SECRET_KEY=sk_test_mock" >> .env.local
 
       - name: Run API Infrastructure Tests
-        run: pnpm api:infrastructure:test
+        run: pnpm test:api:infra

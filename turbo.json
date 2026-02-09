@@ -54,12 +54,10 @@
       "dependsOn": ["dev-tools:test:setup"]
     },
     "dev-tools:test:setup": {
-      "cache": false,
-      "interactive": true
+      "cache": false
     },
     "dev-tools:db:seed": {
-      "cache": false,
-      "interactive": true
+      "cache": false
     }
   },
   "globalEnv": [

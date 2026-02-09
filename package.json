@@ -32,7 +32,7 @@
     "lint": "turbo run lint --continue -- --cache --cache-location .cache/.eslintcache",
     "lint:fix": "turbo run lint --continue -- --fix --cache --cache-location .cache/.eslintcache",
     "lint:ws": "pnpm dlx sherif@latest",
-    "api:infrastructure:test": "turbo run api:infrastructure:test",
+    "test:api:infra": "pnpm turbo run api:infrastructure:test",
     "test:setup": "turbo run dev-tools:test:setup",
     "dev:seed": "turbo run dev-tools:db:seed",
     "postinstall": "pnpm lint:ws",
