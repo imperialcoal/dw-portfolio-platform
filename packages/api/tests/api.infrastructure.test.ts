@@ -46,7 +46,7 @@ const createCaller = async (role?: string, userId?: string) => {
   });
 };
 
-describe("Platform Infrastructure", () => {
+describe("API Infrastructure", () => {
   // Requirement 1 & 2: Auth Middleware & Protected Route
   it("should block guests and regular users from creating posts", async () => {
     // Guest (No ID)
