@@ -98,5 +98,5 @@ jobs:
           echo "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_mock" >> .env.local
           echo "CLERK_SECRET_KEY=sk_test_mock" >> .env.local
 
-      - name: Run API Infrastructure Tests
+      - name: API Infrastructure Tests
         run: pnpm test:api:infra

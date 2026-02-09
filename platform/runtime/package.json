@@ -1,10 +1,14 @@
 {
-  "name": "@dw/dev-tools-scripts",
+  "name": "@dw/runtime",
   "private": true,
   "type": "module",
   "license": "MIT",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./bootstrap": "./src/bootstrap.ts",
+    "./context": "./src/context.ts",
+    "./process": "./src/process.ts",
+    "./singletons": "./src/singletons.ts"
   },
   "scripts": {
     "build": "tsc",
@@ -12,18 +16,13 @@
     "dev": "tsc",
     "format": "prettier --check . --ignore-path ../../../.gitignore",
     "lint": "eslint",
-    "dev-tools:test:setup": "pnpm -w with-env tsx typescript/setup-test-db.ts",
-    "dev-tools:db:seed": "pnpm -w with-env tsx typescript/seed.ts",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {
     "@dw/config": "workspace:*",
     "@dw/db": "workspace:*",
-    "@dw/redis": "workspace:*",
-    "@dw/runtime": "workspace:*",
-    "drizzle-orm": "catalog:",
-    "postgres": "^3.4.8",
-    "uuid": "^13.0.0"
+    "@dw/health": "workspace:*",
+    "@dw/redis": "workspace:*"
   },
   "devDependencies": {
     "@dw/eslint-config": "workspace:*",

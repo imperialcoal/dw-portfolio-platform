@@ -1,36 +1,31 @@
 {
-  "name": "@dw/cli",
+  "name": "@dw/config",
   "private": true,
   "type": "module",
-  "license": "MIT",
-  "bin": {
+  "exports": {
     ".": "./src/index.ts"
   },
+  "license": "MIT",
   "scripts": {
     "build": "tsc",
     "clean": "git clean -xdf .cache .turbo dist node_modules",
-    "dev": "tsx src/index.ts",
-    "format": "prettier --check . --ignore-path ../../../.gitignore",
+    "dev": "tsc",
+    "format": "prettier --check . --ignore-path ../../.gitignore",
     "lint": "eslint",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
-  },
-  "dependencies": {
-    "@dw/api": "workspace:*",
-    "@dw/db": "workspace:*",
-    "@dw/env": "workspace:*",
-    "@dw/redis": "workspace:*",
-    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "@dw/eslint-config": "workspace:*",
     "@dw/prettier-config": "workspace:*",
     "@dw/tsconfig": "workspace:*",
     "@types/node": "catalog:",
-    "commander": "^14.0.3",
     "eslint": "catalog:",
     "prettier": "catalog:",
-    "tsx": "^4.21.0",
     "typescript": "catalog:"
   },
-  "prettier": "@dw/prettier-config"
+  "prettier": "@dw/prettier-config",
+  "dependencies": {
+    "@dw/env": "workspace:*",
+    "@dw/validators": "workspace:*"
+  }
 }

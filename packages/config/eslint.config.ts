@@ -1,0 +1,9 @@
+import { baseConfig } from "@dw/eslint-config/base";
+import { defineConfig } from "eslint/config";
+
+export default defineConfig(
+  {
+    ignores: [],
+  },
+  baseConfig,
+);

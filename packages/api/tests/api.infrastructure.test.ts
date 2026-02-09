@@ -1,10 +1,11 @@
 import type { AuthObject } from "@clerk/backend";
-import { describe, expect, it } from "vitest";
+import { sql } from "drizzle-orm";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { ROLES } from "@dw/auth";
-import { db } from "@dw/db/client";
 import { user } from "@dw/db/schema";
-import { redis } from "@dw/redis";
+import { createRuntimeContext } from "@dw/runtime/context";
+import { db } from "@dw/runtime/singletons";
 
 import { appRouter } from "../src/index";
 
@@ -39,8 +40,7 @@ const createCaller = async (role?: string, userId?: string) => {
 
   // 3. Create the Caller
   return appRouter.createCaller({
-    db,
-    redis, // Pass the real redis proxy (it uses mocks in CI)
+    ...createRuntimeContext(),
     headers: new Headers(),
     auth: mockAuth,
   });
@@ -99,6 +99,11 @@ describe("API Infrastructure", () => {
     expect(dbPost?.authorId).toBe(adminId);
 
     // Cleanup
-    await adminCaller.post.delete(post.id);
+    // await adminCaller.post.delete(post.id);
+    afterEach(async () => {
+      // reset tables used in tests
+      await db.execute(sql`TRUNCATE TABLE "Post" RESTART IDENTITY CASCADE`);
+      await db.execute(sql`TRUNCATE TABLE "user" RESTART IDENTITY CASCADE`);
+    });
   });
 });

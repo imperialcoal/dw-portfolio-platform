@@ -1,15 +1,13 @@
 import { execSync } from "child_process";
 import postgres from "postgres";
 
-import { dbEnv } from "@dw/db/env";
-
-const env = dbEnv();
+import { config } from "@dw/config";
 
 async function setupTestDb() {
   console.log("🛠️  Setting up Test Database...");
 
   // Use the validated env var
-  const DATABASE_URL = env.DATABASE_URL;
+  const DATABASE_URL = config.db.DATABASE_URL;
 
   // 1. Connect to Admin DB
   const adminClient = postgres(DATABASE_URL, {

@@ -11,8 +11,11 @@ const config = {
   transpilePackages: [
     "@dw/api",
     "@dw/auth",
+    "@dw/config",
     "@dw/db",
+    "@dw/env",
     "@dw/redis",
+    "@dw/runtime",
     "@dw/ui",
     "@dw/validators",
   ],

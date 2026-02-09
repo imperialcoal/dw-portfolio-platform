@@ -1,13 +1,11 @@
 import type { Config } from "drizzle-kit";
 
-import { dbEnv } from "./env";
-
-const env = dbEnv();
+import { config } from "@dw/config";
 
 export default {
   schema: "./src/schema.ts",
   out: "./drizzle",
   dialect: "postgresql",
-  dbCredentials: { url: env.DIRECT_URL },
+  dbCredentials: { url: config.db.DIRECT_URL },
   casing: "snake_case",
 } satisfies Config;

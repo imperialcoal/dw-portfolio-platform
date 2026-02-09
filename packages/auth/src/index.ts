@@ -1,7 +1,5 @@
 export { clerkConfig, type ClerkAuth, type ClerkUser } from "./clerk";
 
-export { authEnv } from "../env";
-
 export { ROLES, type Role } from "./roles";
 
 export {

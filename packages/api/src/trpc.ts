@@ -13,14 +13,13 @@ import superjson from "superjson";
 import { z, ZodError } from "zod/v4";
 
 import { ROLES } from "@dw/auth";
-import { db } from "@dw/db/client";
+import { config } from "@dw/config";
 import { user } from "@dw/db/schema";
-import { cacheKeys, getRedis, rateLimit, redis } from "@dw/redis";
+import { cacheKeys, rateLimit } from "@dw/redis";
+import { bootstrapInfra } from "@dw/runtime/bootstrap";
+import { createRuntimeContext } from "@dw/runtime/context";
 
-import { apiEnv } from "../env";
-import { bootstrapInfra } from "./bootstrap";
-
-const env = apiEnv();
+const env = config.app;
 
 // Eagerly bootstrap infra in dev/staging
 if (env.NODE_ENV !== "production") {
@@ -30,12 +29,6 @@ if (env.NODE_ENV !== "production") {
     console.error("❌ Failed to bootstrap infra", err);
   }
 }
-
-// initialize redis once per process
-getRedis({
-  url: env.UPSTASH_REDIS_REST_URL,
-  token: env.UPSTASH_REDIS_REST_TOKEN,
-});
 
 /**
  * Type guard to check if auth is a user session (not M2M)
@@ -61,8 +54,7 @@ export const createTRPCContext = (opts: {
   auth: AuthObject;
 }) => {
   return {
-    db,
-    redis,
+    ...createRuntimeContext(),
     headers: opts.headers,
     auth: opts.auth,
   };

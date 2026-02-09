@@ -1,8 +1,8 @@
 import { eq } from "drizzle-orm";
 
-import { getDb } from "@dw/db/client";
 import { Post, user } from "@dw/db/schema";
-import { cacheKeys, redis } from "@dw/redis";
+import { cacheKeys } from "@dw/redis";
+import { db, redis } from "@dw/runtime/singletons";
 
 /**
  * Seed script for local development
@@ -11,8 +11,6 @@ import { cacheKeys, redis } from "@dw/redis";
  * Note: In production, users are created via Clerk webhooks
  */
 async function seed() {
-  const db = getDb();
-
   console.log("🚀 Starting database seed...\n");
 
   // -------- USERS --------

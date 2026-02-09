@@ -4,7 +4,7 @@ import { z } from "zod";
 export function apiEnv() {
   return createEnv({
     server: {
-      UPSTASH_REDIS_REST_URL: z.string().min(1),
+      UPSTASH_REDIS_REST_URL: z.url(),
       UPSTASH_REDIS_REST_TOKEN: z.string().min(1),
       NODE_ENV: z
         .enum(["development", "test", "production"])

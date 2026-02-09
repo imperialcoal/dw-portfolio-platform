@@ -14,8 +14,7 @@
     "./schema": {
       "types": "./dist/schema.d.ts",
       "default": "./src/schema.ts"
-    },
-    "./env": "./env.ts"
+    }
   },
   "license": "MIT",
   "scripts": {
@@ -24,13 +23,14 @@
     "dev": "tsc",
     "format": "prettier --check . --ignore-path ../../.gitignore",
     "lint": "eslint --flag unstable_native_nodejs_ts_config",
-    "db:generate": "pnpm with-env drizzle-kit generate",
-    "db:push": "pnpm with-env drizzle-kit push",
-    "db:studio": "pnpm with-env drizzle-kit studio",
-    "typecheck": "tsc --noEmit --emitDeclarationOnly false",
-    "with-env": "dotenv -e ../../.env.local --"
+    "db:generate": "pnpm -w with-env drizzle-kit generate",
+    "db:push": "pnpm -w with-env drizzle-kit push",
+    "db:studio": "pnpm -w with-env drizzle-kit studio",
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {
+    "@dw/config": "workspace:*",
+    "@dw/validators": "workspace:*",
     "@t3-oss/env-core": "catalog:",
     "drizzle-orm": "catalog:",
     "drizzle-zod": "^0.8.3",

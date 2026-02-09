@@ -1,5 +1,5 @@
 {
   "extends": "@dw/tsconfig/compiled-package.json",
-  "include": ["src", "env.ts", "drizzle.config.ts"],
+  "include": ["src", "drizzle.config.ts"],
   "exclude": ["node_modules"]
 }

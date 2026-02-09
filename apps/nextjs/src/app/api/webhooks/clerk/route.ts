@@ -5,15 +5,13 @@ import { eq } from "drizzle-orm";
 import { Webhook } from "svix";
 
 import type { ClerkPublicMetadata, Role } from "@dw/auth";
-import { authEnv } from "@dw/auth";
-import { db } from "@dw/db/client";
+import { config } from "@dw/config";
 import { user } from "@dw/db/schema";
-import { cacheKeys, redis } from "@dw/redis";
-
-const env = authEnv();
+import { cacheKeys } from "@dw/redis";
+import { db, redis } from "@dw/runtime/singletons";
 
 export async function POST(req: Request) {
-  const WEBHOOK_SECRET = env.CLERK_WEBHOOK_SECRET;
+  const WEBHOOK_SECRET = config.auth.CLERK_WEBHOOK_SECRET;
 
   if (!WEBHOOK_SECRET) {
     throw new Error("Missing CLERK_WEBHOOK_SECRET");

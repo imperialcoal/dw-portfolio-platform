@@ -3,7 +3,9 @@ packages:
   - packages/*
   - platform/cli
   - platform/dev-tools/*
+  - platform/runtime
   - platform/standards/*
+  - platform/testing
 
 catalog:
   "@clerk/nextjs": ^6.37.1
