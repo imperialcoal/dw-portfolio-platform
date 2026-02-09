@@ -7,7 +7,7 @@ A production-grade T3 Turbo monorepo featuring a Next.js 16 web application and 
 The **DW Portfolio Platform** is a full-stack TypeScript monorepo that demonstrates best practices in modern web and mobile development. Built on the T3 Turbo stack, it provides:
 
 - **Full-stack type safety** from database to UI using tRPC and Drizzle ORM
-- **Dual authentication** with Clerk (OAuth) and Better Auth (email/password)
+- **Authentication** with Clerk (OAuth) (email/password)
 - **Monorepo architecture** powered by Turborepo and pnpm workspaces
 - **Internal Developer Platform** for streamlined development and deployment
 - **Production-ready infrastructure** with Docker, PostgreSQL, Redis, and CI/CD
@@ -34,7 +34,7 @@ The **DW Portfolio Platform** is a full-stack TypeScript monorepo that demonstra
 - **API Layer**: tRPC v11.9.0 for end-to-end type-safe APIs
 - **Database**: PostgreSQL 16 with Drizzle ORM 0.44.7
 - **Caching**: Upstash Redis with rate limiting
-- **Authentication**: Clerk + Better Auth
+- **Authentication**: Clerk
 
 ### Development Infrastructure
 
@@ -52,7 +52,7 @@ The **DW Portfolio Platform** is a full-stack TypeScript monorepo that demonstra
 │   └── nextjs/                  # Web app (Next.js 16)
 ├── packages/                    # Shared packages
 │   ├── api/                     # tRPC routers and procedures
-│   ├── auth/                    # Authentication (Clerk + Better Auth)
+│   ├── auth/                    # Authentication (Clerk)
 │   ├── db/                      # Database layer (Drizzle ORM)
 │   ├── health/                  # Health check utilities
 │   ├── redis/                   # Redis caching and rate limiting
@@ -112,6 +112,7 @@ pnpm infra:logs
 ```
 
 The following services will be available:
+
 - PostgreSQL: `localhost:5433`
 - Redis: `localhost:6379`
 - Upstash Redis HTTP: `localhost:8079`
@@ -119,9 +120,6 @@ The following services will be available:
 ### 4. Set Up Database
 
 ```bash
-# Generate Better Auth schema
-pnpm auth:generate
-
 # Push database schema to PostgreSQL
 pnpm db:push
 
@@ -245,10 +243,9 @@ const { mutate } = api.post.create.useMutation();
 mutate({ title: "Hello", content: "World" }); // Types inferred!
 ```
 
-### Dual Authentication
+### Authentication
 
 - **Clerk**: OAuth providers (Google, GitHub, etc.) for social login
-- **Better Auth**: Email/password, session management, and custom auth flows
 - **Unified Context**: Both auth providers work together in tRPC context
 
 ### Turborepo Caching

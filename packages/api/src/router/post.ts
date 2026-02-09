@@ -70,14 +70,18 @@ export const postRouter = {
   create: adminProcedure
     .input(CreatePostSchema)
     .mutation(async ({ ctx, input }) => {
-      const result = await ctx.db.insert(Post).values({
-        ...input,
-        authorId: ctx.user.id,
-      });
+      // ADD .returning()
+      const [post] = await ctx.db
+        .insert(Post)
+        .values({
+          ...input,
+          authorId: ctx.user.id,
+        })
+        .returning();
 
       void ctx.redis.del(cacheKeys.postsAll);
 
-      return result;
+      return post;
     }),
 
   // Currently Admin is the only user that can delete posts

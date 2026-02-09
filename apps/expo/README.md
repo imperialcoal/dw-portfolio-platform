@@ -10,7 +10,7 @@ A cross-platform mobile app built with Expo featuring:
 - **React 19** for modern React features
 - **NativeWind v5** for Tailwind-like styling in React Native
 - **End-to-end type safety** with tRPC v11
-- **Better Auth** for authentication
+- **Clerk** for authentication
 - **Expo Router** for file-based navigation
 
 ## Tech Stack
@@ -23,7 +23,7 @@ A cross-platform mobile app built with Expo featuring:
 - **Navigation**: Expo Router v6
 - **API Client**: tRPC v11.9.0
 - **Data Fetching**: TanStack Query v5.90.8
-- **Authentication**: Better Auth 1.4.0-beta.9 with Expo integration
+- **Authentication**: Clerk
 - **UI Library**: React Native built-in components
 
 ## Project Structure
@@ -38,7 +38,7 @@ apps/expo/
 │   ├── components/             # React Native components
 │   ├── utils/                  # Utilities
 │   │   ├── api.tsx             # tRPC React client setup
-│   │   └── auth.ts             # Better Auth client setup
+│   │   └── auth.ts             # Clerk client setup
 │   └── styles/                 # Global styles
 ├── assets/                     # Images, fonts, etc.
 ├── .env                        # Environment variables (gitignored)
@@ -62,7 +62,7 @@ Required environment variables:
 # API URL (points to Next.js backend)
 EXPO_PUBLIC_API_URL=http://localhost:3000
 
-# Better Auth
+# Clerk
 AUTH_REDIRECT_PROXY_URL=http://localhost:3000/api/auth
 ```
 
@@ -138,7 +138,7 @@ pnpm clean            # Clean build artifacts
 
 ### Authentication
 
-This app uses **Better Auth** for authentication:
+This app uses **Clerk** for authentication:
 
 - Email/password login and registration
 - Session management with Expo Secure Store
@@ -380,7 +380,7 @@ If API calls fail:
 
 If authentication isn't working:
 
-1. Ensure Better Auth is configured on Next.js
+1. Ensure Clerk is configured on Next.js
 2. Verify OAuth proxy URL is correct
 3. Check Expo Secure Store permissions
 4. Clear app data and reinstall

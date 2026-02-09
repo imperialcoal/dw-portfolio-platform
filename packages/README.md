@@ -66,20 +66,18 @@ Database layer using Drizzle ORM with PostgreSQL.
   - Drizzle ORM client
   - Type-safe schema definitions
   - Migration system
-  - Better Auth schema integration
 
 [View documentation →](./db/README.md)
 
 #### [@dw/auth](./auth/README.md)
 
-Unified authentication layer supporting Clerk and Better Auth.
+Authentication layer supporting Clerk.
 
 - **Purpose**: Authentication configuration and client setup
 - **Exports**: Auth clients, middleware, session helpers
 - **Used by**: API (context), Next.js, Expo
 - **Key features**:
   - Clerk OAuth integration
-  - Better Auth email/password
   - Expo authentication client
   - Middleware for protected routes
 
@@ -166,8 +164,8 @@ All packages are TypeScript-first:
 
 ```typescript
 // Package exports types automatically
-import type { Post } from "@dw/db/schema";
 import type { AppRouter } from "@dw/api";
+import type { Post } from "@dw/db/schema";
 
 // tRPC infers types end-to-end
 const posts = await api.post.getAll(); // Type: Post[]
@@ -192,6 +190,7 @@ pnpm turbo gen init
 ```
 
 This scaffolds:
+
 - `package.json`
 - `tsconfig.json`
 - `src/index.ts`
@@ -200,6 +199,7 @@ This scaffolds:
 Then:
 
 1. Add exports to `package.json`:
+
    ```json
    {
      "exports": {
@@ -214,6 +214,7 @@ Then:
 2. Add to `pnpm-workspace.yaml` (auto-detected in `packages/*`)
 
 3. Install in consuming package:
+
    ```bash
    pnpm install @dw/your-package --filter @dw/nextjs
    ```

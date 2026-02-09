@@ -13,6 +13,7 @@
     "build": "tsc",
     "clean": "git clean -xdf .cache .turbo dist node_modules",
     "dev": "tsc",
+    "api:infrastructure:test": "vitest",
     "format": "prettier --check . --ignore-path ../../.gitignore",
     "lint": "eslint --flag unstable_native_nodejs_ts_config",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
@@ -35,9 +36,11 @@
     "@dw/prettier-config": "workspace:*",
     "@dw/tsconfig": "workspace:*",
     "@types/node": "catalog:",
+    "dotenv": "^17.2.4",
     "eslint": "catalog:",
     "prettier": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "prettier": "@dw/prettier-config"
 }

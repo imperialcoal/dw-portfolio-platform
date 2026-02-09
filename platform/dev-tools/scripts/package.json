@@ -12,7 +12,8 @@
     "dev": "tsc",
     "format": "prettier --check . --ignore-path ../../../.gitignore",
     "lint": "eslint",
-    "seed": "pnpm with-env tsx typescript/seed.ts",
+    "dev-tools:test:setup": "pnpm with-env tsx src/setup-test-db.ts",
+    "dev-tools:db:seed": "pnpm with-env tsx typescript/seed.ts",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false",
     "with-env": "dotenv -e ../../../.env.local --"
   },
@@ -20,6 +21,7 @@
     "@dw/db": "workspace:*",
     "@dw/redis": "workspace:*",
     "drizzle-orm": "catalog:",
+    "postgres": "^3.4.8",
     "uuid": "^13.0.0"
   },
   "devDependencies": {

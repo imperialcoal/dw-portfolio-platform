@@ -27,7 +27,6 @@
     "@trpc/client": "catalog:",
     "@trpc/server": "catalog:",
     "@trpc/tanstack-react-query": "catalog:",
-    "better-auth": "catalog:",
     "drizzle-orm": "catalog:",
     "next": "^16.1.6",
     "react": "catalog:react19",

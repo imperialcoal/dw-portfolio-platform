@@ -10,11 +10,12 @@ The primary web application built with Next.js 16 and React 19.
 
 - **Framework**: Next.js 16.1.6 with App Router
 - **Styling**: Tailwind CSS v4 + shadcn/ui
-- **Authentication**: Clerk (OAuth) + Better Auth
+- **Authentication**: Clerk (OAuth)
 - **API**: tRPC v11 client with TanStack Query
 - **Deployment**: Vercel-optimized
 
 **Use cases**:
+
 - Main web interface for the platform
 - Admin dashboard and content management
 - Public-facing portfolio pages
@@ -28,11 +29,12 @@ The mobile application built with Expo SDK 54 and React Native.
 
 - **Framework**: Expo SDK 54 with Expo Router
 - **Styling**: NativeWind v5 (Tailwind for React Native)
-- **Authentication**: Better Auth with Expo integration
+- **Authentication**: Clerk
 - **API**: tRPC v11 client with TanStack Query
 - **Deployment**: EAS Build & Submit
 
 **Use cases**:
+
 - Native iOS and Android applications
 - Mobile-optimized user experience
 - Offline-first features with local storage
@@ -100,6 +102,11 @@ pnpm dev:android
 Both apps enjoy end-to-end type safety:
 
 ```typescript
+// Next.js usage (apps/nextjs)
+import { api } from "~/trpc/server";
+// Expo usage (apps/expo)
+import { api } from "~/utils/api";
+
 // Shared tRPC router definition (packages/api)
 export const postRouter = createTRPCRouter({
   getAll: publicProcedure.query(({ ctx }) => {
@@ -107,12 +114,8 @@ export const postRouter = createTRPCRouter({
   }),
 });
 
-// Next.js usage (apps/nextjs)
-import { api } from "~/trpc/server";
 const posts = await api.post.getAll();
 
-// Expo usage (apps/expo)
-import { api } from "~/utils/api";
 const { data: posts } = api.post.getAll.useQuery();
 ```
 

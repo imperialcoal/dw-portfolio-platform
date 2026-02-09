@@ -8,7 +8,7 @@ This is a modern, production-ready Next.js application featuring:
 
 - **Next.js 16** with App Router and React Server Components
 - **End-to-end type safety** with tRPC v11 and Drizzle ORM
-- **Dual authentication** supporting Clerk (OAuth) and Better Auth (email/password)
+- **Authentication** supporting Clerk (OAuth)
 - **Modern styling** with Tailwind CSS v4 and shadcn/ui components
 - **Optimized performance** with React 19 features and automatic code splitting
 
@@ -24,7 +24,6 @@ This is a modern, production-ready Next.js application featuring:
 - **Data Fetching**: TanStack Query v5.90.8
 - **Authentication**:
   - Clerk (@clerk/nextjs ^6.37.1)
-  - Better Auth (1.4.0-beta.9)
 - **Database**: Drizzle ORM via `@dw/db`
 - **Caching**: Upstash Redis via `@dw/redis`
 
@@ -35,7 +34,7 @@ apps/nextjs/
 ├── src/
 │   ├── app/                    # Next.js App Router
 │   │   ├── api/                # API routes
-│   │   │   ├── auth/           # Better Auth API routes
+│   │   │   ├── auth/           # Clerk API routes
 │   │   │   ├── trpc/           # tRPC API endpoint
 │   │   │   └── webhooks/       # Webhook handlers (Clerk, etc.)
 │   │   ├── (auth)/             # Auth-related pages
@@ -70,7 +69,7 @@ NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
 CLERK_SECRET_KEY=sk_test_...
 CLERK_WEBHOOK_SECRET=whsec_...
 
-# Better Auth
+# Clerk - will remove soon, seems unnecessary
 AUTH_REDIRECT_PROXY_URL=http://localhost:3000/api/auth
 
 # Upstash Redis
@@ -136,21 +135,11 @@ pnpm clean            # Clean build artifacts
 
 ### Authentication
 
-This app supports two authentication providers:
-
 1. **Clerk (OAuth)**:
    - Social login (Google, GitHub, etc.)
    - Managed authentication UI
    - Webhook integration for user sync
    - Used as OAuth proxy for Expo app
-
-2. **Better Auth (Email/Password)**:
-   - Traditional email/password authentication
-   - Session management
-   - Custom auth flows
-   - Shared with Expo app
-
-Both providers are integrated into the tRPC context for unified access control.
 
 ### API Layer
 
@@ -300,8 +289,7 @@ pnpm build
 If authentication isn't working:
 
 1. **Clerk**: Verify API keys in environment variables
-2. **Better Auth**: Ensure auth schema is generated (`pnpm auth:generate`)
-3. **Webhooks**: Check Clerk webhook is configured and receiving events
+2. **Webhooks**: Check Clerk webhook is configured and receiving events
 
 ## Related Packages
 
