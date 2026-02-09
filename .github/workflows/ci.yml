@@ -17,7 +17,7 @@ env:
   FORCE_COLOR: 3
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-  DATABASE_URL: postgresql://postgres:password@localhost:5432/dw_dev
+  DATABASE_URL: postgresql://postgres:password@localhost:5433/dw_dev
   UPSTASH_REDIS_REST_URL: https://mock-redis.upstash.io
   UPSTASH_REDIS_REST_TOKEN: mock_token
   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_mock
@@ -75,7 +75,7 @@ jobs:
           POSTGRES_PASSWORD: password
           POSTGRES_DB: dw_dev
         ports:
-          - 5432:5432
+          - 5433:5432
         # Wait until DB is healthy
         options: >-
           --health-cmd pg_isready
@@ -92,7 +92,7 @@ jobs:
       - name: Create Env File
         # We need a .env.local file because your 'with-env' script expects it
         run: |
-          echo "DATABASE_URL=postgresql://postgres:password@localhost:5432/dw_dev" >> .env.local
+          echo "DATABASE_URL=postgresql://postgres:password@localhost:5433/dw_dev" >> .env.local
           echo "UPSTASH_REDIS_REST_URL=https://mock-redis.upstash.io" >> .env.local
           echo "UPSTASH_REDIS_REST_TOKEN=mock_token" >> .env.local
           echo "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_mock" >> .env.local
