@@ -21,7 +21,6 @@
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {
-    "@dw/validators": "workspace:*",
     "@t3-oss/env-core": "catalog:",
     "zod": "catalog:"
   },
