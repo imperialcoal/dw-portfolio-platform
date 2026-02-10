@@ -13,10 +13,17 @@ import { appRouter } from "../src/index";
 const { db } = createRuntimeContext();
 
 // Helper to create a caller with a REAL user in the DB
-const createCaller = async (role?: string, userId?: string) => {
-  // 1. Seed the User in the DB (Platform Engineering Approach)
-  // This allows the actual `trpc.ts` middleware to run, fetch the user,
-  // and validate the role, exactly like production.
+// You can now pass `auth` explicitly or let it be automatically mocked.
+const createCaller = async ({
+  role,
+  userId,
+  auth,
+}: {
+  role?: string;
+  userId?: string;
+  auth?: AuthObject;
+} = {}) => {
+  // 1. Seed the User in the DB if a userId is provided
   if (userId) {
     await db
       .insert(user)
@@ -30,22 +37,22 @@ const createCaller = async (role?: string, userId?: string) => {
       .onConflictDoNothing(); // Prevent errors if test re-runs
   }
 
-  // 2. Mock the Clerk Auth Object
-  // We cast to `any` to avoid mocking 50+ Clerk properties,
-  // but we satisfy the `hasUserId` check in trpc.ts
-  const mockAuth = {
+  // 2. Default mock auth if not provided
+  const mockAuth: AuthObject = {
     userId: userId ?? null,
     sessionId: "mock-session",
-    actor: null,
+    actor: undefined,
     getToken: () => Promise.resolve("mock-token"),
-    debug: () => undefined,
+    debug: () => ({}),
   } as unknown as AuthObject;
+
+  const finalAuth: AuthObject = auth ?? mockAuth;
 
   // 3. Create the Caller
   return appRouter.createCaller({
     ...createRuntimeContext(),
     headers: new Headers({ "x-forwarded-for": "127.0.0.1" }),
-    auth: mockAuth,
+    auth: finalAuth,
   });
 };
 
@@ -70,11 +77,7 @@ describe("API Infrastructure", () => {
 
   // Simluate middleware failure
   it("should reject if the auth context is missing entirely", async () => {
-    const malformedCaller = appRouter.createCaller({
-      ...createRuntimeContext(),
-      headers: null as unknown as Headers,
-      auth: null as unknown as AuthObject,
-    });
+    const malformedCaller = await createCaller({ auth: undefined });
 
     await expect(
       malformedCaller.post.create({ title: "...", content: "..." }),
@@ -89,7 +92,7 @@ describe("API Infrastructure", () => {
     ];
 
     for (const { role, userId, expected } of scenarios) {
-      const caller = await createCaller(role, userId);
+      const caller = await createCaller({ role, userId });
       await expect(
         caller.post.create({ title: "Test Post", content: "..." }),
       ).rejects.toMatchObject({ code: expected });
@@ -100,7 +103,10 @@ describe("API Infrastructure", () => {
   it("should allow admins to write to the DB", async () => {
     const adminId = "admin_test_1";
     // Admin (Has ID, Role = ADMIN)
-    const adminCaller = await createCaller(ROLES.ADMIN, adminId);
+    const adminCaller = await createCaller({
+      role: ROLES.ADMIN,
+      userId: adminId,
+    });
 
     const input = {
       title: "Infrastructure Test",
