@@ -13,15 +13,9 @@ import superjson from "superjson";
 import { z, ZodError } from "zod/v4";
 
 import { ROLES } from "@dw/auth";
-import { config } from "@dw/config";
 import { user } from "@dw/db/schema";
 import { cacheKeys, rateLimit } from "@dw/redis";
-import { bootstrapInfra } from "@dw/runtime/bootstrap";
 import { createRuntimeContext } from "@dw/runtime/context";
-
-if (config.app.APP_ENV !== "production") {
-  await bootstrapInfra(); // optional: verifies local dev infra
-}
 
 /**
  * Type guard to check if auth is a user session (not M2M)
@@ -228,7 +222,9 @@ export const protectedProcedure = t.procedure
     }
 
     // Update lastSeenAt (fire-and-forget)
-    void ctx.db
+    // void ctx.db
+    // *** NOTE: use await while testing to prevent "Lost Connection" or "Leaked Promise" errors if the test process exits before the DB write finishes ***
+    await ctx.db
       .update(user)
       .set({ lastSeenAt: new Date() })
       .where(eq(user.id, userId));

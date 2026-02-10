@@ -1,9 +1,11 @@
 import type { AuthObject } from "@clerk/backend";
 import { sql } from "drizzle-orm";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ROLES } from "@dw/auth";
+import { config } from "@dw/config";
 import { user } from "@dw/db/schema";
+import { clearRedis } from "@dw/redis";
 import { createRuntimeContext } from "@dw/runtime/context";
 
 import { appRouter } from "../src/index";
@@ -42,12 +44,43 @@ const createCaller = async (role?: string, userId?: string) => {
   // 3. Create the Caller
   return appRouter.createCaller({
     ...createRuntimeContext(),
-    headers: new Headers(),
+    headers: new Headers({ "x-forwarded-for": "127.0.0.1" }),
     auth: mockAuth,
   });
 };
 
 describe("API Infrastructure", () => {
+  // Clear redis to ensure we aren't hitting stale cache from previous test runs
+  beforeEach(async () => {
+    await clearRedis();
+  });
+
+  // Cleanup
+  afterEach(async () => {
+    // reset tables used in tests
+    await db.execute(sql`TRUNCATE TABLE "Post" RESTART IDENTITY CASCADE`);
+    await db.execute(sql`TRUNCATE TABLE "user" RESTART IDENTITY CASCADE`);
+  });
+
+  // Ensure the connection string includes 'dw_test'
+  // This prevents catastrophic data loss if env vars are misconfigured
+  it("should be connected to the test database, not production/dev", () => {
+    expect(config.db.DATABASE_URL).toContain("dw_test");
+  });
+
+  // Simluate middleware failure
+  it("should reject if the auth context is missing entirely", async () => {
+    const malformedCaller = appRouter.createCaller({
+      ...createRuntimeContext(),
+      headers: null as unknown as Headers,
+      auth: null as unknown as AuthObject,
+    });
+
+    await expect(
+      malformedCaller.post.create({ title: "...", content: "..." }),
+    ).rejects.toThrow();
+  });
+
   // Requirement 1 & 2: Auth Middleware & Protected Route
   it("should block guests and regular users from creating posts", async () => {
     // Guest (No ID)
@@ -98,12 +131,5 @@ describe("API Infrastructure", () => {
 
     expect(dbPost).toBeDefined();
     expect(dbPost?.authorId).toBe(adminId);
-
-    // Cleanup
-    afterEach(async () => {
-      // reset tables used in tests
-      await db.execute(sql`TRUNCATE TABLE "Post" RESTART IDENTITY CASCADE`);
-      await db.execute(sql`TRUNCATE TABLE "user" RESTART IDENTITY CASCADE`);
-    });
   });
 });

@@ -32,3 +32,9 @@ export const redis = new Proxy({} as Redis, {
     return value;
   },
 });
+
+export async function clearRedis() {
+  if (globalForRedis.redis) {
+    await globalForRedis.redis.flushdb();
+  }
+}

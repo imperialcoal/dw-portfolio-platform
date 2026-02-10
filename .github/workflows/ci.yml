@@ -63,25 +63,15 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-# API INFRASTRUCTURE TEST
+  # API INFRASTRUCTURE TEST
   test:
     runs-on: ubuntu-latest
-    # SPIN UP POSTGRES
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: dw_dev
-        ports:
-          - 5433:5432
-        # Wait until DB is healthy
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    env:
+      # Inject the variables the docker-compose.yml expects
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: dw_dev
+      UPSTASH_REDIS_REST_TOKEN: mock_token
 
     steps:
       - uses: actions/checkout@v6
@@ -89,14 +79,21 @@ jobs:
       - name: Setup
         uses: ./platform/standards/github/setup
 
+      - name: Start Infrastructure
+        # -d runs in background; --wait ensures healthchecks pass before moving on
+        run: docker compose -f platform/dev-tools/docker/docker-compose.yml up -d --wait
+
       - name: Create Env File
-        # We need a .env.local file because your 'with-env' script expects it
         run: |
           echo "DATABASE_URL=postgresql://postgres:password@localhost:5433/dw_dev" >> .env.local
-          echo "UPSTASH_REDIS_REST_URL=https://mock-redis.upstash.io" >> .env.local
+          echo "UPSTASH_REDIS_REST_URL=http://localhost:8079" >> .env.local
           echo "UPSTASH_REDIS_REST_TOKEN=mock_token" >> .env.local
           echo "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_mock" >> .env.local
           echo "CLERK_SECRET_KEY=sk_test_mock" >> .env.local
 
       - name: API Infrastructure Tests
         run: pnpm test:api:infra
+
+      - name: Stop Infrastructure
+        if: always()
+        run: docker compose -f platform/dev-tools/docker/docker-compose.yml down

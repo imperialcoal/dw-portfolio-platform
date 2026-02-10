@@ -13,12 +13,25 @@ export async function bootstrapInfra() {
     const redis = runtimeRedis();
 
     await verifyInfra(
-      { execute: (sql) => db.execute(sql) },
-      { ping: () => redis.ping() },
+      {
+        execute: (sql) => db.execute(sql),
+      },
+      {
+        ping: () => redis.ping(),
+        set: (key, value, ex) => redis.set(key, value, { ex }),
+        get: (key) => redis.get<string>(key),
+      },
     );
 
     console.log("🎉 Local infra verified successfully");
   } catch (err) {
+    // Make infrastructure failures to be fatal in test mode
+    if (process.env.NODE_ENV === "test") {
+      console.error(
+        "❌ CRITICAL: Infrastructure verification failed for test environment.",
+      );
+      process.exit(1);
+    }
     console.error("❌ Failed to initialize infra", err);
   }
 }
