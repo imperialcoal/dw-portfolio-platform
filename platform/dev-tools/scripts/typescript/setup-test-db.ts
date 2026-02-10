@@ -63,6 +63,7 @@ async function setupTestDb() {
   }
 }
 
-export default async function () {
-  await setupTestDb();
-}
+setupTestDb().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
