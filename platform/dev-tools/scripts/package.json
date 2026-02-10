@@ -12,9 +12,10 @@
     "dev": "tsc",
     "format": "prettier --check . --ignore-path ../../../.gitignore",
     "lint": "eslint",
-    "dev-tools:test:setup": "pnpm -w with-env tsx ./platform/dev-tools/scripts/typescript/setup-test-db.ts",
-    "dev-tools:db:seed": "pnpm -w with-env tsx ./platform/dev-tools/scripts/typescript/seed.ts",
-    "typecheck": "tsc --noEmit --emitDeclarationOnly false"
+    "dev-tools:test:setup": "pnpm with-env tsx ./typescript/setup-test-db.ts",
+    "dev-tools:db:seed": "pnpm with-env tsx ./typescript/seed.ts",
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false",
+    "with-env": "dotenv -e ../../../../.env.local --"
   },
   "dependencies": {
     "@dw/config": "workspace:*",

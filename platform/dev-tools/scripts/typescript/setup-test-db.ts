@@ -40,7 +40,7 @@ async function setupTestDb() {
   try {
     // A. Push Schema
     console.log("🔄 Pushing schema...");
-    execSync(`pnpm db:push --config=drizzle.config.ts`, {
+    execSync(`pnpm db:push`, {
       stdio: "inherit",
       cwd: resolve(import.meta.dirname, "../../../../packages/db"), // Absolute path safety
       env: { ...process.env, DATABASE_URL: testDbUrl },

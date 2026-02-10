@@ -39,8 +39,7 @@
     "typecheck": "turbo run typecheck",
     "ui-add": "turbo run ui-add",
     "android": "expo run:android",
-    "ios": "expo run:ios",
-    "with-env": "dotenv -e .env.local --"
+    "ios": "expo run:ios"
   },
   "devDependencies": {
     "@dw/prettier-config": "workspace:*",
