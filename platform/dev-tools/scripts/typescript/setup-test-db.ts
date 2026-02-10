@@ -14,12 +14,12 @@ async function setupTestDb() {
   const DATABASE_URL = config.db.DATABASE_URL;
 
   // 1. Connect to Admin DB
-  const adminClient = postgres(DATABASE_URL, {
-    max: 1,
-    onnotice: () => undefined,
-  });
+  const adminUrl = new URL(DATABASE_URL);
+  adminUrl.pathname = "/postgres"; // always connect to admin DB
+  const adminClient = postgres(adminUrl.toString(), { max: 1 });
 
-  const testDbName = "dw_test";
+  const urlObj = new URL(DATABASE_URL);
+  const testDbName = urlObj.pathname.replace("/", "");
 
   try {
     // 2. Drop & Recreate
@@ -35,8 +35,6 @@ async function setupTestDb() {
   }
 
   // 3. Construct Test URL
-  const urlObj = new URL(DATABASE_URL);
-  urlObj.pathname = `/${testDbName}`;
   const testDbUrl = urlObj.toString();
 
   // 4. Push Schema AND Seed (Unified Step)
