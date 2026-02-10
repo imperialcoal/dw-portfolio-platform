@@ -12,8 +12,8 @@
     "dev": "tsc",
     "format": "prettier --check . --ignore-path ../../../.gitignore",
     "lint": "eslint",
-    "dev-tools:test:setup": "dotenv -e ../../../../.env.local --no-override -- tsx ./typescript/setup-test-db.ts",
-    "dev-tools:db:seed": "dotenv -e ../../../../.env.local --no-override -- tsx ./typescript/seed.ts",
+    "dev-tools:test:setup": "pnpm tsx ./typescript/setup-test-db.ts",
+    "dev-tools:db:seed": "pnpm tsx ./typescript/seed.ts",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false",
     "with-env": "dotenv -e ../../../../.env.local --"
   },
