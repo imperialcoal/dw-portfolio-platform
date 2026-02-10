@@ -56,7 +56,7 @@
       "cache": false
     },
     "api:infrastructure:test": {
-      "dependsOn": ["dev-tools:test:setup", "dev-tools:db:seed"],
+      "dependsOn": ["dev-tools:test:setup"],
       "outputs": ["coverage/**"]
     }
   },
