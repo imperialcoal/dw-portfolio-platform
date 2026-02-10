@@ -1,4 +1,7 @@
 /* eslint-disable no-restricted-properties */
+import { loadEnv } from "@dw/env";
+
+loadEnv();
 
 // OVERRIDE connection string to point to Test DB
 if (process.env.DATABASE_URL) {
