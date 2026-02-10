@@ -3,9 +3,6 @@ import { eq } from "drizzle-orm";
 import { Post, user } from "@dw/db/schema";
 import { cacheKeys } from "@dw/redis";
 import { createRuntimeContext } from "@dw/runtime/context";
-import { runtimeEntry } from "@dw/runtime/runtime-entry";
-
-await runtimeEntry();
 
 const { db, redis } = createRuntimeContext();
 

@@ -58,7 +58,7 @@ describe("API Infrastructure", () => {
   // Cleanup
   afterEach(async () => {
     // reset tables used in tests
-    await db.execute(sql`TRUNCATE TABLE "Post" RESTART IDENTITY CASCADE`);
+    await db.execute(sql`TRUNCATE TABLE "post" RESTART IDENTITY CASCADE`);
     await db.execute(sql`TRUNCATE TABLE "user" RESTART IDENTITY CASCADE`);
   });
 
@@ -78,30 +78,22 @@ describe("API Infrastructure", () => {
 
     await expect(
       malformedCaller.post.create({ title: "...", content: "..." }),
-    ).rejects.toThrow();
+    ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
   });
 
   // Requirement 1 & 2: Auth Middleware & Protected Route
   it("should block guests and regular users from creating posts", async () => {
-    // Guest (No ID)
-    const guestCaller = await createCaller(undefined, undefined);
+    const scenarios = [
+      { role: undefined, userId: undefined, expected: "UNAUTHORIZED" },
+      { role: ROLES.USER, userId: "user_123", expected: "FORBIDDEN" },
+    ];
 
-    await expect(
-      guestCaller.post.create({
-        title: "Hacker Post",
-        content: "Should fail",
-      }),
-    ).rejects.toThrow("UNAUTHORIZED");
-
-    // Regular User (Has ID, Role = USER)
-    const userCaller = await createCaller(ROLES.USER, "user_123");
-
-    await expect(
-      userCaller.post.create({
-        title: "User Post",
-        content: "Should fail",
-      }),
-    ).rejects.toThrow("FORBIDDEN");
+    for (const { role, userId, expected } of scenarios) {
+      const caller = await createCaller(role, userId);
+      await expect(
+        caller.post.create({ title: "Test Post", content: "..." }),
+      ).rejects.toMatchObject({ code: expected });
+    }
   });
 
   // Requirement 3: DB Mutation
