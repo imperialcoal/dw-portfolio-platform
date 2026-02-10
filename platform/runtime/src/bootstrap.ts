@@ -25,6 +25,8 @@ export async function bootstrapInfra() {
 
     console.log("🎉 Local infra verified successfully");
   } catch (err) {
+    console.error("❌ Failed to initialize infra", err);
+
     // Make infrastructure failures to be fatal in test mode
     if (process.env.NODE_ENV === "test") {
       console.error(
@@ -32,6 +34,5 @@ export async function bootstrapInfra() {
       );
       process.exit(1);
     }
-    console.error("❌ Failed to initialize infra", err);
   }
 }
