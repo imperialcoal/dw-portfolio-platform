@@ -56,8 +56,9 @@
       "cache": false
     },
     "api:infrastructure:test": {
-      "dependsOn": ["dev-tools:test:setup"],
-      "outputs": ["coverage/**"]
+      "dependsOn": ["^dev-tools:test:setup"],
+      "outputs": ["coverage/**"],
+      "cache": false
     }
   },
   "globalEnv": [

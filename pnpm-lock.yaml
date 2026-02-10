@@ -925,6 +925,9 @@ importers:
 
   platform/testing:
     dependencies:
+      '@dw/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@dw/env':
         specifier: workspace:*
         version: link:../../packages/env

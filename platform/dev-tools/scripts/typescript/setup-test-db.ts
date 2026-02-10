@@ -42,11 +42,19 @@ async function setupTestDb() {
   // 4. Push Schema AND Seed (Unified Step)
   try {
     // A. Push Schema
+    // We pass BOTH variables.
+    // - DATABASE_URL: For any app logic that might run
+    // - DIRECT_URL: Specifically for Drizzle Kit
+    const envVars = {
+      ...process.env,
+      DATABASE_URL: testDbUrl,
+      DIRECT_URL: testDbUrl,
+    };
     console.log("🔄 Pushing schema...");
     execSync(`pnpm drizzle-kit push`, {
       stdio: "inherit",
       cwd: resolve(import.meta.dirname, "../../../../packages/db"), // Absolute path safety
-      env: { ...process.env, DATABASE_URL: testDbUrl },
+      env: envVars,
     });
     console.log("✅ Schema synced.");
 
