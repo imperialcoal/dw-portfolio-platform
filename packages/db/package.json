@@ -23,9 +23,9 @@
     "dev": "tsc",
     "format": "prettier --check . --ignore-path ../../.gitignore",
     "lint": "eslint --flag unstable_native_nodejs_ts_config",
-    "db:generate": "pnpm with-env drizzle-kit generate",
-    "db:push": "pnpm with-env drizzle-kit push",
-    "db:studio": "pnpm with-env drizzle-kit studio",
+    "db:generate": "dotenv -e ../../.env.local --no-override -- drizzle-kit generate",
+    "db:push": "dotenv -e ../../.env.local --no-override -- drizzle-kit push",
+    "db:studio": "dotenv -e ../../.env.local --no-override -- drizzle-kit studio",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false",
     "with-env": "dotenv -e ../../.env.local --"
   },
