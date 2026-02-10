@@ -13,9 +13,15 @@ import superjson from "superjson";
 import { z, ZodError } from "zod/v4";
 
 import { ROLES } from "@dw/auth";
+import { config } from "@dw/config";
 import { user } from "@dw/db/schema";
 import { cacheKeys, rateLimit } from "@dw/redis";
+import { bootstrapInfra } from "@dw/runtime/bootstrap";
 import { createRuntimeContext } from "@dw/runtime/context";
+
+if (config.app.APP_ENV !== "production") {
+  await bootstrapInfra(); // optional: verifies local dev infra
+}
 
 /**
  * Type guard to check if auth is a user session (not M2M)
