@@ -20,8 +20,10 @@ import { createRuntimeContext } from "@dw/runtime/context";
 /**
  * Type guard to check if auth is a user session (not M2M)
  */
-function hasUserId(auth: AuthObject): auth is AuthObject & { userId: string } {
-  return "userId" in auth && typeof auth.userId === "string";
+function hasUserId(
+  auth: AuthObject | null | undefined,
+): auth is AuthObject & { userId: string } {
+  return auth != null && "userId" in auth && typeof auth.userId === "string";
 }
 
 /**
