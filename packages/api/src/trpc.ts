@@ -13,22 +13,9 @@ import superjson from "superjson";
 import { z, ZodError } from "zod/v4";
 
 import { ROLES } from "@dw/auth";
-import { config } from "@dw/config";
 import { user } from "@dw/db/schema";
 import { cacheKeys, rateLimit } from "@dw/redis";
-import { bootstrapInfra } from "@dw/runtime/bootstrap";
 import { createRuntimeContext } from "@dw/runtime/context";
-
-const env = config.app;
-
-// Eagerly bootstrap infra in dev/staging
-if (env.NODE_ENV !== "production") {
-  try {
-    await bootstrapInfra();
-  } catch (err) {
-    console.error("❌ Failed to bootstrap infra", err);
-  }
-}
 
 /**
  * Type guard to check if auth is a user session (not M2M)
@@ -53,8 +40,11 @@ export const createTRPCContext = (opts: {
   headers: Headers;
   auth: AuthObject;
 }) => {
+  const { db, redis } = createRuntimeContext();
+
   return {
-    ...createRuntimeContext(),
+    db,
+    redis,
     headers: opts.headers,
     auth: opts.auth,
   };

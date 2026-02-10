@@ -20,6 +20,7 @@
   "dependencies": {
     "@dw/config": "workspace:*",
     "@dw/db": "workspace:*",
+    "@dw/env": "workspace:*",
     "@dw/redis": "workspace:*",
     "@dw/runtime": "workspace:*",
     "drizzle-orm": "catalog:",

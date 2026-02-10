@@ -1,9 +1,6 @@
-import { loadEnv } from "@dw/env";
 import { apiEnv } from "@dw/validators/api-env";
 import { authEnv } from "@dw/validators/auth-env";
 import { dbEnv } from "@dw/validators/db-env";
-
-loadEnv();
 
 /**
  * Single runtime config composed from validated envs

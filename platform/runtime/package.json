@@ -8,6 +8,7 @@
     "./bootstrap": "./src/bootstrap.ts",
     "./context": "./src/context.ts",
     "./process": "./src/process.ts",
+    "./runtime-entry": "./src/runtime-entry.ts",
     "./singletons": "./src/singletons.ts"
   },
   "scripts": {
@@ -21,6 +22,7 @@
   "dependencies": {
     "@dw/config": "workspace:*",
     "@dw/db": "workspace:*",
+    "@dw/env": "workspace:*",
     "@dw/health": "workspace:*",
     "@dw/redis": "workspace:*"
   },

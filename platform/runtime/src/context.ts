@@ -1,9 +1,8 @@
-import { db, redis } from "./singletons";
+import { runtimeDb, runtimeRedis } from "./singletons";
 
 export function createRuntimeContext() {
   return {
-    db,
-    redis,
-    startedAt: Date.now(),
+    db: runtimeDb(),
+    redis: runtimeRedis(),
   };
 }

@@ -727,6 +727,9 @@ importers:
       '@dw/db':
         specifier: workspace:*
         version: link:../../../packages/db
+      '@dw/env':
+        specifier: workspace:*
+        version: link:../../../packages/env
       '@dw/redis':
         specifier: workspace:*
         version: link:../../../packages/redis
@@ -776,6 +779,9 @@ importers:
       '@dw/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@dw/env':
+        specifier: workspace:*
+        version: link:../../packages/env
       '@dw/health':
         specifier: workspace:*
         version: link:../../packages/health

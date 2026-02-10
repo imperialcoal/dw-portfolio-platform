@@ -3,6 +3,9 @@ import { resolve } from "path";
 import postgres from "postgres";
 
 import { config } from "@dw/config";
+import { runtimeEntry } from "@dw/runtime/runtime-entry";
+
+await runtimeEntry();
 
 async function setupTestDb() {
   console.log("🛠️  Setting up Test Database...");

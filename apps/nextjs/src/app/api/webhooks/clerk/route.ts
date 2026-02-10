@@ -8,9 +8,15 @@ import type { ClerkPublicMetadata, Role } from "@dw/auth";
 import { config } from "@dw/config";
 import { user } from "@dw/db/schema";
 import { cacheKeys } from "@dw/redis";
-import { db, redis } from "@dw/runtime/singletons";
+import { bootstrapInfra } from "@dw/runtime/bootstrap";
+import { createRuntimeContext } from "@dw/runtime/context";
 
 export async function POST(req: Request) {
+  if (config.app.APP_ENV !== "production") {
+    await bootstrapInfra(); // optional: verifies local dev infra
+  }
+
+  const { db, redis } = createRuntimeContext();
   const WEBHOOK_SECRET = config.auth.CLERK_WEBHOOK_SECRET;
 
   if (!WEBHOOK_SECRET) {

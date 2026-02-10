@@ -1,14 +1,10 @@
-import "./vitest.env";
+import { exec } from "node:child_process";
+import { promisify } from "node:util";
 
-import { execSync } from "node:child_process";
-
-import { bootstrapInfra } from "@dw/runtime/bootstrap";
+const execPromise = promisify(exec);
 
 export default async function () {
-  // 1. Ensure DB recreated + seeded
-  execSync("pnpm dev-tools:test:setup", { stdio: "inherit" });
-  execSync("pnpm dev-tools:db:seed", { stdio: "inherit" });
-
-  // 2. Boot runtime singletons (redis/db pools etc)
-  await bootstrapInfra();
+  // Ensure DB recreated + seeded
+  await execPromise("pnpm dev-tools:test:setup");
+  await execPromise("pnpm dev-tools:db:seed");
 }

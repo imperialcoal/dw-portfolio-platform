@@ -5,9 +5,10 @@ import { afterEach, describe, expect, it } from "vitest";
 import { ROLES } from "@dw/auth";
 import { user } from "@dw/db/schema";
 import { createRuntimeContext } from "@dw/runtime/context";
-import { db } from "@dw/runtime/singletons";
 
 import { appRouter } from "../src/index";
+
+const { db } = createRuntimeContext();
 
 // Helper to create a caller with a REAL user in the DB
 const createCaller = async (role?: string, userId?: string) => {
@@ -99,7 +100,6 @@ describe("API Infrastructure", () => {
     expect(dbPost?.authorId).toBe(adminId);
 
     // Cleanup
-    // await adminCaller.post.delete(post.id);
     afterEach(async () => {
       // reset tables used in tests
       await db.execute(sql`TRUNCATE TABLE "Post" RESTART IDENTITY CASCADE`);
