@@ -39,24 +39,10 @@ async function setupTestDb() {
   // 4. Push Schema AND Seed (Unified Step)
   try {
     // A. Push Schema
-    // RESOLVE ABSOLUTE PATHS
-    // Points to: .../packages/db
-    const dbPackagePath = resolve(
-      import.meta.dirname,
-      "../../../../packages/db",
-    );
-    // Points to: .../packages/db/drizzle.config.ts
-    const configPath = resolve(dbPackagePath, "drizzle.config.ts");
-
     console.log("🔄 Pushing schema...");
-    console.log(`   Config: ${configPath}`);
-
-    // EXECUTE
-    // Run inside packages/db so it finds node_modules correctly
-    // But pass --config with the FULL ABSOLUTE PATH
-    execSync(`pnpm db:push --config=${configPath}`, {
+    execSync(`pnpm db:push --config=drizzle.config.ts`, {
       stdio: "inherit",
-      cwd: dbPackagePath,
+      cwd: resolve(import.meta.dirname, "../../../../packages/db"), // Absolute path safety
       env: { ...process.env, DATABASE_URL: testDbUrl },
     });
     console.log("✅ Schema synced.");
