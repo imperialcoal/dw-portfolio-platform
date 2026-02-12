@@ -8,7 +8,6 @@ import { Toaster } from "@dw/ui/toast";
 
 import { env } from "~/env";
 import { TRPCReactProvider } from "~/trpc/react";
-import { AuthHeader } from "./_components/auth-header";
 
 import "~/app/styles.css";
 
@@ -61,7 +60,6 @@ export default function RootLayout(props: { children: React.ReactNode }) {
           )}
         >
           <ThemeProvider>
-            <AuthHeader />
             <TRPCReactProvider>{props.children}</TRPCReactProvider>
             <div className="absolute right-4 bottom-4">
               <ThemeToggle />

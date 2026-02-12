@@ -6,25 +6,16 @@
  * tl;dr - this is where all the tRPC server stuff is created and plugged in.
  * The pieces you will need to use are documented accordingly near the end
  */
-import type { AuthObject } from "@clerk/backend";
-import { initTRPC, TRPCError } from "@trpc/server";
+import { initTRPC } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import superjson from "superjson";
 import { z, ZodError } from "zod/v4";
 
-import { ROLES } from "@dw/auth";
+import type { AuthObject } from "@dw/auth";
+import { assertAdmin, getAuthorityContext } from "@dw/auth";
 import { user } from "@dw/db/schema";
-import { cacheKeys, rateLimit } from "@dw/redis";
+import { rateLimit } from "@dw/redis";
 import { createRuntimeContext } from "@dw/runtime/context";
-
-/**
- * Type guard to check if auth is a user session (not M2M)
- */
-function hasUserId(
-  auth: AuthObject | null | undefined,
-): auth is AuthObject & { userId: string } {
-  return auth != null && "userId" in auth && typeof auth.userId === "string";
-}
 
 /**
  * 1. CONTEXT
@@ -174,54 +165,7 @@ export const protectedProcedure = t.procedure
   .use(timingMiddleware)
   .use(protectedRateLimit)
   .use(async ({ ctx, next }) => {
-    // Check if user is authenticated with a session (not M2M token)
-    if (!hasUserId(ctx.auth)) {
-      throw new TRPCError({ code: "UNAUTHORIZED" });
-    }
-
-    const userId = ctx.auth.userId;
-
-    // Try to get user from Redis cache first
-    const cacheKey = cacheKeys.userById(userId);
-    let profile = await ctx.redis.get<typeof user.$inferSelect>(cacheKey);
-
-    // If not in cache, load from DB
-    if (!profile) {
-      const dbProfile = await ctx.db.query.user.findFirst({
-        where: eq(user.id, userId),
-      });
-
-      // Convert undefined to null for consistency
-      profile = dbProfile ?? null;
-
-      // Future consideration:
-      // If a user signs up and immediately gets redirected to the dashboard,
-      // there is a tiny chance the webhook hasn't finished writing to Postgres yet.
-      // --- JIT (Just-In-Time) FALLBACK START ---
-      // If DB missed the webhook, fetch from Clerk directly and insert NOW.
-      // Insert basic record so the user isn't blocked
-      // Default to "user" role safely
-      // --- JIT FALLBACK END ---
-
-      // Cache the user profile if found (5 min TTL)
-      if (profile) {
-        void ctx.redis.set(cacheKey, profile, { ex: 300 });
-      }
-    }
-
-    if (!profile || profile.deletedAt) {
-      throw new TRPCError({
-        code: "UNAUTHORIZED",
-        message: "User not found or deleted",
-      });
-    }
-
-    if (profile.banned) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "User is banned",
-      });
-    }
+    const authority = await getAuthorityContext(ctx.auth, ctx.db, ctx.redis);
 
     // Update lastSeenAt (fire-and-forget)
     // void ctx.db
@@ -229,7 +173,7 @@ export const protectedProcedure = t.procedure
     await ctx.db
       .update(user)
       .set({ lastSeenAt: new Date() })
-      .where(eq(user.id, userId));
+      .where(eq(user.id, authority.userId));
 
     // Return enriched context
     return next({
@@ -238,8 +182,7 @@ export const protectedProcedure = t.procedure
         db: ctx.db,
         redis: ctx.redis,
         headers: ctx.headers,
-        userId,
-        user: profile,
+        ...authority,
       },
     });
   });
@@ -251,21 +194,8 @@ export const protectedProcedure = t.procedure
  * Uses protectedProcedure first to ensure user exists and is not banned.
  */
 export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
-  // I trust the DB/Redis user object here.
-  // I cast to string comparison to be safe, or import Role type if preferred.
-  if (ctx.user.role !== ROLES.ADMIN) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "You are not authorized to perform this action.",
-    });
-  }
-
-  return next({
-    ctx: {
-      // Pass through the same context, but now I technically know the role is admin
-      ...ctx,
-    },
-  });
+  assertAdmin(ctx);
+  return next({ ctx });
 });
 
 /**

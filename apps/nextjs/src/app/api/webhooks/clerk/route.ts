@@ -67,6 +67,11 @@ export async function POST(req: Request) {
           return new Response("Error: Missing email", { status: 400 });
         }
 
+        const ownerEmails = config.auth.OWNER_EMAILS?.split(",") ?? [];
+        const isOwner = ownerEmails.includes(primaryEmail.email_address);
+
+        const role = isOwner ? "admin" : "user";
+
         await db
           .insert(user)
           .values({
@@ -76,6 +81,7 @@ export async function POST(req: Request) {
             name:
               `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim() || null,
             image: data.image_url || null,
+            role: role,
             createdAt: new Date(data.created_at),
             updatedAt: new Date(data.updated_at),
           })
@@ -103,36 +109,45 @@ export async function POST(req: Request) {
           return new Response("Error: Missing email", { status: 400 });
         }
 
+        const ownerEmails = config.auth.OWNER_EMAILS?.split(",") ?? [];
+        const isOwner = ownerEmails.includes(primaryEmail.email_address);
+
+        const role = isOwner ? "admin" : "user";
+
         // 1. UPSERT (Avoid Race Condition)
         // If the user doesn't exist (missed 'user.created'), create them.
         // If they do exist, update them.
         // CRITICAL: Do NOT include 'role' in the update set. DB role persists.
-        await db
-          .insert(user)
-          .values({
-            id: data.id,
-            email: primaryEmail.email_address,
-            emailVerified: primaryEmail.verification?.status === "verified",
-            name:
-              `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim() || null,
-            image: data.image_url || null,
-            role: "user", // Default for NEW rows only
-            createdAt: new Date(data.created_at),
-            updatedAt: new Date(data.updated_at),
-          })
-          .onConflictDoUpdate({
-            target: user.id,
-            set: {
+        // This condition isOwner only exists for now while owners are the only real users, everyone else is a guest
+        if (isOwner) {
+          await db
+            .insert(user)
+            .values({
+              id: data.id,
               email: primaryEmail.email_address,
               emailVerified: primaryEmail.verification?.status === "verified",
               name:
                 `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim() ||
                 null,
               image: data.image_url || null,
+              role: role,
+              createdAt: new Date(data.created_at),
               updatedAt: new Date(data.updated_at),
-              // NO ROLE UPDATE HERE -> Preserves existing DB role
-            },
-          });
+            })
+            .onConflictDoUpdate({
+              target: user.id,
+              set: {
+                email: primaryEmail.email_address,
+                emailVerified: primaryEmail.verification?.status === "verified",
+                name:
+                  `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim() ||
+                  null,
+                image: data.image_url || null,
+                updatedAt: new Date(data.updated_at),
+                // NO ROLE UPDATE HERE -> Preserves existing DB role
+              },
+            });
+        }
 
         // 2. Fetch the "Source of Truth"
         // Fetch strictly the role to minimize data transfer

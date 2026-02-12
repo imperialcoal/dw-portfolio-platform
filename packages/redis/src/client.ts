@@ -1,5 +1,7 @@
 import { Redis } from "@upstash/redis";
 
+export type { Redis };
+
 const globalForRedis = globalThis as unknown as {
   redis?: Redis;
 };

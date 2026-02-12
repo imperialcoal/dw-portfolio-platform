@@ -1,6 +1,7 @@
 export const name = "redis";
 
 export { getRedis, redis, clearRedis } from "./client";
+export type { Redis } from "./client";
 export { rateLimit } from "./rate-limit";
 export { cacheKeys } from "./cache-keys";
 

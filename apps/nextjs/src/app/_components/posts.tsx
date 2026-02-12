@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-query";
 
 import type { RouterOutputs } from "@dw/api";
+import { useIsAdmin } from "@dw/auth/hooks";
 import { CreatePostSchema } from "@dw/db/schema";
 import { cn } from "@dw/ui";
 import { Button } from "@dw/ui/button";
@@ -149,6 +150,8 @@ export function PostCard(props: {
 }) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
+  const isAdmin = useIsAdmin();
+
   const deletePost = useMutation(
     trpc.post.delete.mutationOptions({
       onSuccess: async () => {
@@ -170,15 +173,18 @@ export function PostCard(props: {
         <h2 className="text-primary text-2xl font-bold">{props.post.title}</h2>
         <p className="mt-2 text-sm">{props.post.content}</p>
       </div>
-      <div>
-        <Button
-          variant="ghost"
-          className="text-primary cursor-pointer text-sm font-bold uppercase hover:bg-transparent hover:text-white"
-          onClick={() => deletePost.mutate(props.post.id)}
-        >
-          Delete
-        </Button>
-      </div>
+
+      {isAdmin && (
+        <div>
+          <Button
+            variant="ghost"
+            className="text-primary cursor-pointer text-sm font-bold uppercase hover:bg-transparent hover:text-white"
+            onClick={() => deletePost.mutate(props.post.id)}
+          >
+            Delete
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

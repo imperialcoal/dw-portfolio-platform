@@ -4,8 +4,14 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./middleware": "./src/middleware.ts",
-    "./client": "./src/client.ts"
+    "./clerk": "./src/clerk.ts",
+    "./context": "./src/context.ts",
+    "./guards": "./src/guards.ts",
+    "./hooks": "./src/hooks.ts",
+    "./load-authority-user": "./src/load-authority-user.ts",
+    "./metadata": "./src/metadata.ts",
+    "./rbac": "./src/rbac.ts",
+    "./roles": "./src/roles.ts"
   },
   "license": "MIT",
   "scripts": {
@@ -15,9 +21,13 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@clerk/backend": "^2.29.7",
     "@clerk/nextjs": "catalog:",
     "@dw/db": "workspace:*",
+    "@dw/redis": "workspace:*",
     "@t3-oss/env-core": "catalog:",
+    "@trpc/server": "catalog:",
+    "drizzle-orm": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {

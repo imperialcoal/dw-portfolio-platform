@@ -2,12 +2,24 @@ export { clerkConfig, type ClerkAuth, type ClerkUser } from "./clerk";
 
 export { ROLES, type Role } from "./roles";
 
-export {
-  requireUser,
-  requireRole,
-  requireAdmin,
-  requireNotBanned,
-} from "./rbac";
+// export {
+//   requireUser,
+//   requireRole,
+//   requireAdmin,
+//   requireNotBanned,
+// } from "./rbac";
+
+export { assertUser, assertRole, assertAdmin, assertNotBanned } from "./rbac";
+export type { RBACUser, RBACContext } from "./rbac";
+
+export { loadAuthorityUser } from "./load-authority-user";
+export type { AuthorityUser } from "./load-authority-user";
+
+export { getAuthorityContext } from "./context";
+export type { AuthorityContext } from "./context";
+
+export { hasUserId } from "./guards";
+export type { AuthObject } from "./guards";
 
 export type {
   ClerkPublicMetadata,

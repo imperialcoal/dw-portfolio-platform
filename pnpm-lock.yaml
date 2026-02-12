@@ -331,9 +331,6 @@ importers:
 
   packages/api:
     dependencies:
-      '@clerk/backend':
-        specifier: ^2.29.7
-        version: 2.30.1(react-dom@19.1.4(react@19.1.4))(react@19.1.4)
       '@dw/auth':
         specifier: workspace:*
         version: link:../auth
@@ -398,15 +395,27 @@ importers:
 
   packages/auth:
     dependencies:
+      '@clerk/backend':
+        specifier: ^2.29.7
+        version: 2.30.1(react-dom@19.1.4(react@19.1.4))(react@19.1.4)
       '@clerk/nextjs':
         specifier: 'catalog:'
         version: 6.37.3(next@16.1.6(babel-plugin-react-compiler@1.0.0)(react-dom@19.1.4(react@19.1.4))(react@19.1.4))(react-dom@19.1.4(react@19.1.4))(react@19.1.4)
       '@dw/db':
         specifier: workspace:*
         version: link:../db
+      '@dw/redis':
+        specifier: workspace:*
+        version: link:../redis
       '@t3-oss/env-core':
         specifier: 'catalog:'
         version: 0.13.10(typescript@5.9.3)(zod@4.3.6)
+      '@trpc/server':
+        specifier: 'catalog:'
+        version: 11.9.0(typescript@5.9.3)
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.44.7(@upstash/redis@1.36.2)(postgres@3.4.8)
       zod:
         specifier: 'catalog:'
         version: 4.3.6
