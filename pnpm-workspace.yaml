@@ -20,7 +20,7 @@ catalog:
   "@trpc/tanstack-react-query": ^11.7.1
   "@types/node": ^22.18.12
   "@vitejs/plugin-react": 5.1.0
-  drizzle-orm: ^0.44.7
+  drizzle-orm: ^0.45.1
   eslint: ^9.39.2
   prettier: ^3.6.2
   tailwindcss: ^4.1.18
