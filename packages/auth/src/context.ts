@@ -4,6 +4,7 @@ import type { DbInstance } from "@dw/db";
 import type { Redis } from "@dw/redis";
 
 import type { AuthorityUser } from "./load-authority-user";
+import { AUTH_ERRORS } from "./errors";
 import { hasUserId } from "./guards";
 import { loadAuthorityUser } from "./load-authority-user";
 
@@ -18,17 +19,17 @@ export async function getAuthorityContext(
   redis: Redis,
 ): Promise<AuthorityContext> {
   if (!hasUserId(auth)) {
-    throw new Error("UNAUTHORIZED");
+    throw AUTH_ERRORS.UNAUTHORIZED();
   }
 
   const profile = await loadAuthorityUser(auth.userId, db, redis);
 
   if (!profile || profile.deletedAt) {
-    throw new Error("User not found or deleted");
+    throw AUTH_ERRORS.ACCOUNT_UNAVAILABLE();
   }
 
   if (profile.banned) {
-    throw new Error("User is banned");
+    throw AUTH_ERRORS.BANNED();
   }
 
   return {

@@ -1,10 +1,9 @@
-import { config } from "@dw/config";
 import { verifyInfra } from "@dw/health";
 
 import { runtimeDb, runtimeRedis } from "./singletons";
 
 export async function bootstrapInfra() {
-  if (config.app.APP_ENV === "production") return;
+  if (process.env.APP_ENV === "production") return;
 
   try {
     console.log("🚀 Initializing local infra...");

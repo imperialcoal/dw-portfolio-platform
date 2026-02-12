@@ -6,9 +6,14 @@
   "exports": {
     ".": "./src/index.ts",
     "./bootstrap": "./src/bootstrap.ts",
+    "./boot-guard": "./src/boot-guard.ts",
     "./context": "./src/context.ts",
+    "./deployment-environments": "./src/deployment-environments.ts",
+    "./init": "./src/init.ts",
+    "./platform-identity": "./src/platform-identity.ts",
     "./process": "./src/process.ts",
     "./runtime-entry": "./src/runtime-entry.ts",
+    "./secret-source": "./src/secret-source.ts",
     "./singletons": "./src/singletons.ts"
   },
   "scripts": {
@@ -20,7 +25,6 @@
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {
-    "@dw/config": "workspace:*",
     "@dw/db": "workspace:*",
     "@dw/env": "workspace:*",
     "@dw/health": "workspace:*",
