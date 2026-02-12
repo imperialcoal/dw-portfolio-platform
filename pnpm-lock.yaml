@@ -789,9 +789,6 @@ importers:
 
   platform/runtime:
     dependencies:
-      '@dw/config':
-        specifier: workspace:*
-        version: link:../../packages/config
       '@dw/db':
         specifier: workspace:*
         version: link:../../packages/db
