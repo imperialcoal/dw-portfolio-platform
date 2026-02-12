@@ -16,6 +16,7 @@
     "clean:preview:deps": "pnpm -r exec ls -d node_modules 2> /dev/null",
     "clean:artifacts": "pnpm -r exec rm -rf dist .next .turbo .cache",
     "clean:deps": "pnpm -r exec rm -rf node_modules && rm -rf node_modules",
+    "clean:lock": "rm -f pnpm-lock.yaml",
     "clean:store": "pnpm store prune",
     "clean:workspaces": "turbo run clean",
     "clean:all": "pnpm clean:artifacts && pnpm clean:deps && pnpm clean:store",
