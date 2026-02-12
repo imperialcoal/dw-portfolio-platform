@@ -10,7 +10,9 @@ export const env = createEnv({
     NODE_ENV: z
       .enum(["development", "production", "test"])
       .default("development"),
-    APP_ENV: z.enum(["local", "staging", "production"]).default("local"),
+    APP_ENV: z
+      .enum(["local", "test", "preview", "production"])
+      .default("local"),
   },
   /**
    * Specify your server-side environment variables schema here.

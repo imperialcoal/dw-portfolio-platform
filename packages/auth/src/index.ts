@@ -21,6 +21,9 @@ export type { AuthorityContext } from "./context";
 export { hasUserId } from "./guards";
 export type { AuthObject } from "./guards";
 
+export { AUTH_ERRORS } from "./errors";
+export type { AuthErrorFactory } from "./errors";
+
 export type {
   ClerkPublicMetadata,
   // For future use

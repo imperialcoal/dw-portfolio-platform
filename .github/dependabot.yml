@@ -12,6 +12,31 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 10
 
+    versioning-strategy: increase-if-necessary
+
+    groups:
+      eslint:
+        patterns:
+          - "eslint*"
+          - "@typescript-eslint*"
+
+      trpc:
+        patterns:
+          - "@trpc/*"
+
+      tanstack:
+        patterns:
+          - "@tanstack/*"
+
+      build:
+        patterns:
+          - "vite"
+          - "esbuild"
+
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
   # Terraform infra
   - package-ecosystem: "terraform"
     directory: "/infra"

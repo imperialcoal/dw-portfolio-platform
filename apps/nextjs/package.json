@@ -34,7 +34,7 @@
     "next": "^16.1.6",
     "react": "catalog:react19",
     "react-dom": "catalog:react19",
-    "superjson": "2.2.6",
+    "superjson": "catalog:",
     "svix": "^1.84.1",
     "zod": "catalog:"
   },

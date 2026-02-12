@@ -6,6 +6,7 @@
     ".": "./src/index.ts",
     "./clerk": "./src/clerk.ts",
     "./context": "./src/context.ts",
+    "./errors": "./src/errors.ts",
     "./guards": "./src/guards.ts",
     "./hooks": "./src/hooks.ts",
     "./load-authority-user": "./src/load-authority-user.ts",

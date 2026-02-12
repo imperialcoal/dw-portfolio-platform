@@ -19,6 +19,7 @@
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {
+    "@clerk/backend": "^2.29.7",
     "@dw/auth": "workspace:*",
     "@dw/config": "workspace:*",
     "@dw/db": "workspace:*",
@@ -29,7 +30,7 @@
     "@t3-oss/env-core": "catalog:",
     "@trpc/server": "catalog:",
     "drizzle-orm": "catalog:",
-    "superjson": "2.2.6",
+    "superjson": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
