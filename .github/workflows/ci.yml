@@ -67,7 +67,6 @@ jobs:
   # RUNTIME TEST
   runtime-test:
     runs-on: ubuntu-latest
-    needs: [lint, typecheck]
     steps:
       - uses: actions/checkout@v6
       - name: Setup
@@ -79,6 +78,7 @@ jobs:
   # API INFRASTRUCTURE TEST
   infrastructure-test:
     runs-on: ubuntu-latest
+    needs: [runtime-test]  # Fast gate before expensive Docker tests
     env:
       # Inject the variables the docker-compose.yml expects
       POSTGRES_USER: postgres
