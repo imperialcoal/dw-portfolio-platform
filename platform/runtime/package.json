@@ -22,7 +22,8 @@
     "dev": "tsc",
     "format": "prettier --check . --ignore-path ../../../.gitignore",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit --emitDeclarationOnly false"
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false",
+    "platform:runtime:test": "vitest run"
   },
   "dependencies": {
     "@dw/db": "workspace:*",
@@ -38,7 +39,8 @@
     "eslint": "catalog:",
     "prettier": "catalog:",
     "tsx": "^4.21.0",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "prettier": "@dw/prettier-config"
 }

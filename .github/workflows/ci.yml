@@ -64,8 +64,20 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+  # RUNTIME TEST
+  runtime-test:
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck]
+    steps:
+      - uses: actions/checkout@v6
+      - name: Setup
+        uses: ./platform/standards/github/setup
+
+      - name: Runtime Tests
+        run: pnpm test:runtime
+
   # API INFRASTRUCTURE TEST
-  test:
+  infrastructure-test:
     runs-on: ubuntu-latest
     env:
       # Inject the variables the docker-compose.yml expects

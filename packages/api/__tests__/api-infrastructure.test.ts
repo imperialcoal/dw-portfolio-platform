@@ -5,12 +5,12 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ROLES } from "@dw/auth";
 import { config } from "@dw/config";
 import { user } from "@dw/db/schema";
-import { clearRedis } from "@dw/redis";
+import { cacheKeys, clearRedis } from "@dw/redis";
 import { createRuntimeContext } from "@dw/runtime/context";
 
 import { appRouter } from "../src/index";
 
-const { db } = createRuntimeContext();
+const { db, redis } = createRuntimeContext();
 
 // Helper to create a caller with a REAL user in the DB
 // You can now pass `auth` explicitly or let it be automatically mocked.
@@ -129,5 +129,21 @@ describe("API Infrastructure", () => {
 
     expect(dbPost).toBeDefined();
     expect(dbPost?.authorId).toBe(adminId);
+  });
+
+  it("should serve cached posts on second request", async () => {
+    const caller = await createCaller({ role: ROLES.ADMIN, userId: "admin_1" });
+
+    // First request populates cache
+    const firstResult = await caller.post.all();
+
+    // Verify cache was populated
+    const cachedPosts = await redis.get(cacheKeys.postsAll);
+    expect(cachedPosts).toBeDefined();
+    expect(cachedPosts).toEqual(firstResult); // Ensure cache matches response
+
+    // Second request should use cache
+    const secondResult = await caller.post.all();
+    expect(secondResult).toEqual(firstResult); // Results should be identical
   });
 });

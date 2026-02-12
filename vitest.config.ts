@@ -5,6 +5,6 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./platform/testing/vitest.env.ts"],
     globalSetup: ["./platform/testing/vitest.runtime.ts"],
-    projects: ["packages/*", "apps/*"],
+    projects: ["packages/*", "apps/*", "platform/*"],
   },
 });

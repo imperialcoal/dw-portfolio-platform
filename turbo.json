@@ -50,10 +50,19 @@
       "interactive": true
     },
     "dev-tools:test:setup": {
-      "cache": false
+      "cache": false,
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "packages/db/src/schema.ts",
+        "packages/db/src/auth-schema.ts"
+      ]
     },
     "dev-tools:db:seed": {
       "cache": false
+    },
+    "platform:runtime:test": {
+      "outputs": ["coverage/**"],
+      "cache": true
     },
     "api:infrastructure:test": {
       "dependsOn": ["@dw/dev-tools-scripts#dev-tools:test:setup"],
