@@ -13,6 +13,7 @@ import { z, ZodError } from "zod/v4";
 
 import type { AuthObject } from "@dw/auth";
 import { assertAdmin, getAuthorityContext } from "@dw/auth";
+import { config } from "@dw/config";
 import { user } from "@dw/db/schema";
 import { rateLimit } from "@dw/redis";
 import { createRuntimeContext } from "@dw/runtime/context";
@@ -167,13 +168,18 @@ export const protectedProcedure = t.procedure
   .use(async ({ ctx, next }) => {
     const authority = await getAuthorityContext(ctx.auth, ctx.db, ctx.redis);
 
-    // Update lastSeenAt (fire-and-forget)
-    // void ctx.db
-    // *** NOTE: use await while testing to prevent "Lost Connection" or "Leaked Promise" errors if the test process exits before the DB write finishes ***
-    await ctx.db
-      .update(user)
-      .set({ lastSeenAt: new Date() })
-      .where(eq(user.id, authority.userId));
+    // Use await while testing to prevent "Lost Connection" or "Leaked Promise" errors if the test process exits before the DB write finishes ***
+    if (config.app.NODE_ENV === "test") {
+      await ctx.db
+        .update(user)
+        .set({ lastSeenAt: new Date() })
+        .where(eq(user.id, authority.userId));
+    } else {
+      void ctx.db
+        .update(user)
+        .set({ lastSeenAt: new Date() })
+        .where(eq(user.id, authority.userId));
+    }
 
     // Return enriched context
     return next({

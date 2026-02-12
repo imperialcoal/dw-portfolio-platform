@@ -1,6 +1,7 @@
 import type { TRPCRouterRecord } from "@trpc/server";
 import { z } from "zod/v4";
 
+import { config } from "@dw/config";
 import { desc, eq } from "@dw/db";
 import { CreatePostSchema, Post } from "@dw/db/schema";
 import { cacheKeys } from "@dw/redis";
@@ -22,10 +23,12 @@ export const postRouter = {
       limit: 10,
     });
 
-    // fire-and-forget
-    void ctx.redis.set(cacheKey, posts, {
-      ex: 60 * 60, // 1 hour
-    });
+    // In test mode, await the cache write to prevent race conditions
+    if (config.app.NODE_ENV === "test") {
+      await ctx.redis.set(cacheKey, posts, { ex: 60 * 60 });
+    } else {
+      void ctx.redis.set(cacheKey, posts, { ex: 60 * 60 });
+    }
 
     return posts;
   }),
