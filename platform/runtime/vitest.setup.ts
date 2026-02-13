@@ -2,6 +2,7 @@
 process.env.NODE_ENV ??= "test";
 process.env.APP_ENV ??= "test";
 
-// Mock Redis env vars to prevent connection errors
-process.env.UPSTASH_REDIS_REST_URL ??= "https://mock-redis.upstash.io";
+// Use valid HTTPS URLs to pass validation, but they won't be called due to mocks
+process.env.UPSTASH_REDIS_REST_URL ??= "https://mock-redis.example.com";
 process.env.UPSTASH_REDIS_REST_TOKEN ??= "mock_token";
+process.env.DATABASE_URL ??= "postgresql://mock:mock@localhost:5432/mock_test";

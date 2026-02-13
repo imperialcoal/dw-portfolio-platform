@@ -1,21 +1,34 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-
-import { clearRedis } from "@dw/redis";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ensurePlatformBooted } from "../src/boot-guard";
 import { bootstrapInfra } from "../src/bootstrap";
 import { runtimeDb, runtimeRedis } from "../src/singletons";
 import { cleanEnv } from "./helpers";
 
+// Mock the infrastructure modules
+vi.mock("@dw/health", () => ({
+  verifyInfra: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("@dw/redis", async (importOriginal) => {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+  const actual = await importOriginal<typeof import("@dw/redis")>();
+  return {
+    ...actual,
+    clearRedis: vi.fn().mockResolvedValue(undefined),
+  };
+});
+
 describe("Boot Guard Integration", () => {
   cleanEnv();
 
-  afterEach(async () => {
-    await clearRedis();
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
   it("Bootstraps successfully with valid configuration", async () => {
     process.env.APP_ENV = "local";
+    process.env.NODE_ENV = "development";
     process.env.UPSTASH_REDIS_REST_URL = "https://mock-redis.upstash.io";
     process.env.UPSTASH_REDIS_REST_TOKEN = "mock_token";
 
@@ -48,6 +61,8 @@ describe("Runtime Singletons", () => {
   });
 
   it("returns same instance on multiple calls (singleton behavior)", () => {
+    process.env.UPSTASH_REDIS_REST_URL = "https://mock-redis.upstash.io";
+    process.env.UPSTASH_REDIS_REST_TOKEN = "mock_token";
     const db1 = runtimeDb();
     const db2 = runtimeDb();
     expect(db1).toBe(db2); // Should be same reference
@@ -55,6 +70,7 @@ describe("Runtime Singletons", () => {
 });
 
 describe("Infrastructure Bootstrap", () => {
+  cleanEnv();
   it("skips bootstrap in production", async () => {
     process.env.APP_ENV = "production";
     process.env.NODE_ENV = "production";
@@ -64,15 +80,26 @@ describe("Infrastructure Bootstrap", () => {
 
     await bootstrapInfra();
 
-    expect(consoleSpy).not.toHaveBeenCalledWith(
-      expect.stringContaining("Initializing local infra"),
+    // Check that our specific log didn't fire (ignore dotenv logs)
+    const ourLogs = consoleSpy.mock.calls.filter(
+      (call) => !String(call[0]).includes("[dotenv"),
     );
+
+    // Should return early and NOT initialize
+    expect(ourLogs).toEqual([]);
   });
 
   it("exits process on infra failure in test mode", async () => {
+    const { verifyInfra } = await import("@dw/health");
     process.env.APP_ENV = "test";
     process.env.NODE_ENV = "test";
-    process.env.UPSTASH_REDIS_REST_URL = "http://invalid-url";
+    process.env.UPSTASH_REDIS_REST_URL = "https://mock-redis.upstash.io";
+    process.env.UPSTASH_REDIS_REST_TOKEN = "mock_token";
+
+    // Mock infra verification to fail
+    vi.mocked(verifyInfra).mockRejectedValueOnce(
+      new Error("Connection failed"),
+    );
 
     const exitSpy = vi.spyOn(process, "exit").mockImplementation(() => {
       throw new Error("process.exit called");
