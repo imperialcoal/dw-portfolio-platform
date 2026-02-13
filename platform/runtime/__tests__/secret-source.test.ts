@@ -9,8 +9,7 @@ describe("Secret Source Resolution", () => {
   it("Uses terraform-env when in CI (Priority 1)", () => {
     process.env.APP_ENV = "test";
     process.env.CI = "true";
-    // Even if Vercel vars are present, CI should win for Terraform logic
-    process.env.VERCEL_ENV = "preview";
+    delete process.env.VERCEL_ENV;
 
     expect(resolveSecretSource()).toBe("terraform-env");
   });

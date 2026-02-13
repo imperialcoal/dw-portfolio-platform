@@ -67,6 +67,8 @@ jobs:
   # RUNTIME TEST
   runtime-test:
     runs-on: ubuntu-latest
+    env:
+      UPSTASH_REDIS_REST_URL: https://mock-redis.upstash.io 
     steps:
       - uses: actions/checkout@v6
       - name: Setup
@@ -84,7 +86,6 @@ jobs:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: postgres
-      UPSTASH_REDIS_REST_TOKEN: mock_token
 
     steps:
       - uses: actions/checkout@v6

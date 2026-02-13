@@ -10,6 +10,8 @@ describe("Platform Identity Guardrails", () => {
     it("identifies Local Development correctly", () => {
       process.env.APP_ENV = "local";
       process.env.NODE_ENV = "development";
+      delete process.env.CI;
+      delete process.env.VERCEL_ENV;
 
       const identity = getPlatformIdentity();
       expect(identity.appEnv).toBe("local");

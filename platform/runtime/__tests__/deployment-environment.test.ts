@@ -7,8 +7,11 @@ import {
   isProduction,
   isTest,
 } from "../src/deployment-environment";
+import { cleanEnv } from "./helpers";
 
 describe("Deployment Environment", () => {
+  cleanEnv();
+
   it("throws on invalid APP_ENV", () => {
     process.env.APP_ENV = "staging"; // Invalid
     expect(() => getDeploymentEnvironment()).toThrow(/Invalid APP_ENV/);

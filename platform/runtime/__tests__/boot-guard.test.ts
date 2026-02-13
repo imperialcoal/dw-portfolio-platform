@@ -16,8 +16,8 @@ describe("Boot Guard Integration", () => {
 
   it("Bootstraps successfully with valid configuration", async () => {
     process.env.APP_ENV = "local";
-    process.env.UPSTASH_REDIS_REST_URL = "mock";
-    process.env.UPSTASH_REDIS_REST_TOKEN = "mock";
+    process.env.UPSTASH_REDIS_REST_URL = "https://mock-redis.upstash.io";
+    process.env.UPSTASH_REDIS_REST_TOKEN = "mock_token";
 
     // Spy on console to keep test output clean and verify logging
     const consoleSpy = vi
@@ -57,6 +57,7 @@ describe("Runtime Singletons", () => {
 describe("Infrastructure Bootstrap", () => {
   it("skips bootstrap in production", async () => {
     process.env.APP_ENV = "production";
+    process.env.NODE_ENV = "production";
     const consoleSpy = vi
       .spyOn(console, "log")
       .mockImplementation(() => undefined);
