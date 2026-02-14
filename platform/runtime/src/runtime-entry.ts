@@ -12,7 +12,7 @@ export async function runtimeEntry() {
   setupProcessHandlers();
   loadEnv();
 
-  if (process.env.NODE_ENV !== "production") {
+  if (process.env.APP_ENV !== "production") {
     await bootstrapInfra();
   }
 }
