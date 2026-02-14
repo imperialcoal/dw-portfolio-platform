@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ensurePlatformBooted } from "../src/boot-guard";
 import { bootstrapInfra } from "../src/bootstrap";
 import { runtimeDb, runtimeRedis } from "../src/singletons";
 import { cleanEnv } from "./helpers";
@@ -24,9 +23,14 @@ describe("Boot Guard Integration", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset module state to clear the 'booted' flag
+    vi.resetModules();
   });
 
   it("Bootstraps successfully with valid configuration", async () => {
+    // Re-import after reset to get fresh module state
+    const { ensurePlatformBooted } = await import("../src/boot-guard");
+
     process.env.APP_ENV = "local";
     process.env.NODE_ENV = "development";
     process.env.UPSTASH_REDIS_REST_URL = "https://mock-redis.upstash.io";
@@ -45,6 +49,9 @@ describe("Boot Guard Integration", () => {
   });
 
   it("Prevents booting if APP_ENV is missing", async () => {
+    // Re-import after reset to get fresh module state
+    const { ensurePlatformBooted } = await import("../src/boot-guard");
+
     delete process.env.APP_ENV;
 
     await expect(ensurePlatformBooted()).rejects.toThrow(/Invalid APP_ENV/);
