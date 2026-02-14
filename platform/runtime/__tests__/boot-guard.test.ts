@@ -59,6 +59,8 @@ describe("Boot Guard Integration", () => {
 });
 
 describe("Runtime Singletons", () => {
+  cleanEnv();
+
   it("throws when required env vars are missing", () => {
     delete process.env.UPSTASH_REDIS_REST_URL;
 
@@ -76,25 +78,36 @@ describe("Runtime Singletons", () => {
   });
 });
 
-describe("Infrastructure Bootstrap", () => {
+describe("Runtime Entry", () => {
   cleanEnv();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.resetModules();
+  });
+
   it("skips bootstrap in production", async () => {
+    const { runtimeEntry } = await import("../src/runtime-entry");
+
     process.env.APP_ENV = "production";
-    console.log("APP_ENV:", process.env.APP_ENV);
-    process.env.NODE_ENV = "production";
     const consoleSpy = vi
       .spyOn(console, "log")
       .mockImplementation(() => undefined);
 
-    await bootstrapInfra();
+    await runtimeEntry();
 
-    // Check that our specific log didn't fire (ignore dotenv logs)
-    const ourLogs = consoleSpy.mock.calls.filter(
-      (call) => !String(call[0]).includes("[dotenv"),
+    expect(consoleSpy).not.toHaveBeenCalledWith(
+      expect.stringContaining("Initializing local infra"),
     );
+  });
+});
 
-    // Should return early and NOT initialize
-    expect(ourLogs).toEqual([]);
+describe("Infrastructure Bootstrap", () => {
+  cleanEnv();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.resetModules();
   });
 
   it("exits process on infra failure in test mode", async () => {
@@ -104,7 +117,6 @@ describe("Infrastructure Bootstrap", () => {
     process.env.UPSTASH_REDIS_REST_URL = "https://mock-redis.upstash.io";
     process.env.UPSTASH_REDIS_REST_TOKEN = "mock_token";
 
-    // Mock infra verification to fail
     vi.mocked(verifyInfra).mockRejectedValueOnce(
       new Error("Connection failed"),
     );
