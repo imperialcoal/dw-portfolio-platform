@@ -4,6 +4,7 @@ import { runtimeDb, runtimeRedis } from "./singletons";
 
 export async function bootstrapInfra() {
   if (process.env.APP_ENV === "production") return;
+  console.log("APP_ENV:", process.env.APP_ENV);
 
   try {
     console.log("🚀 Initializing local infra...");

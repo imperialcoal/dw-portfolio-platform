@@ -80,6 +80,7 @@ describe("Infrastructure Bootstrap", () => {
   cleanEnv();
   it("skips bootstrap in production", async () => {
     process.env.APP_ENV = "production";
+    console.log("APP_ENV:", process.env.APP_ENV);
     process.env.NODE_ENV = "production";
     const consoleSpy = vi
       .spyOn(console, "log")
