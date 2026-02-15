@@ -31,6 +31,9 @@
     "ios": "expo run:ios",
     "dw": "pnpm exec dw"
   },
+  "dependencies": {
+    "@dw/cli": "workspace:*"
+  },
   "devDependencies": {
     "@dw/prettier-config": "workspace:*",
     "@turbo/gen": "^2.8.5",
@@ -39,9 +42,6 @@
     "turbo": "^2.8.5",
     "typescript": "catalog:",
     "vitest": "catalog:"
-  },
-  "dependencies": {
-    "@dw/cli": "workspace:*"
   },
   "prettier": "@dw/prettier-config"
 }
