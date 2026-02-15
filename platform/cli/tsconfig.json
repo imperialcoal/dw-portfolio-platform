@@ -1,5 +1,5 @@
 {
-  "extends": "@dw/tsconfig/base.json",
+  "extends": "@dw/tsconfig/executable.json",
   "include": ["*.ts", "src"],
   "exclude": ["node_modules"]
 }
