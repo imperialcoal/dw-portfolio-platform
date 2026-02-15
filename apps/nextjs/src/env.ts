@@ -3,27 +3,27 @@ import { vercel } from "@t3-oss/env-nextjs/presets-zod";
 import { z } from "zod/v4";
 
 import { authEnv } from "@dw/validators/auth-env";
+import {
+  appEnvSchema,
+  databaseSchema,
+  nodeEnvSchema,
+  redisSchema,
+} from "@dw/validators/env-schemas";
 
 export const env = createEnv({
   extends: [authEnv(), vercel()],
   shared: {
-    NODE_ENV: z
-      .enum(["development", "production", "test"])
-      .default("development"),
-    APP_ENV: z
-      .enum(["local", "test", "preview", "production"])
-      .default("local"),
+    ...nodeEnvSchema,
+    ...appEnvSchema,
   },
   /**
    * Specify your server-side environment variables schema here.
    * This way you can ensure the app isn't built with invalid env vars.
    */
   server: {
-    DATABASE_URL: z.url(),
-    UPSTASH_REDIS_REST_URL: z.url(),
-    UPSTASH_REDIS_REST_TOKEN: z.string().min(1),
+    ...databaseSchema,
+    ...redisSchema,
   },
-
   /**
    * Specify your client-side environment variables schema here.
    * For them to be exposed to the client, prefix them with `NEXT_PUBLIC_`.

@@ -9,7 +9,8 @@
     },
     "./api-env": "./src/api-env.ts",
     "./auth-env": "./src/auth-env.ts",
-    "./db-env": "./src/db-env.ts"
+    "./db-env": "./src/db-env.ts",
+    "./env-schemas": "./src/env-schemas.ts"
   },
   "license": "MIT",
   "scripts": {

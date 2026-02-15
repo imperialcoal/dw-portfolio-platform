@@ -61,12 +61,12 @@
       "cache": false
     },
     "platform:runtime:test": {
-      "outputs": ["coverage/**"],
+      "outputs": ["coverage/**"], // add coverage flag to vitest later
       "cache": true
     },
     "api:infrastructure:test": {
       "dependsOn": ["@dw/dev-tools-scripts#dev-tools:test:setup"],
-      "outputs": ["coverage/**"],
+      "outputs": ["coverage/**"], // add coverage flag to vitest later
       "cache": false
     }
   },
