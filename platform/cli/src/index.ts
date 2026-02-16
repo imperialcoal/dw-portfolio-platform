@@ -1,12 +1,6 @@
 #!/usr/bin/env node
-import { Command } from "commander";
+import { route } from "./router/index.js";
 
-import { registerCommands } from "./commands/index.js";
+const args = process.argv.slice(2);
 
-const program = new Command();
-
-program.name("dw");
-
-registerCommands(program);
-
-program.parse();
+await route(args);

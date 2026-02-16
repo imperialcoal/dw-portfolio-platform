@@ -1,8 +1,10 @@
-import { execSync } from "node:child_process";
-
-export const run = (cmd) => {
-  execSync(cmd, {
-    stdio: "inherit",
-    cwd: process.cwd(),
-  });
-};
+import { execa } from "execa";
+export async function turbo(task, options = {}) {
+    const args = ["turbo", "run", task];
+    if (options.filter) {
+        args.push(`--filter=${options.filter}`);
+    }
+    return execa("pnpm", args, {
+        stdio: "inherit",
+    });
+}

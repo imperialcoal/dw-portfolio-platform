@@ -22,7 +22,7 @@ dev-tools/
 │   ├── src/                      # TypeScript utilities
 │   └── typescript/               # Seeding scripts
 │       └── seed.ts               # Database seeding
-└── package.json                  # @dw/dev-tools-scripts
+└── package.json                  # @dw/dev-tools
 ```
 
 ## Docker Services
@@ -105,6 +105,7 @@ bash platform/dev-tools/scripts/shell/wait-for-docker.sh && pnpm dev
 ```
 
 **What it does**:
+
 1. Checks if Docker is running
 2. Waits for PostgreSQL to be healthy
 3. Waits for Redis to be healthy
@@ -116,7 +117,7 @@ bash platform/dev-tools/scripts/shell/wait-for-docker.sh && pnpm dev
 
 The seeding script populates the database with test data for local development.
 
-**Package**: `@dw/dev-tools-scripts`
+**Package**: `@dw/dev-tools`
 
 **Usage**:
 
@@ -125,12 +126,13 @@ The seeding script populates the database with test data for local development.
 pnpm dev:seed
 
 # Or directly
-pnpm --filter @dw/dev-tools-scripts seed
+pnpm --filter @dw/dev-tools seed
 ```
 
 ### What Gets Seeded
 
 The seed script creates:
+
 - Test users
 - Sample posts
 - Any other test data needed
@@ -172,6 +174,7 @@ seed().catch(console.error);
 ### Running Seeds
 
 The seed script:
+
 1. Connects to database
 2. Inserts test data
 3. Reports success/failure
@@ -180,11 +183,12 @@ The seed script:
 
 ## Development Scripts
 
-### Package: @dw/dev-tools-scripts
+### Package: @dw/dev-tools
 
 This is a workspace package for development utilities.
 
 **Dependencies**:
+
 - `@dw/db` - Database access
 - `@dw/redis` - Redis access
 - `drizzle-orm` - ORM operations

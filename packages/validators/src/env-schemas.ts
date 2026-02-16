@@ -5,8 +5,9 @@ export const nodeEnvSchema = {
 };
 
 export const appEnvSchema = {
-  APP_ENV: z.enum(["local", "test", "preview", "production"]),
+  NEXT_PUBLIC_APP_ENV: z.enum(["local", "test", "preview", "production"]),
 };
+
 export const redisSchema = {
   UPSTASH_REDIS_REST_URL: z.url(),
   UPSTASH_REDIS_REST_TOKEN: z.string().min(1),

@@ -10,27 +10,10 @@
     "clean": "git clean -xdf .cache .turbo dist node_modules",
     "format": "prettier --check . --ignore-path ../../../.gitignore",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit --emitDeclarationOnly false",
-    "dev:tunnel": "cloudflared tunnel --url http://localhost:3000",
-    "dev": "turbo watch dev --continue",
-    "dev:check": "bash platform/dev-tools/scripts/shell/wait-for-docker.sh && pnpm dev",
-    "dev:next": "turbo watch dev -F @dw/nextjs...",
-    "dev:next:check": "bash platform/dev-tools/scripts/shell/wait-for-docker.sh && pnpm dev:next",
-    "dev:seed": "turbo run dev-tools:db:seed",
-    "db:generate": "turbo run db:generate",
-    "db:push": "turbo run db:push",
-    "db:studio": "turbo run db:studio",
-    "infra:up": "docker compose --env-file .env.local -f ../dev-tools/docker/docker-compose.yml up -d",
-    "infra:down": "docker compose --env-file .env.local -f ../dev-tools/docker/docker-compose.yml down",
-    "infra:restart": "pnpm infra:down && pnpm infra:up",
-    "infra:logs": "docker compose -f ../dev-tools/docker/docker-compose.yml logs -f"
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {
-    "@dw/api": "workspace:*",
-    "@dw/db": "workspace:*",
-    "@dw/env": "workspace:*",
-    "@dw/redis": "workspace:*",
-    "commander": "^14.0.3",
+    "execa": "^9.6.1",
     "uuid": "^13.0.0"
   },
   "devDependencies": {

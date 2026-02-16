@@ -47,7 +47,7 @@ Local development infrastructure and utilities.
 - **Docker Compose**: PostgreSQL 16, Redis 7, Upstash emulator
 - **Shell Scripts**: Infrastructure health checks, wait scripts
 - **TypeScript Scripts**: Database seeding, data generation
-- **Package**: `@dw/dev-tools-scripts` for seeding operations
+- **Package**: `@dw/dev-tools` for seeding operations
 
 ### [CLI](./cli/README.md)
 
@@ -78,6 +78,7 @@ Infrastructure as Code for production deployments.
 ### 1. Self-Service
 
 Developers should be able to:
+
 - Start local infrastructure: `pnpm infra:up`
 - Seed database: `pnpm dev:seed`
 - Run tests: `pnpm test`
@@ -88,6 +89,7 @@ No manual configuration or tribal knowledge required.
 ### 2. Consistency
 
 All packages and apps use:
+
 - Shared ESLint, Prettier, TypeScript configs
 - Unified dependency versions via pnpm catalog
 - Common patterns for tRPC, Drizzle, auth
@@ -102,6 +104,7 @@ All packages and apps use:
 ### 4. Type Safety
 
 End-to-end type safety from database to UI:
+
 - Drizzle ORM generates types from schema
 - tRPC infers types from routers
 - Zod validates at runtime
@@ -216,7 +219,7 @@ Platform packages are scoped to `@dw/` and include both `standards/` and `dev-to
 - `@dw/prettier-config` - Prettier configuration
 - `@dw/tsconfig` - TypeScript configuration
 - `@dw/tailwind-config` - Tailwind configuration
-- `@dw/dev-tools-scripts` - Dev tools and seeding scripts
+- `@dw/dev-tools` - Dev tools and seeding scripts
 - `@dw/cli` - CLI tools (future)
 
 ## Documentation

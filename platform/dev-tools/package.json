@@ -1,5 +1,5 @@
 {
-  "name": "@dw/dev-tools-scripts",
+  "name": "@dw/dev-tools",
   "private": true,
   "type": "module",
   "license": "MIT",
@@ -12,10 +12,14 @@
     "dev": "tsc",
     "format": "prettier --check . --ignore-path ../../../.gitignore",
     "lint": "eslint",
-    "dev-tools:test:setup": "tsx ./typescript/setup-test-db.ts",
-    "dev-tools:db:seed": "tsx ./typescript/seed.ts",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false",
-    "with-env": "dotenv -e ../../../../.env.local --"
+    "dev-tools:db:test-setup": "tsx ./typescript/setup-test-db.ts",
+    "dev-tools:db:seed": "tsx ./typescript/seed.ts",
+    "dev-tools:infra:up": "docker compose --env-file ../../.env.local -f ./docker/docker-compose.yml up -d",
+    "dev-tools:infra:down": "docker compose --env-file ../../.env.local -f ./docker/docker-compose.yml down",
+    "dev-tools:infra:restart": "pnpm dev-tools:infra:down && pnpm dev-tools:infra:up",
+    "dev-tools:infra:logs": "docker compose -f ./docker/docker-compose.yml logs -f",
+    "with-env": "dotenv -e ../../.env.local --"
   },
   "dependencies": {
     "@dw/config": "workspace:*",
