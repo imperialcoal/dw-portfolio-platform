@@ -2,6 +2,7 @@ import type { AuthObject } from "@clerk/backend";
 import { sql } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import type { Role } from "@dw/auth";
 import { ROLES } from "@dw/auth";
 import { config } from "@dw/config";
 import { user } from "@dw/db/schema";
@@ -19,7 +20,7 @@ const createCaller = async ({
   userId,
   auth,
 }: {
-  role?: string;
+  role?: Role;
   userId?: string;
   auth?: AuthObject;
 } = {}) => {

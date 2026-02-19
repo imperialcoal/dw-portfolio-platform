@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { getPlatformIdentity } from "../src/platform-identity";
-import { cleanEnv } from "./helpers";
+import { cleanEnv } from "./utils";
 
 describe("Platform Identity Guardrails", () => {
   cleanEnv();

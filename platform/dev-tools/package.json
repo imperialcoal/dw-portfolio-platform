@@ -22,6 +22,7 @@
     "with-env": "dotenv -e ../../.env.local --"
   },
   "dependencies": {
+    "@dw/auth": "workspace:*",
     "@dw/config": "workspace:*",
     "@dw/db": "workspace:*",
     "@dw/env": "workspace:*",

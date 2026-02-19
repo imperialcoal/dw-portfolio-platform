@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { resolveSecretSource } from "../src/secret-source";
-import { cleanEnv } from "./helpers";
+import { cleanEnv } from "./utils";
 
 describe("Secret Source Resolution", () => {
   cleanEnv();

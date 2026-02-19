@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { bootstrapInfra } from "../src/bootstrap";
 import { runtimeDb, runtimeRedis } from "../src/singletons";
-import { cleanEnv } from "./helpers";
+import { cleanEnv } from "./utils";
 
 // Mock the infrastructure modules
 vi.mock("@dw/health", () => ({

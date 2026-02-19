@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createRuntimeContext } from "../src/context";
-import { cleanEnv } from "./helpers";
+import { cleanEnv } from "./utils";
 
 // Ensures context creation doesn't throw
 describe("Runtime Context", () => {

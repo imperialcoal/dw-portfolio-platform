@@ -1,5 +1,5 @@
 {
   "extends": "@dw/tsconfig/base.json",
-  "include": ["src", "*.ts"],
+  "include": ["src", "*.ts", "../../apps/nextjs/src/auth/with-authority.ts"],
   "exclude": ["node_modules"]
 }

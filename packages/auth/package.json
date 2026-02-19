@@ -11,6 +11,7 @@
     "./hooks": "./src/hooks.ts",
     "./load-authority-user": "./src/load-authority-user.ts",
     "./metadata": "./src/metadata.ts",
+    "./provision-user": "./src/provision-user.ts",
     "./rbac": "./src/rbac.ts",
     "./roles": "./src/roles.ts"
   },

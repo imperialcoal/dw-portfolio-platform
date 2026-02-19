@@ -7,7 +7,7 @@ import {
   isProduction,
   isTest,
 } from "../src/deployment-environment";
-import { cleanEnv } from "./helpers";
+import { cleanEnv } from "./utils";
 
 describe("Deployment Environment", () => {
   cleanEnv();

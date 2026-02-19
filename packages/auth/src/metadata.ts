@@ -1,6 +1,6 @@
 import type { Role } from "./roles";
 
-export interface ClerkPublicMetadata {
+export interface ClerkPublicMetadata extends Record<string, unknown> {
   role?: Role;
 }
 

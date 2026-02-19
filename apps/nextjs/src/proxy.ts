@@ -1,27 +1,55 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
 // NOTE: this proxy is setup for only Admins to see login for now
-// Define public routes that don't require authentication
+
+/**
+ * Public routes (NO auth required)
+ */
 // const isPublicRoute = createRouteMatcher([
 //   "/",
 //   "/sign-in(.*)",
 //   "/sign-up(.*)",
-//   "/api/trpc(.*)", // Public tRPC routes - you can restrict specific procedures
-//   "/api/webhooks/clerk", // OAuth via Clerk
+
+//   // APIs that must remain public
+//   "/api/trpc(.*)",
+//   "/api/webhooks/clerk",
 // ]);
 
 // Admin route - NOTE: switch to secret route in production
+/**
+ * Routes that require authentication
+ */
 const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
 
+/**
+ * Routes that must ALWAYS bypass auth
+ * (webhooks must never be blocked)
+ */
+const isWebhookRoute = createRouteMatcher(["/api/webhooks/clerk"]);
+
 export default clerkMiddleware(async (auth, request) => {
+  // TRIPWIRE: Log every single request hitting the server
+  console.log(
+    `🔒 Middleware Hit: ${request.method} ${request.nextUrl.pathname}`,
+  );
   // Protect all routes except public ones
   // if (!isPublicRoute(request)) {
   //   await auth.protect();
   // }
+  if (isWebhookRoute(request)) {
+    return;
+  }
+
+  // TRIPWIRE: Log every single request hitting the server
+  console.log(
+    `🔒 Middleware Hit 2: ${request.method} ${request.nextUrl.pathname}`,
+  );
+
   // Entire site = public
-  // Only admin requires login
+  // Only admin area requires authentication
   if (isAdminRoute(request)) {
     await auth.protect();
+    return;
   }
 });
 

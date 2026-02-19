@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 
+import { ROLES } from "@dw/auth";
 import { Post, user } from "@dw/db/schema";
 import { cacheKeys } from "@dw/redis";
 import { createRuntimeContext } from "@dw/runtime/context";
@@ -29,7 +30,7 @@ async function seed() {
         emailVerified: true,
         name: "Admin User",
         image: "https://api.dicebear.com/7.x/avataaars/svg?seed=admin",
-        role: "admin",
+        role: ROLES.ADMIN,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -39,7 +40,7 @@ async function seed() {
         emailVerified: true,
         name: "John Doe",
         image: "https://api.dicebear.com/7.x/avataaars/svg?seed=john",
-        role: "user",
+        role: ROLES.USER,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -49,7 +50,7 @@ async function seed() {
         emailVerified: true,
         name: "Jane Smith",
         image: "https://api.dicebear.com/7.x/avataaars/svg?seed=jane",
-        role: "user",
+        role: ROLES.USER,
         createdAt: new Date(),
         updatedAt: new Date(),
       },

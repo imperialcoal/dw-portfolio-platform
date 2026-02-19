@@ -81,6 +81,10 @@
       "dependsOn": ["@dw/dev-tools#dev-tools:db:test-setup"],
       "outputs": ["coverage/**"], // add coverage flag to vitest later
       "cache": false
+    },
+    "clerk:webhook:test": {
+      "outputs": ["coverage/**"], // add coverage flag to vitest later
+      "cache": false
     }
   },
   "globalEnv": [
@@ -99,6 +103,7 @@
   "globalPassThroughEnv": [
     "NODE_ENV",
     "APP_ENV",
+    "NEXT_PUBLIC_APP_URL",
     "NEXT_PUBLIC_APP_ENV",
     "CI",
     "VERCEL",

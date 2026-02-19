@@ -8,7 +8,6 @@ export default defineConfig({
     setupFiles: ["../../platform/testing/vitest.env.ts"],
     globalSetup: ["../../platform/testing/vitest.runtime.ts"],
     environment: "node",
-    testTimeout: 15000,
     include: ["__tests__/**/*.test.ts"],
   },
 });

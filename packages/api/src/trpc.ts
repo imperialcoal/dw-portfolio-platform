@@ -35,7 +35,7 @@ export const createTRPCContext = (opts: {
   auth: AuthObject;
 }) => {
   const { db, redis } = createRuntimeContext();
-
+  console.log("APP DB URL:", config.db.DATABASE_URL);
   return {
     db,
     redis,
@@ -166,9 +166,11 @@ export const protectedProcedure = t.procedure
   .use(timingMiddleware)
   .use(protectedRateLimit)
   .use(async ({ ctx, next }) => {
+    // Resolve authority (guarantees auth + provisioning + status checks)
     const authority = await getAuthorityContext(ctx.auth, ctx.db, ctx.redis);
+    console.log("Authority Context:", ctx.auth, ctx.db, ctx.redis);
 
-    // Use await while testing to prevent "Lost Connection" or "Leaked Promise" errors if the test process exits before the DB write finishes ***
+    // Update lastSeen
     if (config.app.NODE_ENV === "test") {
       await ctx.db
         .update(user)
@@ -181,13 +183,14 @@ export const protectedProcedure = t.procedure
         .where(eq(user.id, authority.userId));
     }
 
-    // Return enriched context
+    // Enrich context with strong authority typing
     return next({
       ctx: {
         // Don't spread ...ctx here - be explicit about what is passed
         db: ctx.db,
         redis: ctx.redis,
         headers: ctx.headers,
+        // Fully typed authority context
         ...authority,
       },
     });

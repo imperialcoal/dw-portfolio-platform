@@ -1,4 +1,6 @@
-import { pgTable } from "drizzle-orm/pg-core";
+import { pgEnum, pgTable } from "drizzle-orm/pg-core";
+
+export const roleEnum = pgEnum("role", ["admin", "user"]);
 
 export const user = pgTable("user", (t) => ({
   // Clerk User ID
@@ -12,7 +14,8 @@ export const user = pgTable("user", (t) => ({
   image: t.text(),
 
   // Authorization
-  role: t.text().notNull().default("user"),
+
+  role: roleEnum().notNull().default("user"),
   banned: t.boolean().notNull().default(false),
 
   // Org support

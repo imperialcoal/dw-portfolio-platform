@@ -40,15 +40,6 @@ export async function loadAuthorityUser(
       deletedAt: dbProfile.deletedAt,
     };
 
-    // Future consideration:
-    // If a user signs up and immediately gets redirected to the dashboard,
-    // there is a tiny chance the webhook hasn't finished writing to Postgres yet.
-    // --- JIT (Just-In-Time) FALLBACK START ---
-    // If DB missed the webhook, fetch from Clerk directly and insert NOW.
-    // Insert basic record so the user isn't blocked
-    // Default to "user" role safely
-    // --- JIT FALLBACK END ---
-
     // Cache the user profile if found (5 min TTL)
     await redis.set(cacheKey, profile, { ex: 300 });
   }
