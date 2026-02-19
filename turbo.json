@@ -83,6 +83,7 @@
       "cache": false
     },
     "clerk:webhook:test": {
+      "dependsOn": ["@dw/dev-tools#dev-tools:db:test-setup"],
       "outputs": ["coverage/**"], // add coverage flag to vitest later
       "cache": false
     }

@@ -25,7 +25,7 @@ const config = {
 
   /** Use this subdomain for local development through cloudflare tunneling.
    * This way the localhost can communicate with cloud services.
-  */
+   */
   allowedDevOrigins: ["https://dev.dw-portfolio.dev"],
 };
 

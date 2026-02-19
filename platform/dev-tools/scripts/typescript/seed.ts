@@ -1,11 +1,11 @@
 import { eq } from "drizzle-orm";
 
-import { ROLES } from "@dw/auth";
-import { Post, user } from "@dw/db/schema";
+import { Post, roleEnum, user } from "@dw/db/schema";
 import { cacheKeys } from "@dw/redis";
 import { createRuntimeContext } from "@dw/runtime/context";
 
 const { db, redis } = createRuntimeContext();
+const [ADMIN, USER] = roleEnum.enumValues;
 
 /**
  * Seed script for local development
@@ -30,7 +30,7 @@ async function seed() {
         emailVerified: true,
         name: "Admin User",
         image: "https://api.dicebear.com/7.x/avataaars/svg?seed=admin",
-        role: ROLES.ADMIN,
+        role: ADMIN,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -40,7 +40,7 @@ async function seed() {
         emailVerified: true,
         name: "John Doe",
         image: "https://api.dicebear.com/7.x/avataaars/svg?seed=john",
-        role: ROLES.USER,
+        role: USER,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -50,7 +50,7 @@ async function seed() {
         emailVerified: true,
         name: "Jane Smith",
         image: "https://api.dicebear.com/7.x/avataaars/svg?seed=jane",
-        role: ROLES.USER,
+        role: USER,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
