@@ -17,6 +17,9 @@ env:
   FORCE_COLOR: 3
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+
+  NODE_ENV: test
+  APP_ENV: test
   DATABASE_URL: postgresql://postgres:password@localhost:5433/dw_test
   DIRECT_URL: postgresql://postgres:password@localhost:5433/dw_test
   UPSTASH_REDIS_REST_URL: http://localhost:8079
@@ -112,6 +115,7 @@ jobs:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: postgres
+
     steps:
       - uses: actions/checkout@v6
 
