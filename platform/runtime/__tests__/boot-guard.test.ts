@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { resetRedis } from "@dw/redis";
+
 import { bootstrapInfra } from "../src/bootstrap";
 import { runtimeDb, runtimeRedis } from "../src/singletons";
 import { cleanEnv } from "./utils";
@@ -62,7 +64,10 @@ describe("Runtime Singletons", () => {
   cleanEnv();
 
   it("throws when required env vars are missing", () => {
+    // Clear the singleton so getRedis() re-initializes from env
+    resetRedis();
     delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
 
     expect(() => runtimeRedis()).toThrow(
       /Missing required environment variable: UPSTASH_REDIS_REST_URL/,

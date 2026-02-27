@@ -69,3 +69,8 @@ export async function clearRedis() {
     await globalForRedis.redis.flushdb();
   }
 }
+
+// For testing only — resets the singleton so getRedis() re-initializes
+export function resetRedis() {
+  delete (globalThis as unknown as { redis?: unknown }).redis;
+}
