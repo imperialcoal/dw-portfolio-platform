@@ -29,9 +29,10 @@ function createRedisClient(): Redis {
 
   // Cloud environments — Upstash via fromEnv()
   if (!env.UPSTASH_REDIS_REST_URL || !env.UPSTASH_REDIS_REST_TOKEN) {
-    throw new Error(
-      "Redis initialization failed. Ensure UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are set in Doppler.",
-    );
+    const missing = !env.UPSTASH_REDIS_REST_URL
+      ? "UPSTASH_REDIS_REST_URL"
+      : "UPSTASH_REDIS_REST_TOKEN";
+    throw new Error(`Missing required environment variable: ${missing}`);
   }
 
   try {
