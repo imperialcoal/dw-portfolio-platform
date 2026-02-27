@@ -1,5 +1,5 @@
-import { createJiti } from "jiti";
 import { withSentryConfig } from "@sentry/nextjs";
+import { createJiti } from "jiti";
 
 const jiti = createJiti(import.meta.url);
 
@@ -33,15 +33,15 @@ const config = {
 // Injected content via Sentry wizard below
 
 export default withSentryConfig(config, {
-
   // For all available options, see:
   // https://www.npmjs.com/package/@sentry/webpack-plugin#options
 
   org: "imperial-coal",
-    // Dynamically select Sentry project based on environment
-  project: process.env.VERCEL_ENV === "production"
-    ? "dw-portfolio-platform"
-    : "dw-portfolio-platform-dev",
+  // Dynamically select Sentry project based on environment
+  project:
+    process.env.VERCEL_ENV === "production"
+      ? "dw-portfolio-platform"
+      : "dw-portfolio-platform-dev",
 
   // Only print logs for uploading source maps in CI
   silent: !process.env.CI,
