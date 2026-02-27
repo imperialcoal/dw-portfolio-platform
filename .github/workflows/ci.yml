@@ -18,17 +18,6 @@ env:
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
 
-  NODE_ENV: test
-  APP_ENV: test
-  DATABASE_URL: postgresql://postgres:password@localhost:5433/dw_test
-  DIRECT_URL: postgresql://postgres:password@localhost:5433/dw_test
-  UPSTASH_REDIS_REST_URL: http://localhost:8079
-  UPSTASH_REDIS_REST_TOKEN: mock_token
-  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_mock
-  CLERK_SECRET_KEY: sk_test_mock
-  CLERK_WEBHOOK_SECRET: whsec_mock
-  AUTH_REDIRECT_PROXY_URL: http://localhost:4000
-
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -67,67 +56,6 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-  # RUNTIME TEST
-  runtime-test:
-    runs-on: ubuntu-latest
-    env:
-      UPSTASH_REDIS_REST_URL: https://mock-redis.upstash.io 
-    steps:
-      - uses: actions/checkout@v6
-      - name: Setup
-        uses: ./platform/standards/github/setup
-
-      - name: Runtime Tests
-        run: pnpm test:runtime
-
-  # API INFRASTRUCTURE TEST
-  infrastructure-test:
-    runs-on: ubuntu-latest
-    needs: [runtime-test]  # Fast gate before expensive Docker tests
-    env:
-      # Inject the variables the docker-compose.yml expects
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: postgres
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Setup
-        uses: ./platform/standards/github/setup
-
-      - name: Start Infrastructure
-        # -d runs in background; --wait ensures healthchecks pass before moving on
-        run: docker compose -f platform/dev-tools/docker/docker-compose.yml up -d --wait
-
-      - name: API Infrastructure Tests
-        run: pnpm test:api:infra
-
-      - name: Stop Infrastructure
-        if: always()
-        run: docker compose -f platform/dev-tools/docker/docker-compose.yml down
-
-# CLERK WEBHOOK TEST
-  clerk-webhook-test:
-    runs-on: ubuntu-latest
-    needs: [runtime-test]
-    env:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: postgres
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Setup
-        uses: ./platform/standards/github/setup
-
-      - name: Start Infrastructure
-        run: docker compose -f platform/dev-tools/docker/docker-compose.yml up -d --wait
-
-      - name: Clerk Webhook Tests
-        run: pnpm test:clerk:webhook
-
-      - name: Stop Infrastructure
-        if: always()
-        run: docker compose -f platform/dev-tools/docker/docker-compose.yml down        
+  tests:
+    uses: ./.github/workflows/test.yml
+    secrets: inherit

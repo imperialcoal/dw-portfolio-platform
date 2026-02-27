@@ -5,8 +5,8 @@ export function authEnv() {
   return createEnv({
     server: {
       OWNER_EMAILS: z.string().min(1).optional(),
-      CLERK_SECRET_KEY: z.string().min(1),
-      CLERK_WEBHOOK_SECRET: z.string().min(1),
+      CLERK_SECRET_KEY: z.string().min(1).optional(),
+      CLERK_WEBHOOK_SECRET: z.string().min(1).optional(),
       NODE_ENV: z
         .enum(["development", "test", "production"])
         .default("development"),

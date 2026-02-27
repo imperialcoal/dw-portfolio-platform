@@ -25,6 +25,7 @@
   },
   "prettier": "@dw/prettier-config",
   "dependencies": {
+    "@dw/validators": "workspace:*",
     "@t3-oss/env-core": "catalog:",
     "@trpc/server": "catalog:",
     "@upstash/redis": "^1.36.1"

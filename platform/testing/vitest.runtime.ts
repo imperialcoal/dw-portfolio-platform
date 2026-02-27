@@ -10,8 +10,8 @@ export default function () {
     !process.env.DATABASE_URL?.includes("test") &&
     !process.env.DIRECT_URL?.includes("test")
   ) {
-    console.warn(
-      "⚠️ WARNING: DATABASE_URL does not appear to be a test database. Proceed with caution.",
+    throw new Error(
+      "🚨 FATAL: DATABASE_URL must point to a test database. Current value does not contain 'test'.",
     );
   }
 }

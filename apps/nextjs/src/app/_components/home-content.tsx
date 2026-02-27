@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 
 import { HydrateClient, prefetch, trpc } from "~/trpc/server";
+import { ContactForm } from "./contact-form";
 import { PostCardSkeleton, PostList } from "./posts";
 
 export function HomeContent() {
@@ -27,6 +28,7 @@ export function HomeContent() {
               <PostList />
             </Suspense>
           </div>
+          <ContactForm />
         </div>
       </main>
     </HydrateClient>

@@ -30,6 +30,7 @@
     "@t3-oss/env-core": "catalog:",
     "@trpc/server": "catalog:",
     "drizzle-orm": "catalog:",
+    "resend": "catalog:",
     "superjson": "catalog:",
     "zod": "catalog:"
   },

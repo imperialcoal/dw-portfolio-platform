@@ -16,11 +16,17 @@ export const getBaseUrl = () => {
   const debuggerHost = Constants.expoConfig?.hostUri;
   const localhost = debuggerHost?.split(":")[0];
 
-  if (!localhost) {
-    // return "https://turbo.t3.gg";
-    throw new Error(
-      "Failed to get localhost. Please point to your production server.",
-    );
+  // Local development fallback
+  if (localhost) {
+    return `http://${localhost}:4000`;
   }
-  return `http://${localhost}:4000`;
+
+  // Cloud dev tunnel or production URL injected via Doppler/Vercel
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL;
+  }
+
+  throw new Error(
+    "Failed to determine base URL. Set NEXT_PUBLIC_APP_URL or run with a local debugger.",
+  );
 };

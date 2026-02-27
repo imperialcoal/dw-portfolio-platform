@@ -25,6 +25,7 @@ export async function bootstrapInfra() {
     console.error("❌ Failed to initialize infra", err);
 
     // Make infrastructure failures to be fatal in test mode
+    // eslint-disable-next-line turbo/no-undeclared-env-vars -- NODE_ENV is declared in globalPassThroughEnv
     if (process.env.NODE_ENV === "test") {
       console.error(
         "❌ CRITICAL: Infrastructure verification failed for test environment.",

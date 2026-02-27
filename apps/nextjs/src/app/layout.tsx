@@ -11,24 +11,22 @@ import { TRPCReactProvider } from "~/trpc/react";
 
 import "~/app/styles.css";
 
+const url = new URL(env.NEXT_PUBLIC_APP_URL);
+
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    env.VERCEL_ENV === "production"
-      ? "https://turbo.t3.gg"
-      : "http://localhost:4000",
-  ),
-  title: "Create T3 Turbo",
+  metadataBase: url,
+  title: "DW Portfolio",
   description: "Simple monorepo with shared backend for web & mobile apps",
   openGraph: {
-    title: "Create T3 Turbo",
+    title: "DW Portfolio",
     description: "Simple monorepo with shared backend for web & mobile apps",
-    url: "https://create-t3-turbo.vercel.app",
-    siteName: "Create T3 Turbo",
+    url: url,
+    siteName: "DW Portfolio",
   },
   twitter: {
     card: "summary_large_image",
-    site: "@jullerino",
-    creator: "@jullerino",
+    site: "@my_twitter",
+    creator: "@my_twitter",
   },
 };
 

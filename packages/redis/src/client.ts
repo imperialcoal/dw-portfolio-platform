@@ -1,35 +1,64 @@
 import { Redis } from "@upstash/redis";
 
+import { apiEnv } from "@dw/validators/api-env";
+
 export type { Redis };
 
 const globalForRedis = globalThis as unknown as {
   redis?: Redis;
 };
 
-export function getRedis(config: { url: string; token: string }): Redis {
+function createRedisClient(): Redis {
+  const env = apiEnv();
+
+  const isLocal =
+    env.APP_ENV === "local" &&
+    env.UPSTASH_REDIS_REST_URL?.startsWith("http://localhost");
+
+  if (isLocal) {
+    if (!env.UPSTASH_REDIS_REST_URL || !env.UPSTASH_REDIS_REST_TOKEN) {
+      throw new Error(
+        "Local Redis requires UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in .env.local",
+      );
+    }
+    return new Redis({
+      url: env.UPSTASH_REDIS_REST_URL,
+      token: env.UPSTASH_REDIS_REST_TOKEN,
+    });
+  }
+
+  // Cloud environments — Upstash via fromEnv()
+  if (!env.UPSTASH_REDIS_REST_URL || !env.UPSTASH_REDIS_REST_TOKEN) {
+    throw new Error(
+      "Redis initialization failed. Ensure UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are set in Doppler.",
+    );
+  }
+
+  try {
+    return Redis.fromEnv();
+  } catch {
+    throw new Error(
+      "Redis initialization failed. Ensure UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are set in Doppler.",
+    );
+  }
+}
+
+export function getRedis(): Redis {
   if (globalForRedis.redis) {
     return globalForRedis.redis;
   }
 
-  const client = new Redis({
-    url: config.url,
-    token: config.token,
-  });
-
+  const client = createRedisClient();
   globalForRedis.redis = client;
-
   return client;
 }
 
-// Export typed redis instance
 export const redis = new Proxy({} as Redis, {
   get(_target, prop: string) {
-    if (!globalForRedis.redis) {
-      throw new Error("Redis not initialized. Call getRedis() first.");
-    }
-    const value = globalForRedis.redis[prop as keyof Redis];
+    const client = getRedis();
+    const value = client[prop as keyof Redis];
     if (typeof value === "function") {
-      return value.bind(globalForRedis.redis);
+      return value.bind(client);
     }
     return value;
   },

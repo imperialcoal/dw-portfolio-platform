@@ -1,0 +1,4 @@
+setup:
+  project: dw-portfolio-platform
+  config: dev
+  

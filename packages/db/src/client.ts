@@ -19,12 +19,17 @@ export function getDb(): DbInstance {
   }
 
   const env = dbEnv();
+  const isLocal = env.APP_ENV === "local";
 
   const conn =
     globalForDb._conn ??
     postgres(env.DATABASE_URL, {
-      max: 5,
+      // Required for Supabase PgBouncer transaction pooler
+      // Safe to use locally too — postgres.js handles it gracefully
+      prepare: false,
+      max: isLocal ? 5 : 3, // Supabase free tier has connection limits
       idle_timeout: 30,
+      connect_timeout: 10,
     });
 
   if (env.NODE_ENV !== "production") {
