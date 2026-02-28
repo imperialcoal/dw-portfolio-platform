@@ -35,7 +35,6 @@ export const createTRPCContext = (opts: {
   auth: AuthObject;
 }) => {
   const { db, redis } = createRuntimeContext();
-  console.log("APP DB URL:", config.db.DATABASE_URL);
   return {
     db,
     redis,
@@ -168,7 +167,6 @@ export const protectedProcedure = t.procedure
   .use(async ({ ctx, next }) => {
     // Resolve authority (guarantees auth + provisioning + status checks)
     const authority = await getAuthorityContext(ctx.auth, ctx.db, ctx.redis);
-    console.log("Authority Context:", ctx.auth, ctx.db, ctx.redis);
 
     // Update lastSeen
     if (config.app.NODE_ENV === "test") {

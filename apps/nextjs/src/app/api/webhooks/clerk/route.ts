@@ -11,7 +11,6 @@ import type { SupportedClerkEvents, WebhookEvent } from "./handler";
 import { handleClerkWebhook } from "./handler";
 
 export async function POST(req: Request) {
-  console.log("WEBHOOK DB URL:", config.db.DATABASE_URL);
   if (config.app.APP_ENV !== "production") {
     await bootstrapInfra(); // optional: verifies local dev infra
   }

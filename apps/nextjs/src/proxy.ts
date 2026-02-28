@@ -28,22 +28,9 @@ const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
 const isWebhookRoute = createRouteMatcher(["/api/webhooks/clerk"]);
 
 export default clerkMiddleware(async (auth, request) => {
-  // TRIPWIRE: Log every single request hitting the server
-  console.log(
-    `🔒 Middleware Hit: ${request.method} ${request.nextUrl.pathname}`,
-  );
-  // Protect all routes except public ones
-  // if (!isPublicRoute(request)) {
-  //   await auth.protect();
-  // }
   if (isWebhookRoute(request)) {
     return;
   }
-
-  // TRIPWIRE: Log every single request hitting the server
-  console.log(
-    `🔒 Middleware Hit 2: ${request.method} ${request.nextUrl.pathname}`,
-  );
 
   // Entire site = public
   // Only admin area requires authentication
