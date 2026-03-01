@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "next build",
+    "build:local": "pnpm with-env next build",
     "clean": "git clean -xdf .cache .next .turbo node_modules",
     "dev": "doppler run -- next dev",
     "dev:local": "pnpm with-env next dev",
