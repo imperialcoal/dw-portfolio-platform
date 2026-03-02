@@ -93,17 +93,17 @@
       "persistent": true
     },
     "platform:runtime:test": {
-      "outputs": ["coverage/**"], // add coverage flag to vitest later
+      "outputs": ["coverage/**"], // add coverage flag to vitest later for more metrics during testing
       "cache": true
     },
     "api:infrastructure:test": {
       "dependsOn": ["@dw/dev-tools#dev-tools:db:test-setup"],
-      "outputs": ["coverage/**"], // add coverage flag to vitest later
+      "outputs": ["coverage/**"], // add coverage flag to vitest later for more metrics during testing
       "cache": false
     },
     "clerk:webhook:test": {
       "dependsOn": ["@dw/dev-tools#dev-tools:db:test-setup"],
-      "outputs": ["coverage/**"], // add coverage flag to vitest later
+      "outputs": ["coverage/**"], // add coverage flag to vitest later for more metrics during testing
       "cache": false
     }
   },
