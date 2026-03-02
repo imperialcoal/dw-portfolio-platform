@@ -24,3 +24,5 @@ export { getPlatformIdentity, isProductionPlatform } from "./platform-identity";
 
 export { resolveSecretSource } from "./secret-source";
 export type { SecretSource } from "./secret-source";
+
+export { runtimeEntry } from "./runtime-entry";

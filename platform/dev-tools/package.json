@@ -7,9 +7,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "build": "tsc",
     "clean": "git clean -xdf .cache .turbo dist node_modules",
-    "dev": "tsc",
     "format": "prettier --check . --ignore-path ../../../.gitignore",
     "lint": "eslint",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false",
@@ -28,7 +26,6 @@
     "@dw/env": "workspace:*",
     "@dw/redis": "workspace:*",
     "@dw/runtime": "workspace:*",
-    "drizzle-orm": "catalog:",
     "postgres": "^3.4.8",
     "uuid": "^13.0.0"
   },

@@ -37,7 +37,7 @@
     "@dw/config": "workspace:*",
     "@dw/validators": "workspace:*",
     "@t3-oss/env-core": "catalog:",
-    "drizzle-orm": "catalog:",
+    "drizzle-orm": "^0.45.1",
     "drizzle-zod": "^0.8.3",
     "postgres": "^3.4.8",
     "zod": "catalog:"

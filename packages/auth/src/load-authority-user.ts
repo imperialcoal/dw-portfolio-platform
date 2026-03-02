@@ -1,7 +1,6 @@
-import { eq } from "drizzle-orm";
-
 import type { DbInstance } from "@dw/db";
 import type { Redis } from "@dw/redis";
+import { eq } from "@dw/db";
 import { user } from "@dw/db/schema";
 import { cacheKeys } from "@dw/redis";
 

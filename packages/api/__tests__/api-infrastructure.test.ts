@@ -1,10 +1,9 @@
-import type { AuthObject } from "@clerk/backend";
-import { sql } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import type { Role } from "@dw/auth";
+import type { AuthObject, Role } from "@dw/auth";
 import { ROLES } from "@dw/auth";
 import { config } from "@dw/config";
+import { sql } from "@dw/db";
 import { user } from "@dw/db/schema";
 import { cacheKeys, clearRedis } from "@dw/redis";
 import { createRuntimeContext } from "@dw/runtime/context";

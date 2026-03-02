@@ -7,13 +7,13 @@
  * The pieces you will need to use are documented accordingly near the end
  */
 import { initTRPC } from "@trpc/server";
-import { eq } from "drizzle-orm";
 import superjson from "superjson";
 import { z, ZodError } from "zod/v4";
 
 import type { AuthObject } from "@dw/auth";
 import { assertAdmin, getAuthorityContext } from "@dw/auth";
 import { config } from "@dw/config";
+import { eq } from "@dw/db";
 import { user } from "@dw/db/schema";
 import { rateLimit } from "@dw/redis";
 import { createRuntimeContext } from "@dw/runtime/context";

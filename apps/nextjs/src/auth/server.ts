@@ -1,6 +1,14 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
+import type { WebhookEvent } from "@clerk/backend";
+import {
+  auth,
+  clerkClient,
+  clerkMiddleware,
+  createRouteMatcher,
+  currentUser,
+} from "@clerk/nextjs/server";
 
-export { auth, currentUser };
+export { auth, clerkClient, clerkMiddleware, currentUser, createRouteMatcher };
+export type { WebhookEvent };
 
 /**
  * Helper to get auth or throw

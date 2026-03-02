@@ -23,13 +23,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@clerk/backend": "^2.29.7",
+    "@clerk/backend": "catalog:",
     "@clerk/nextjs": "catalog:",
     "@dw/db": "workspace:*",
     "@dw/redis": "workspace:*",
     "@t3-oss/env-core": "catalog:",
     "@trpc/server": "catalog:",
-    "drizzle-orm": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {

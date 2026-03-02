@@ -7,10 +7,22 @@
       "types": "./dist/index.d.ts",
       "default": "./src/index.ts"
     },
-    "./api-env": "./src/api-env.ts",
-    "./auth-env": "./src/auth-env.ts",
-    "./db-env": "./src/db-env.ts",
-    "./env-schemas": "./src/env-schemas.ts"
+    "./api-env": {
+      "types": "./dist/api-env.d.ts",
+      "default": "./src/api-env.ts"
+    },
+    "./auth-env": {
+      "types": "./dist/auth-env.d.ts",
+      "default": "./src/auth-env.ts"
+    },
+    "./db-env": {
+      "types": "./dist/db-env.d.ts",
+      "default": "./src/db-env.ts"
+    },
+    "./env-schemas": {
+      "types": "./dist/env-schemas.d.ts",
+      "default": "./src/env-schemas.ts"
+    }
   },
   "license": "MIT",
   "scripts": {

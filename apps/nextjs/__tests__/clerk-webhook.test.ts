@@ -1,6 +1,6 @@
-import { sql } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { sql } from "@dw/db";
 import { user } from "@dw/db/schema";
 import { createRuntimeContext } from "@dw/runtime/context";
 

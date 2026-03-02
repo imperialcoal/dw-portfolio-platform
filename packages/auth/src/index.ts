@@ -33,5 +33,3 @@ export type {
 } from "./metadata";
 
 export { ensureUserProvisioned } from "./provision-user";
-
-export { withAuthority } from "../../../apps/nextjs/src/auth/with-authority";

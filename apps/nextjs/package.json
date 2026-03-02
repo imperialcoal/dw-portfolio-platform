@@ -16,7 +16,7 @@
     "with-env": "dotenv -e ../../.env.local --"
   },
   "dependencies": {
-    "@clerk/backend": "^2.29.7",
+    "@clerk/backend": "catalog:",
     "@clerk/nextjs": "catalog:",
     "@dw/api": "workspace:*",
     "@dw/auth": "workspace:*",
@@ -35,7 +35,6 @@
     "@trpc/client": "catalog:",
     "@trpc/server": "catalog:",
     "@trpc/tanstack-react-query": "catalog:",
-    "drizzle-orm": "catalog:",
     "next": "^16.1.6",
     "react": "catalog:react19",
     "react-dom": "catalog:react19",

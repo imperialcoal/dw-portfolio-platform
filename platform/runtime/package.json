@@ -4,17 +4,50 @@
   "type": "module",
   "license": "MIT",
   "exports": {
-    ".": "./src/index.ts",
-    "./bootstrap": "./src/bootstrap.ts",
-    "./boot-guard": "./src/boot-guard.ts",
-    "./context": "./src/context.ts",
-    "./deployment-environments": "./src/deployment-environments.ts",
-    "./init": "./src/init.ts",
-    "./platform-identity": "./src/platform-identity.ts",
-    "./process": "./src/process.ts",
-    "./runtime-entry": "./src/runtime-entry.ts",
-    "./secret-source": "./src/secret-source.ts",
-    "./singletons": "./src/singletons.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./src/index.ts"
+    },
+    "./bootstrap": {
+      "types": "./dist/bootstrap.d.ts",
+      "default": "./src/bootstrap.ts"
+    },
+    "./boot-guard": {
+      "types": "./dist/boot-guard.d.ts",
+      "default": "./src/boot-guard.ts"
+    },
+    "./context": {
+      "types": "./dist/context.d.ts",
+      "default": "./src/context.ts"
+    },
+    "./deployment-environment": {
+      "types": "./dist/deployment-environment.d.ts",
+      "default": "./src/deployment-environment.ts"
+    },
+    "./init": {
+      "types": "./dist/init.d.ts",
+      "default": "./src/init.ts"
+    },
+    "./platform-identity": {
+      "types": "./dist/platform-identity.d.ts",
+      "default": "./src/platform-identity.ts"
+    },
+    "./process": {
+      "types": "./dist/process.d.ts",
+      "default": "./src/process.ts"
+    },
+    "./runtime-entry": {
+      "types": "./dist/runtime-entry.d.ts",
+      "default": "./src/runtime-entry.ts"
+    },
+    "./secret-source": {
+      "types": "./dist/secret-source.d.ts",
+      "default": "./src/secret-source.ts"
+    },
+    "./singletons": {
+      "types": "./dist/singletons.d.ts",
+      "default": "./src/singletons.ts"
+    }
   },
   "scripts": {
     "build": "tsc",

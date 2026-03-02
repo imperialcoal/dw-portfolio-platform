@@ -1,4 +1,4 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { clerkMiddleware, createRouteMatcher } from "~/auth/server";
 
 // NOTE: this proxy is setup for only Admins to see login for now
 

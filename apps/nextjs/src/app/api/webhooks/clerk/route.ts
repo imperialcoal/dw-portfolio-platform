@@ -1,5 +1,4 @@
 import { headers } from "next/headers";
-import { clerkClient } from "@clerk/nextjs/server";
 import { Webhook } from "svix";
 
 import { ensureUserProvisioned } from "@dw/auth";
@@ -7,7 +6,9 @@ import { config } from "@dw/config";
 import { bootstrapInfra } from "@dw/runtime/bootstrap";
 import { createRuntimeContext } from "@dw/runtime/context";
 
-import type { SupportedClerkEvents, WebhookEvent } from "./handler";
+import type { SupportedClerkEvents } from "./handler";
+import type { WebhookEvent } from "~/auth/server";
+import { clerkClient } from "~/auth/server";
 import { handleClerkWebhook } from "./handler";
 
 export async function POST(req: Request) {

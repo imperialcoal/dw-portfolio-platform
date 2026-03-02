@@ -1,14 +1,12 @@
-import type { WebhookEvent } from "@clerk/backend";
-import { eq } from "drizzle-orm";
-
 import type { AuthorityUser, ClerkPublicMetadata, Role } from "@dw/auth";
 import type { DbInstance } from "@dw/db";
 import type { Redis } from "@dw/redis";
 import { ROLES } from "@dw/auth";
+import { eq } from "@dw/db";
 import { user } from "@dw/db/schema";
 import { cacheKeys } from "@dw/redis";
 
-export type { WebhookEvent };
+import type { WebhookEvent } from "~/auth/server";
 
 export type SupportedClerkEvents = Extract<
   WebhookEvent,

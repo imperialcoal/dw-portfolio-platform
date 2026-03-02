@@ -1,6 +1,7 @@
 "use client";
 
 export {
+  ClerkProvider,
   useAuth,
   useUser,
   useClerk,
