@@ -27,7 +27,7 @@ const config = {
   /** Use this subdomain for local development through cloudflare tunneling.
    * This way the localhost can communicate with cloud services.
    */
-  allowedDevOrigins: ["dev.dw-portfolio.dev"],
+  allowedDevOrigins: ["dev.dw-portfolio.dev", "tunnel.dw-portfolio.dev"],
 };
 
 // Injected content via Sentry wizard below
@@ -40,8 +40,8 @@ export default withSentryConfig(config, {
   // Dynamically select Sentry project based on environment
   project:
     process.env.VERCEL_ENV === "production"
-      ? "dw-portfolio-platform"
-      : "dw-portfolio-platform-dev",
+      ? "dw-portfolio-production"
+      : "dw-portfolio-preview",
 
   // Only print logs for uploading source maps in CI
   silent: !process.env.CI,

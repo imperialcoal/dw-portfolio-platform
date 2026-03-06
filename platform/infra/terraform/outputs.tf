@@ -1,0 +1,38 @@
+# Output values
+
+output "environment" {
+  description = "Active environment for this state"
+  value       = var.environment
+}
+
+output "upstash_rest_url" {
+  description = "Upstash Redis REST URL"
+  value       = module.upstash.rest_url
+}
+
+output "upstash_rest_token" {
+  description = "Upstash Redis REST token"
+  value       = module.upstash.rest_token
+  sensitive   = true
+}
+
+output "supabase_project_id" {
+  description = "Supabase project ID"
+  value       = module.supabase.project_id
+}
+
+output "supabase_project_ref" {
+  description = "Supabase project ref"
+  value       = module.supabase.project_ref
+}
+
+output "supabase_database_url" {
+  description = "Supabase database URL"
+  value       = module.supabase.database_url
+  sensitive   = true
+}
+
+output "vercel_deployment_url" {
+  description = "Primary deployment URL"
+  value       = module.vercel.deployment_url
+}

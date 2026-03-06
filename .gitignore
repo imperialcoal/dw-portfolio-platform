@@ -65,3 +65,20 @@ dist/
 .tanstack
 
 .pnpm-store
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfstate.lock.info
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+terraform.tfvars
+*.auto.tfvars
+*.auto.tfvars.json
+!platform/infra/terraform/scripts/
+doppler.auto.tfvars.json
