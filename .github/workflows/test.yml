@@ -76,3 +76,4 @@ jobs:
       - name: Stop Infrastructure
         if: always()
         run: docker compose -f platform/dev-tools/docker/docker-compose.yml down
+        

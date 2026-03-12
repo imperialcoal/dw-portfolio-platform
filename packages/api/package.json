@@ -23,12 +23,12 @@
     "@dw/config": "workspace:*",
     "@dw/db": "workspace:*",
     "@dw/env": "workspace:*",
+    "@dw/messaging": "workspace:*",
     "@dw/redis": "workspace:*",
     "@dw/runtime": "workspace:*",
     "@dw/validators": "workspace:*",
     "@t3-oss/env-core": "catalog:",
     "@trpc/server": "catalog:",
-    "resend": "catalog:",
     "superjson": "catalog:",
     "zod": "catalog:"
   },

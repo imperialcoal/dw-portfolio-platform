@@ -1,0 +1,44 @@
+name: Platform Agent
+
+# Triggered when the CI workflow completes.
+# The agent webhook receiver filters for failures — successful runs
+# are acknowledged and ignored.
+#
+# This workflow does NOT run the analysis itself — it notifies the
+# platform agent endpoint which runs the CI agent asynchronously.
+# The agent is a Vercel serverless function, not a GitHub Action.
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+jobs:
+  notify:
+    # Only worth notifying on failures — the webhook receiver also filters
+    # this, but skipping the job entirely saves the GitHub Actions minute.
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Notify platform agent
+        # The webhook receiver verifies the HMAC signature, returns 200
+        # immediately, and runs the CI agent asynchronously in the background.
+        # We fire-and-forget — no need to wait for analysis to complete.
+        run: |
+          PAYLOAD=$(cat << 'EOF'
+          ${{ toJson(github.event) }}
+          EOF
+          )
+
+          SIGNATURE=$(echo -n "$PAYLOAD" | \
+            openssl dgst -sha256 -hmac "${{ secrets.WEBHOOK_SECRET_GITHUB }}" | \
+            awk '{print "sha256="$2}')
+
+          curl -s -o /dev/null -w "%{http_code}" \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -H "X-GitHub-Event: workflow_run" \
+            -H "X-Hub-Signature-256: $SIGNATURE" \
+            -d "$PAYLOAD" \
+            "${{ secrets.PLATFORM_AGENT_URL }}/api/webhooks/github"

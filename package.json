@@ -46,10 +46,10 @@
   "devDependencies": {
     "@dw/cli": "workspace:*",
     "@dw/prettier-config": "workspace:*",
-    "@turbo/gen": "^2.8.12",
+    "@turbo/gen": "^2.8.15",
     "dotenv-cli": "^11.0.0",
     "prettier": "catalog:",
-    "turbo": "^2.8.12",
+    "turbo": "^2.8.15",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },

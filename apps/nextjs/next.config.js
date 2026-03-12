@@ -10,11 +10,14 @@ await jiti.import("./src/env");
 const config = {
   /** Enables hot reloading for local packages without a build step */
   transpilePackages: [
+    "@dw/ai",
     "@dw/api",
     "@dw/auth",
     "@dw/config",
+    "@dw/contracts",
     "@dw/db",
     "@dw/env",
+    "@dw/llm",
     "@dw/redis",
     "@dw/runtime",
     "@dw/ui",

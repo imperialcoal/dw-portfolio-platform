@@ -17,7 +17,7 @@ export async function POST(req: Request) {
   }
 
   const { db, redis } = createRuntimeContext();
-  const WEBHOOK_SECRET = config.auth.CLERK_WEBHOOK_SECRET;
+  const WEBHOOK_SECRET = config.clerk.CLERK_WEBHOOK_SECRET;
 
   if (!WEBHOOK_SECRET) {
     throw new Error("Missing CLERK_WEBHOOK_SECRET");

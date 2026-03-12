@@ -15,13 +15,33 @@
       "types": "./dist/auth-env.d.ts",
       "default": "./src/auth-env.ts"
     },
+    "./clerk-env": {
+      "types": "./dist/clerk-env.d.ts",
+      "default": "./src/clerk-env.ts"
+    },
     "./db-env": {
       "types": "./dist/db-env.d.ts",
       "default": "./src/db-env.ts"
     },
+    "./devops-env": {
+      "types": "./dist/devops-env.d.ts",
+      "default": "./src/devops-env.ts"
+    },
     "./env-schemas": {
       "types": "./dist/env-schemas.d.ts",
       "default": "./src/env-schemas.ts"
+    },
+    "./messaging-env": {
+      "types": "./dist/messaging-env.d.ts",
+      "default": "./src/messaging-env.ts"
+    },
+    "./observability-env": {
+      "types": "./dist/observability-env.d.ts",
+      "default": "./src/observability-env.ts"
+    },
+    "./supabase-env": {
+      "types": "./dist/supabase-env.d.ts",
+      "default": "./src/supabase-env.ts"
     }
   },
   "license": "MIT",

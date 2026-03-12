@@ -1,7 +1,8 @@
 import type { TRPCRouterRecord } from "@trpc/server";
 import { z } from "zod/v4";
 
-import { sendContactEmail } from "../email/contact";
+import { sendContactEmail } from "@dw/messaging";
+
 import { publicProcedure } from "../trpc";
 
 export const contactRouter = {

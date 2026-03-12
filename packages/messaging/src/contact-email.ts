@@ -1,7 +1,9 @@
-import { apiEnv } from "@dw/validators/api-env";
+import {
+  isMessagingConfigured,
+  messagingEnv,
+} from "@dw/validators/messaging-env";
 
-import { getResendClient } from "./client";
-import { isResendConfigured } from "./utils";
+import { getResendClient } from "./resend-client";
 
 export interface ContactFormData {
   name: string;
@@ -10,13 +12,13 @@ export interface ContactFormData {
 }
 
 export async function sendContactEmail(data: ContactFormData): Promise<void> {
-  if (!isResendConfigured()) {
-    // In local dev, log the message instead of throwing
+  if (!isMessagingConfigured()) {
+    // Local/offline dev — log instead of throwing so the app doesn't crash
     console.info("[Resend not configured] Contact form submission:", data);
     return;
   }
 
-  const env = apiEnv();
+  const env = messagingEnv();
   const resend = getResendClient();
 
   const { error } = await resend.emails.send({
