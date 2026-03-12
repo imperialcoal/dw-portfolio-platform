@@ -4,6 +4,8 @@ import type { IncidentRecord, VercelDeployment } from "@dw/contracts";
 import { getIncidents } from "@dw/ai/memory";
 import { fetchRecentDeployments } from "@dw/ai/sensors";
 
+import { env } from "~/env";
+
 // ─────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────
@@ -26,14 +28,12 @@ function formatDate(ts: number): string {
   });
 }
 
-// Find incidents that occurred within 2 hours after a deploy
 function findCorrelatedIncidents(
   deploy: VercelDeployment,
   incidents: IncidentRecord[],
 ): IncidentRecord[] {
   const deployTime = deploy.createdAt;
-  const windowEnd = deployTime + 1000 * 60 * 60 * 2; // 2h window
-
+  const windowEnd = deployTime + 1000 * 60 * 60 * 2;
   return incidents.filter((incident) => {
     const incidentTime = new Date(incident.timestamp).getTime();
     return incidentTime >= deployTime && incidentTime <= windowEnd;
@@ -73,35 +73,30 @@ const SEVERITY_COLOR: Record<IncidentRecord["severity"], string> = {
 function DeployRow({
   deploy,
   correlated,
+  currentEnv,
 }: {
   deploy: VercelDeployment;
   correlated: IncidentRecord[];
+  currentEnv: string;
 }) {
   const style = STATE_STYLES[deploy.state] ?? STATE_STYLES.CANCELED;
   const commitSha = deploy.meta.githubCommitSha ?? null;
   const commitMessage = deploy.meta.githubCommitMessage ?? null;
   const branch = deploy.meta.githubBranch ?? null;
-  const isProduction = deploy.target === "production";
 
   return (
     <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-5">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-2">
           <span
             className={`rounded border px-1.5 py-0.5 text-[11px] font-semibold tracking-wider uppercase ${style?.badge}`}
           >
             {deploy.state}
           </span>
-          {isProduction ? (
-            <span className="rounded border border-indigo-500/20 bg-indigo-500/10 px-1.5 py-0.5 text-[11px] font-semibold tracking-wider text-indigo-400 uppercase">
-              production
-            </span>
-          ) : (
-            <span className="rounded border border-white/10 bg-white/5 px-1.5 py-0.5 text-[11px] text-zinc-500">
-              preview
-            </span>
-          )}
+          {/* Show current env label — always accurate to which dashboard you're on */}
+          <span className="rounded border border-white/10 bg-white/5 px-1.5 py-0.5 text-[11px] text-zinc-500">
+            {currentEnv}
+          </span>
           {branch !== null && (
             <span className="font-mono text-xs text-zinc-400">{branch}</span>
           )}
@@ -111,7 +106,6 @@ function DeployRow({
         </span>
       </div>
 
-      {/* Commit info */}
       <div className="flex items-center gap-4">
         {commitSha !== null && (
           <span className="rounded border border-white/10 bg-white/5 px-1.5 py-0.5 font-mono text-xs text-zinc-400">
@@ -131,7 +125,6 @@ function DeployRow({
         </a>
       </div>
 
-      {/* Correlated incidents */}
       {correlated.length > 0 && (
         <div className="border-t border-white/10 pt-3">
           <p className="mb-2 text-[10px] font-semibold tracking-widest text-zinc-600 uppercase">
@@ -183,8 +176,8 @@ export default async function DeploymentsPage() {
     getIncidents(50),
   ]);
 
-  const productionDeploys = deploys.filter((d) => d.target === "production");
-  const previewDeploys = deploys.filter((d) => d.target === "preview");
+  // APP_ENV tells us which environment this dashboard is running in
+  const currentEnv = env.NEXT_PUBLIC_APP_ENV;
   const deploysWithIncidents = deploys.filter(
     (d) => findCorrelatedIncidents(d, incidents).length > 0,
   );
@@ -205,7 +198,8 @@ export default async function DeploymentsPage() {
               Deployments
             </h1>
             <p className="mt-0.5 text-sm text-zinc-500">
-              {deploys.length} recent · correlated with incident history
+              {deploys.length} recent {currentEnv} deployments · correlated with
+              incident history
             </p>
           </div>
         </div>
@@ -214,18 +208,18 @@ export default async function DeploymentsPage() {
         <div className="grid grid-cols-3 gap-4">
           <div className="rounded-xl border border-white/10 bg-white/5 p-5">
             <p className="mb-1 text-xs font-medium tracking-widest text-zinc-500 uppercase">
-              Production
+              {currentEnv === "production" ? "Production" : "Preview"}
             </p>
             <p className="text-3xl font-bold text-white tabular-nums">
-              {productionDeploys.length}
+              {deploys.length}
             </p>
           </div>
           <div className="rounded-xl border border-white/10 bg-white/5 p-5">
             <p className="mb-1 text-xs font-medium tracking-widest text-zinc-500 uppercase">
-              Preview
+              Successful
             </p>
             <p className="text-3xl font-bold text-white tabular-nums">
-              {previewDeploys.length}
+              {deploys.filter((d) => d.state === "READY").length}
             </p>
           </div>
           <div
@@ -257,6 +251,8 @@ export default async function DeploymentsPage() {
             <p className="mt-1 text-xs text-zinc-700">
               Add{" "}
               <code className="font-mono text-zinc-600">VERCEL_API_TOKEN</code>{" "}
+              and{" "}
+              <code className="font-mono text-zinc-600">VERCEL_PROJECT_ID</code>{" "}
               to Doppler to enable deployment tracking.
             </p>
           </div>
@@ -267,6 +263,7 @@ export default async function DeploymentsPage() {
                 key={deploy.id}
                 deploy={deploy}
                 correlated={findCorrelatedIncidents(deploy, incidents)}
+                currentEnv={currentEnv}
               />
             ))}
           </div>

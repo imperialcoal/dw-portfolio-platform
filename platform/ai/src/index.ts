@@ -25,4 +25,5 @@ export {
 export {
   fetchRecentDeployments,
   getLastProductionDeploy,
+  getLastDeploy,
 } from "./sensors/vercel";

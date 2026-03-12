@@ -65,6 +65,19 @@ export async function handleClerkWebhook(
       const isOwner = ownerEmails.includes(primaryEmail.email_address);
       const role: Role = isOwner ? ROLES.ADMIN : ROLES.USER;
 
+      console.log(
+        JSON.stringify({
+          level: "info",
+          webhook: "clerk",
+          event: type,
+          userId: data.id,
+          email: primaryEmail.email_address,
+          isOwner,
+          role,
+          ownerEmailCount: ownerEmails.length,
+        }),
+      );
+
       await db
         .insert(user)
         .values({
@@ -111,6 +124,16 @@ export async function handleClerkWebhook(
             await clerk.updateUserMetadata(data.id, {
               publicMetadata: { role: dbUser.role },
             });
+
+            console.log(
+              JSON.stringify({
+                level: "info",
+                webhook: "clerk",
+                event: "role_synced_to_clerk",
+                userId: data.id,
+                role: dbUser.role,
+              }),
+            );
           } finally {
             await redis.del(lockKey);
           }
@@ -128,12 +151,25 @@ export async function handleClerkWebhook(
         throw new Error("Missing user id");
       }
 
+      // Use update with a where clause — if the row doesn't exist,
+      // Drizzle silently affects 0 rows rather than throwing.
+      // This prevents the webhook from returning 500 when a user
+      // is deleted from Clerk before being fully provisioned in the DB.
       await db
         .update(user)
         .set({ deletedAt: new Date() })
         .where(eq(user.id, data.id));
 
       await redis.del(cacheKeys.userById(data.id));
+
+      console.log(
+        JSON.stringify({
+          level: "info",
+          webhook: "clerk",
+          event: "user.deleted",
+          userId: data.id,
+        }),
+      );
       return;
     }
 
