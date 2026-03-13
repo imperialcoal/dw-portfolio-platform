@@ -1,6 +1,6 @@
-// CI failure receiver
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { waitUntil } from "@vercel/functions";
 
 import { verifyGitHubSignature } from "@dw/ai/actions";
 import { runCiAgent } from "@dw/ai/analyzers";
@@ -11,7 +11,6 @@ export const maxDuration = 300;
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const rawBody = await req.text();
 
-  // verifyGitHubSignature is synchronous — no await needed
   const isValid = verifyGitHubSignature(
     rawBody,
     req.headers.get("x-hub-signature-256"),
@@ -40,13 +39,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ ok: true, skipped: "not a failure" });
     }
 
-    void runCiAgent(payload).catch((err: unknown) =>
-      console.error(
-        JSON.stringify({
-          level: "error",
-          webhook: "github",
-          error: String(err),
-        }),
+    // waitUntil keeps the function alive until the agent completes,
+    // while still returning 200 to GitHub immediately.
+    waitUntil(
+      runCiAgent(payload).catch((err: unknown) =>
+        console.error(
+          JSON.stringify({
+            level: "error",
+            webhook: "github",
+            error: String(err),
+          }),
+        ),
       ),
     );
 

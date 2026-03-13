@@ -38,6 +38,7 @@
     "@trpc/client": "catalog:",
     "@trpc/server": "catalog:",
     "@trpc/tanstack-react-query": "catalog:",
+    "@vercel/functions": "^3.4.3",
     "next": "^16.1.6",
     "react": "catalog:react19",
     "react-dom": "catalog:react19",
