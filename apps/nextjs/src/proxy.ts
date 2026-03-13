@@ -19,13 +19,17 @@ import { clerkMiddleware, createRouteMatcher } from "~/auth/server";
 /**
  * Routes that require authentication
  */
-const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
+const isProtectedRoute = createRouteMatcher(["/admin(.*)", "/platform(.*)"]);
 
 /**
  * Routes that must ALWAYS bypass auth
  * (webhooks must never be blocked)
  */
-const isWebhookRoute = createRouteMatcher(["/api/webhooks/clerk"]);
+const isWebhookRoute = createRouteMatcher([
+  "/api/webhooks/clerk",
+  "/api/webhooks/github",
+  "/api/webhooks/sentry",
+]);
 
 export default clerkMiddleware(async (auth, request) => {
   if (isWebhookRoute(request)) {
@@ -34,7 +38,7 @@ export default clerkMiddleware(async (auth, request) => {
 
   // Entire site = public
   // Only admin area requires authentication
-  if (isAdminRoute(request)) {
+  if (isProtectedRoute(request)) {
     await auth.protect();
     return;
   }
