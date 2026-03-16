@@ -1,13 +1,21 @@
+import { getDb } from "@dw/db/client";
 import { verifyInfra } from "@dw/health";
+import { getRedis } from "@dw/redis";
 
-import { runtimeDb, runtimeRedis } from "./singletons";
-
+/**
+ * Verifies that local infrastructure (Postgres + Redis) is reachable.
+ *
+ * Only called from runtimeEntry() which is already guarded by isNodeRuntime().
+ * Uses getDb()/getRedis() directly (raw singletons) rather than
+ * runtimeDb()/runtimeRedis() — the Node runtime assertion is redundant here
+ * since runtimeEntry() already checked, and using the raw accessors allows
+ * the bootstrap test to mock infra without hitting the runtime guard.
+ */
 export async function bootstrapInfra() {
   try {
     console.log("🚀 Initializing local infra...");
-
-    const db = runtimeDb();
-    const redis = runtimeRedis();
+    const db = getDb();
+    const redis = getRedis();
 
     await verifyInfra(
       {
@@ -24,7 +32,7 @@ export async function bootstrapInfra() {
   } catch (err) {
     console.error("❌ Failed to initialize infra", err);
 
-    // Make infrastructure failures to be fatal in test mode
+    // Fatal in test mode — infra failures must be caught and fixed
     if (process.env.NODE_ENV === "test") {
       console.error(
         "❌ CRITICAL: Infrastructure verification failed for test environment.",
