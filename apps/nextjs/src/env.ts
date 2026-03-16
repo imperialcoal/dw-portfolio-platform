@@ -14,6 +14,8 @@ import {
 } from "@dw/validators/env-schemas";
 import { messagingEnv } from "@dw/validators/messaging-env";
 import { observabilityEnv } from "@dw/validators/observability-env";
+import { qstashEnv } from "@dw/validators/qstash-env";
+import { redisEnv } from "@dw/validators/redis-env";
 import { supabaseEnv } from "@dw/validators/supabase-env";
 
 export const env = createEnv({
@@ -23,6 +25,8 @@ export const env = createEnv({
     devopsEnv(),
     messagingEnv(),
     observabilityEnv(),
+    qstashEnv(),
+    redisEnv(),
     supabaseEnv(),
     vercel(),
   ],

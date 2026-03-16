@@ -42,7 +42,7 @@
     "@dw/contracts": "workspace:*",
     "@dw/llm": "workspace:*",
     "@dw/messaging": "workspace:*",
-    "@dw/redis": "workspace:*",
+    "@dw/runtime": "workspace:*",
     "@dw/validators": "workspace:*"
   },
   "devDependencies": {

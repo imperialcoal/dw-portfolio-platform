@@ -1,184 +1,6 @@
-// import { normalizeGitHubWorkflowRun } from "@dw/contracts";
-// import { analyzeEvent } from "@dw/llm";
-// import { sendIncidentEmail } from "@dw/messaging";
-
-// import { createIssue, postPrComment } from "../actions/github";
-// import { generateAndCommitIncidentDoc } from "../actions/incident-doc";
-// import { isDuplicate, logEvent, logIncident } from "../memory/redis";
-// import { fetchCiJobDetails } from "../sensors/github-ci";
-
-// // Safely converts an unknown value to string without risking [object Object]
-// function safeId(v: unknown): string {
-//   if (typeof v === "string") return v;
-//   if (typeof v === "number") return String(v);
-//   if (typeof v === "bigint") return String(v);
-//   return "";
-// }
-
-// export async function runCiAgent(
-//   payload: Record<string, unknown>,
-// ): Promise<void> {
-//   const workflowRun =
-//     payload.workflow_run !== null && typeof payload.workflow_run === "object"
-//       ? (payload.workflow_run as Record<string, unknown>)
-//       : {};
-
-//   const runId = safeId(workflowRun.id);
-
-//   const repository =
-//     payload.repository !== null && typeof payload.repository === "object"
-//       ? (payload.repository as Record<string, unknown>)
-//       : {};
-//   const repoFullName =
-//     typeof repository.full_name === "string" ? repository.full_name : "";
-
-//   console.log(
-//     JSON.stringify({ level: "info", agent: "ci", event: "triggered", runId }),
-//   );
-
-//   // 1. Dedup
-//   if (await isDuplicate("ci_failure", runId)) {
-//     console.log(
-//       JSON.stringify({
-//         level: "info",
-//         agent: "ci",
-//         event: "duplicate_skip",
-//         runId,
-//       }),
-//     );
-//     return;
-//   }
-
-//   // 2. Fetch job details
-//   const jobLogs = await fetchCiJobDetails(repoFullName, runId);
-
-//   // 3. Normalize
-//   const event = normalizeGitHubWorkflowRun(payload, jobLogs);
-
-//   // 4. Log raw event
-//   await logEvent(event);
-
-//   // 5. LLM analysis
-//   const analysis = await analyzeEvent(event);
-//   console.log(
-//     JSON.stringify({
-//       level: "info",
-//       agent: "ci",
-//       event: "analyzed",
-//       runId,
-//       severity: analysis.severity,
-//     }),
-//   );
-
-//   // 6. Fan out (parallel, non-blocking)
-//   const prNumber = event.context.prNumber;
-//   const isProtectedBranch = ["main", "dev"].includes(event.context.branch);
-
-//   // TypeScript infers the tuple types from Promise.allSettled:
-//   // prResult:    PromiseSettledResult<void | null>
-//   // issueResult: PromiseSettledResult<{ number: number; url: string } | null>
-//   // docResult:   PromiseSettledResult<IncidentDocResult>
-//   //
-//   // When status === "fulfilled", .value is the resolved type.
-//   // For issueResult that's { number: number; url: string } | null — never
-//   // an arbitrary object, so typeof/in guards are unnecessary and trigger
-//   // no-unnecessary-condition. Access .url directly after the null check.
-//   const [prResult, issueResult, docResult] = await Promise.allSettled([
-//     prNumber !== null
-//       ? postPrComment(prNumber, analysis, "ci_failure")
-//       : Promise.resolve(null),
-
-//     isProtectedBranch && prNumber === null
-//       ? createIssue(`[CI] ${analysis.summary}`, analysis, [
-//           "ci",
-//           event.context.workflow,
-//         ])
-//       : Promise.resolve(null),
-
-//     generateAndCommitIncidentDoc(event, analysis),
-//   ]);
-
-//   // issueResult.value is { number: number; url: string } | null
-//   // — null when we passed Promise.resolve(null) (no-issue path)
-//   const issueUrl: string | undefined =
-//     issueResult.status === "fulfilled" && issueResult.value !== null
-//       ? issueResult.value.url
-//       : undefined;
-
-//   // docResult.value is IncidentDocResult — always has filePath when fulfilled
-//   const incidentDocPath: string | undefined =
-//     docResult.status === "fulfilled" ? docResult.value.filePath : undefined;
-
-//   if (prResult.status === "rejected") {
-//     console.error(
-//       JSON.stringify({
-//         level: "error",
-//         agent: "ci",
-//         step: "pr_comment",
-//         error: String(prResult.reason),
-//       }),
-//     );
-//   }
-//   if (issueResult.status === "rejected") {
-//     console.error(
-//       JSON.stringify({
-//         level: "error",
-//         agent: "ci",
-//         step: "issue",
-//         error: String(issueResult.reason),
-//       }),
-//     );
-//   }
-//   if (docResult.status === "rejected") {
-//     console.error(
-//       JSON.stringify({
-//         level: "error",
-//         agent: "ci",
-//         step: "incident_doc",
-//         error: String(docResult.reason),
-//       }),
-//     );
-//   }
-
-//   // 7. Email
-//   await sendIncidentEmail({ event, analysis, incidentDocPath, issueUrl }).catch(
-//     (e: unknown) => {
-//       console.error(
-//         JSON.stringify({
-//           level: "error",
-//           agent: "ci",
-//           step: "email",
-//           error: String(e),
-//         }),
-//       );
-//     },
-//   );
-
-//   // 8. Persist for dashboard
-//   await logIncident({
-//     type: "ci_failure",
-//     id: runId,
-//     summary: analysis.summary,
-//     rootCause: analysis.rootCause,
-//     severity: analysis.severity,
-//     labels: analysis.labels,
-//     service: event.service,
-//     timestamp: event.timestamp,
-//     issueUrl,
-//     incidentDocPath,
-//   });
-
-//   console.log(
-//     JSON.stringify({
-//       level: "info",
-//       agent: "ci",
-//       event: "complete",
-//       runId,
-//       issueUrl,
-//       incidentDocPath,
-//     }),
-//   );
-// }
+// CI failure agent — runs in Node.js runtime via /api/process/ci.
+// Called by the QStash processing endpoint after webhook enqueue.
+// Never called directly from Edge routes.
 
 import { normalizeGitHubWorkflowRun } from "@dw/contracts";
 import { analyzeEvent } from "@dw/llm";
@@ -196,6 +18,17 @@ function safeId(v: unknown): string {
   return "";
 }
 
+/**
+ * Analyzes a CI workflow_run failure and fans out outputs:
+ * - PR comment (if the failure was on a PR)
+ * - GitHub Issue (if the failure was on a protected branch with no PR)
+ * - Incident doc committed to docs/incidents/
+ * - Email notification via Resend
+ * - Incident record persisted to Redis for dashboard
+ *
+ * Idempotent — deduplicates by runId with a 24h TTL.
+ * QStash retries on non-200 responses from the calling route.
+ */
 export async function runCiAgent(
   payload: Record<string, unknown>,
 ): Promise<void> {
@@ -214,41 +47,11 @@ export async function runCiAgent(
     typeof repository.full_name === "string" ? repository.full_name : "";
 
   console.log(
-    JSON.stringify({ level: "info", agent: "ci", event: "triggered", runId }),
+    JSON.stringify({ level: "info", agent: "ci", event: "started", runId }),
   );
 
-  // ── DIAGNOSTIC STEP 1 ──────────────────────────────────────────────────────
-  console.log(
-    JSON.stringify({
-      level: "info",
-      agent: "ci",
-      step: "1_before_isDuplicate",
-    }),
-  );
-  let duplicate: boolean;
-  try {
-    duplicate = await isDuplicate("ci_failure", runId);
-  } catch (e: unknown) {
-    console.error(
-      JSON.stringify({
-        level: "error",
-        agent: "ci",
-        step: "1_isDuplicate_threw",
-        error: String(e),
-      }),
-    );
-    return;
-  }
-  console.log(
-    JSON.stringify({
-      level: "info",
-      agent: "ci",
-      step: "1_after_isDuplicate",
-      duplicate,
-    }),
-  );
-
-  if (duplicate) {
+  // 1. Dedup — prevents re-analyzing the same run
+  if (await isDuplicate("ci_failure", runId)) {
     console.log(
       JSON.stringify({
         level: "info",
@@ -260,116 +63,48 @@ export async function runCiAgent(
     return;
   }
 
-  // ── DIAGNOSTIC STEP 2 ──────────────────────────────────────────────────────
-  console.log(
-    JSON.stringify({
-      level: "info",
-      agent: "ci",
-      step: "2_before_fetchCiJobDetails",
-    }),
-  );
-  let jobLogs: string;
-  try {
-    jobLogs = await fetchCiJobDetails(repoFullName, runId);
-  } catch (e: unknown) {
-    console.error(
-      JSON.stringify({
-        level: "error",
-        agent: "ci",
-        step: "2_fetchCiJobDetails_threw",
-        error: String(e),
-      }),
-    );
-    return;
-  }
-  console.log(
-    JSON.stringify({
-      level: "info",
-      agent: "ci",
-      step: "2_after_fetchCiJobDetails",
-      logsLength: jobLogs.length,
-    }),
-  );
+  // 2. Fetch job details from GitHub API (structured step-level failure info)
+  const jobLogs = await fetchCiJobDetails(repoFullName, runId);
 
-  // ── DIAGNOSTIC STEP 3 ──────────────────────────────────────────────────────
-  console.log(
-    JSON.stringify({ level: "info", agent: "ci", step: "3_before_normalize" }),
-  );
+  // 3. Normalize raw webhook payload → typed CiFailureEvent
   const event = normalizeGitHubWorkflowRun(payload, jobLogs);
-  console.log(
-    JSON.stringify({
-      level: "info",
-      agent: "ci",
-      step: "3_after_normalize",
-      service: event.service,
-    }),
-  );
 
-  // ── DIAGNOSTIC STEP 4 ──────────────────────────────────────────────────────
-  console.log(
-    JSON.stringify({ level: "info", agent: "ci", step: "4_before_logEvent" }),
-  );
-  try {
-    await logEvent(event);
-  } catch (e: unknown) {
-    console.error(
-      JSON.stringify({
-        level: "error",
-        agent: "ci",
-        step: "4_logEvent_threw",
-        error: String(e),
-      }),
-    );
-    return;
-  }
-  console.log(
-    JSON.stringify({ level: "info", agent: "ci", step: "4_after_logEvent" }),
-  );
+  // 4. Persist raw event to Redis
+  await logEvent(event);
 
-  // ── DIAGNOSTIC STEP 5 ──────────────────────────────────────────────────────
+  // 5. LLM analysis — the core of the agent
+  const analysis = await analyzeEvent(event);
+
   console.log(
     JSON.stringify({
       level: "info",
       agent: "ci",
-      step: "5_before_analyzeEvent",
-    }),
-  );
-  let analysis: Awaited<ReturnType<typeof analyzeEvent>>;
-  try {
-    analysis = await analyzeEvent(event);
-  } catch (e: unknown) {
-    console.error(
-      JSON.stringify({
-        level: "error",
-        agent: "ci",
-        step: "5_analyzeEvent_threw",
-        error: String(e),
-      }),
-    );
-    return;
-  }
-  console.log(
-    JSON.stringify({
-      level: "info",
-      agent: "ci",
-      step: "5_after_analyzeEvent",
+      event: "analyzed",
+      runId,
       severity: analysis.severity,
+      summary: analysis.summary,
     }),
   );
 
+  // 6. Fan out (parallel, non-blocking individually)
   const prNumber = event.context.prNumber;
   const isProtectedBranch = ["main", "dev"].includes(event.context.branch);
 
   const [prResult, issueResult, docResult] = await Promise.allSettled([
+    // PR comment — when failure was triggered by a PR
     prNumber !== null
       ? postPrComment(prNumber, analysis, "ci_failure")
       : Promise.resolve(null),
+
+    // GitHub Issue — when failure was a direct push to protected branch
     isProtectedBranch && prNumber === null
       ? createIssue(`[CI] ${analysis.summary}`, analysis, [
           "ci",
           event.context.workflow,
         ])
       : Promise.resolve(null),
+
+    // Incident doc committed to docs/incidents/
     generateAndCommitIncidentDoc(event, analysis),
   ]);
 
@@ -381,12 +116,14 @@ export async function runCiAgent(
   const incidentDocPath: string | undefined =
     docResult.status === "fulfilled" ? docResult.value.filePath : undefined;
 
+  // Log any fan-out failures — non-fatal, agent continues
   if (prResult.status === "rejected") {
     console.error(
       JSON.stringify({
         level: "error",
         agent: "ci",
         step: "pr_comment",
+        runId,
         error: String(prResult.reason),
       }),
     );
@@ -397,6 +134,7 @@ export async function runCiAgent(
         level: "error",
         agent: "ci",
         step: "issue",
+        runId,
         error: String(issueResult.reason),
       }),
     );
@@ -407,11 +145,13 @@ export async function runCiAgent(
         level: "error",
         agent: "ci",
         step: "incident_doc",
+        runId,
         error: String(docResult.reason),
       }),
     );
   }
 
+  // 7. Email notification
   await sendIncidentEmail({ event, analysis, incidentDocPath, issueUrl }).catch(
     (e: unknown) => {
       console.error(
@@ -419,12 +159,14 @@ export async function runCiAgent(
           level: "error",
           agent: "ci",
           step: "email",
+          runId,
           error: String(e),
         }),
       );
     },
   );
 
+  // 8. Persist incident to Redis for dashboard
   await logIncident({
     type: "ci_failure",
     id: runId,

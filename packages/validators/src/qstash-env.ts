@@ -2,17 +2,16 @@ import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
 
 /**
- * General API environment variables.
- *
- * Covers: Upstash Redis, Node/App environment detection.
- * Resend variables have moved to messagingEnv() in messaging-env.ts.
- *
- * All values are optional — local/offline development uses Docker Redis
- * via .env.local without needing cloud credentials.
+ * QStash environment variables.
  */
-export function apiEnv() {
+
+export function qstashEnv() {
   return createEnv({
     server: {
+      QSTASH_URL: z.url().optional(),
+      QSTASH_TOKEN: z.string().min(1).optional(),
+      QSTASH_CURRENT_SIGNING_KEY: z.string().min(1).optional(),
+      QSTASH_NEXT_SIGNING_KEY: z.string().min(1).optional(),
       NODE_ENV: z
         .enum(["development", "test", "production"])
         .default("development"),
@@ -24,4 +23,9 @@ export function apiEnv() {
     skipValidation:
       !!process.env.CI || process.env.npm_lifecycle_event === "lint",
   });
+}
+
+export function isQStashConfigured(): boolean {
+  const env = qstashEnv();
+  return !!(env.QSTASH_URL && env.QSTASH_TOKEN);
 }

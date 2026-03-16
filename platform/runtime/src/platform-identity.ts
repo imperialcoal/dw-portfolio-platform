@@ -1,50 +1,49 @@
 import type { DeploymentEnvironment } from "./deployment-environment";
+import type { ExecutionRuntime } from "./execution-runtime";
 import { getDeploymentEnvironment } from "./deployment-environment";
+import { getExecutionRuntime } from "./execution-runtime";
 
 export interface PlatformIdentity {
   appEnv: DeploymentEnvironment;
   nodeEnv: "development" | "test" | "production";
   vercelEnv: "development" | "preview" | "production" | null;
+  executionRuntime: ExecutionRuntime;
   isCI: boolean;
 }
 
-/**
- * Node environment detection
- */
 function getNodeEnv(): PlatformIdentity["nodeEnv"] {
   const env = process.env.NODE_ENV;
-
   if (env === "development" || env === "test" || env === "production") {
     return env;
   }
-
   return "development";
 }
 
-/**
- * Vercel environment detection
- */
 function getVercelEnv(): PlatformIdentity["vercelEnv"] {
   const env = process.env.VERCEL_ENV;
-
   if (env === "development" || env === "preview" || env === "production") {
     return env;
   }
-
   return null;
 }
 
 /**
- * PlatformIdentity factory with APP_ENV ↔ VERCEL_ENV assertion
+ * Returns the full platform identity including deployment environment,
+ * Node environment, Vercel environment, execution runtime, and CI status.
+ *
+ * Validates that APP_ENV and VERCEL_ENV are consistent — prevents
+ * deploying preview code with production APP_ENV or vice versa.
  */
 export function getPlatformIdentity(): PlatformIdentity {
   const appEnv = getDeploymentEnvironment();
   const nodeEnv = getNodeEnv();
   const vercelEnv = getVercelEnv();
-  const isCI = process.env.CI === "true";
+  const executionRuntime = getExecutionRuntime();
+  const isCI = process.env.CI === "true" || process.env.CI === "1";
 
-  // --- CONSISTENCY CHECK ---
-  // Only assert if VERCEL_ENV exists
+  // ── APP_ENV ↔ VERCEL_ENV consistency check ──────────────────────────────
+  // Only assert when VERCEL_ENV is present (i.e. running on Vercel).
+  // Local dev and CI don't set VERCEL_ENV.
   if (vercelEnv !== null) {
     const mapping: Record<
       "development" | "preview" | "production",
@@ -66,9 +65,9 @@ export function getPlatformIdentity(): PlatformIdentity {
     }
   }
 
-  return { appEnv, nodeEnv, vercelEnv, isCI };
+  return { appEnv, nodeEnv, vercelEnv, executionRuntime, isCI };
 }
 
-export function isProductionPlatform() {
+export function isProductionPlatform(): boolean {
   return getPlatformIdentity().appEnv === "production";
 }

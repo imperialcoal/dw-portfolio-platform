@@ -39,6 +39,14 @@
       "types": "./dist/observability-env.d.ts",
       "default": "./src/observability-env.ts"
     },
+    "./qstash-env": {
+      "types": "./dist/qstash-env.d.ts",
+      "default": "./src/qstash-env.ts"
+    },
+    "./redis-env": {
+      "types": "./dist/redis-env.d.ts",
+      "default": "./src/redis-env.ts"
+    },
     "./supabase-env": {
       "types": "./dist/supabase-env.d.ts",
       "default": "./src/supabase-env.ts"

@@ -1,12 +1,9 @@
 // Sensors only gather raw signals — no analysis logic here.
+// All config reads are inside function bodies — no module-level side effects.
 
 import type { SentryIssue, SentryIssueDetail } from "@dw/contracts";
 import { config } from "@dw/config";
 import { isSentryApiConfigured } from "@dw/validators/observability-env";
-
-const org = config.observability.SENTRY_ORG;
-const project = config.observability.SENTRY_PROJECT;
-const token = config.observability.SENTRY_TOKEN;
 
 /**
  * Fetch the most recent unresolved issues from Sentry.
@@ -15,6 +12,13 @@ const token = config.observability.SENTRY_TOKEN;
  */
 export async function fetchSentryIssues(limit = 10): Promise<SentryIssue[]> {
   if (!isSentryApiConfigured()) return [];
+
+  // Read config inside the function — never at module initialization time.
+  // Module-level config reads cause Edge runtime crashes when the module
+  // is imported by Edge routes that don't need these functions.
+  const org = config.observability.SENTRY_ORG;
+  const project = config.observability.SENTRY_PROJECT;
+  const token = config.observability.SENTRY_TOKEN;
 
   const url =
     `https://sentry.io/api/0/projects/${org}/${project}/issues/` +
@@ -48,6 +52,8 @@ export async function fetchSentryIssueDetail(
 ): Promise<SentryIssueDetail | null> {
   if (!isSentryApiConfigured()) return null;
 
+  const token = config.observability.SENTRY_TOKEN;
+
   const res = await fetch(`https://sentry.io/api/0/issues/${issueId}/`, {
     headers: { Authorization: `Bearer ${String(token)}` },
   });
@@ -65,6 +71,8 @@ export async function fetchSentryIssueEvents(
   limit = 1,
 ): Promise<Record<string, unknown>[]> {
   if (!isSentryApiConfigured()) return [];
+
+  const token = config.observability.SENTRY_TOKEN;
 
   const res = await fetch(
     `https://sentry.io/api/0/issues/${issueId}/events/?limit=${limit}&full=true`,

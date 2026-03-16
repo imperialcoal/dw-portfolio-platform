@@ -1,1 +1,1 @@
-export {} from "./control-loop";
+export { runControlLoop, checkAgentHealth } from "./control-loop";

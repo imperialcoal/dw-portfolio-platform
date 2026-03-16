@@ -262,6 +262,9 @@ importers:
       '@dw/llm':
         specifier: workspace:*
         version: link:../../packages/llm
+      '@dw/qstash':
+        specifier: workspace:*
+        version: link:../../packages/qstash
       '@dw/redis':
         specifier: workspace:*
         version: link:../../packages/redis
@@ -502,6 +505,10 @@ importers:
         version: 5.9.3
 
   packages/contracts:
+    dependencies:
+      zod:
+        specifier: 'catalog:'
+        version: 4.3.6
     devDependencies:
       '@dw/eslint-config':
         specifier: workspace:*
@@ -628,6 +635,9 @@ importers:
       '@anthropic-ai/sdk':
         specifier: ^0.78.0
         version: 0.78.0(zod@4.3.6)
+      '@dw/config':
+        specifier: workspace:*
+        version: link:../config
       '@dw/contracts':
         specifier: workspace:*
         version: link:../contracts
@@ -668,6 +678,46 @@ importers:
       resend:
         specifier: 'catalog:'
         version: 6.9.3
+    devDependencies:
+      '@dw/eslint-config':
+        specifier: workspace:*
+        version: link:../../platform/standards/eslint
+      '@dw/prettier-config':
+        specifier: workspace:*
+        version: link:../../platform/standards/prettier
+      '@dw/tsconfig':
+        specifier: workspace:*
+        version: link:../../platform/standards/typescript
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.19.15
+      eslint:
+        specifier: 'catalog:'
+        version: 9.39.4(jiti@2.6.1)
+      prettier:
+        specifier: 'catalog:'
+        version: 3.8.1
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+
+  packages/qstash:
+    dependencies:
+      '@dw/config':
+        specifier: workspace:*
+        version: link:../config
+      '@dw/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@dw/validators':
+        specifier: workspace:*
+        version: link:../validators
+      '@t3-oss/env-core':
+        specifier: 'catalog:'
+        version: 0.13.10(typescript@5.9.3)(zod@4.3.6)
+      '@upstash/qstash':
+        specifier: ^2.9.0
+        version: 2.9.0
     devDependencies:
       '@dw/eslint-config':
         specifier: workspace:*
@@ -819,9 +869,9 @@ importers:
       '@dw/messaging':
         specifier: workspace:*
         version: link:../../packages/messaging
-      '@dw/redis':
+      '@dw/runtime':
         specifier: workspace:*
-        version: link:../../packages/redis
+        version: link:../runtime
       '@dw/validators':
         specifier: workspace:*
         version: link:../../packages/validators
@@ -4310,6 +4360,9 @@ packages:
   '@ungap/structured-clone@1.3.0':
     resolution: {integrity: sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==}
 
+  '@upstash/qstash@2.9.0':
+    resolution: {integrity: sha512-RFvWB98ot5SXUZFIV/Av6hYdS+yu700kg+azUaJqV/fqgylUrWkYnCTOE4DJgdMHUEb0l7tH2Xhl70Zd4Q4zHw==}
+
   '@upstash/redis@1.37.0':
     resolution: {integrity: sha512-LqOJ3+XWPLSZ2rGSed5DYG3ixybxb8EhZu3yQqF7MdZX1wLBG/FRcI6xcUZXHy/SS7mmXWyadrud0HJHkOc+uw==}
 
@@ -4910,6 +4963,9 @@ packages:
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
     engines: {node: '>= 8'}
+
+  crypto-js@4.2.0:
+    resolution: {integrity: sha512-KALDyEYgpY+Rlob/iriUtjV6d5Eq+Y191A5g4UqLAi8CyGP9N1+FdVbkc1SxKc2r4YAYqG8JzO2KGL+AizD70Q==}
 
   csstype@3.1.3:
     resolution: {integrity: sha512-M1uQkMl8rQK/szD0LNhtqxIPLpimGm8sOBwU7lLnCpSbTyY3yeU1Vc7l4KT5zT4s/yOxHH5O7tIuuLOCnLADRw==}
@@ -6100,6 +6156,9 @@ packages:
     resolution: {integrity: sha512-ekilCSN1jwRvIbgeg/57YFh8qQDNbwDb9xT/qu2DAHbFFZUicIl4ygVaAvzveMhMVr3LnpSKTNnwt8PoOfmKhQ==}
     hasBin: true
 
+  jose@5.10.0:
+    resolution: {integrity: sha512-s+3Al/p9g32Iq+oqXxkW//7jk2Vig6FF1CFqzVXoTUXt2qz89YWbL+OwS17NFYEvxC35n0FKeGO2LGYSxeM2Gg==}
+
   js-cookie@3.0.5:
     resolution: {integrity: sha512-cEiJEAEoIbWfCZYKWhVwFuvPX1gETRYPw6LlaTKoxD3s2AkXzkCjnp6h0V77ozyqj0jakteJ4YqDJT830+lVGw==}
     engines: {node: '>=14'}
@@ -6549,6 +6608,10 @@ packages:
 
   nested-error-stacks@2.0.1:
     resolution: {integrity: sha512-SrQrok4CATudVzBS7coSz26QRSmlK9TzzoFbeKfcPBUFPjcQM9Rqvr/DlJkOrwI/0KcgvMub1n1g5Jt9EgRn4A==}
+
+  neverthrow@7.2.0:
+    resolution: {integrity: sha512-iGBUfFB7yPczHHtA8dksKTJ9E8TESNTAx1UQWW6TzMF280vo9jdPYpLUXrMN1BCkPdHFdNG3fxOt2CUad8KhAw==}
+    engines: {node: '>=18'}
 
   next@16.1.6:
     resolution: {integrity: sha512-hkyRkcu5x/41KoqnROkfTm2pZVbKxvbZRuNvKXLRXxs3VfyO0WhY50TQS40EuKO9SW3rBj/sF3WbVwDACeMZyw==}
@@ -11514,7 +11577,7 @@ snapshots:
 
   '@types/connect@3.4.38':
     dependencies:
-      '@types/node': 22.19.15
+      '@types/node': 25.5.0
 
   '@types/deep-eql@4.0.2': {}
 
@@ -11557,7 +11620,7 @@ snapshots:
 
   '@types/mysql@2.15.27':
     dependencies:
-      '@types/node': 22.19.15
+      '@types/node': 25.5.0
 
   '@types/node@22.19.15':
     dependencies:
@@ -11573,7 +11636,7 @@ snapshots:
 
   '@types/pg@8.15.6':
     dependencies:
-      '@types/node': 22.19.15
+      '@types/node': 25.5.0
       pg-protocol: 1.13.0
       pg-types: 2.2.0
 
@@ -11593,7 +11656,7 @@ snapshots:
 
   '@types/tedious@4.0.14':
     dependencies:
-      '@types/node': 22.19.15
+      '@types/node': 25.5.0
 
   '@types/through@0.0.33':
     dependencies:
@@ -11601,7 +11664,7 @@ snapshots:
 
   '@types/ws@8.18.1':
     dependencies:
-      '@types/node': 22.19.15
+      '@types/node': 25.5.0
 
   '@types/yargs-parser@21.0.3': {}
 
@@ -11701,6 +11764,12 @@ snapshots:
       eslint-visitor-keys: 5.0.1
 
   '@ungap/structured-clone@1.3.0': {}
+
+  '@upstash/qstash@2.9.0':
+    dependencies:
+      crypto-js: 4.2.0
+      jose: 5.10.0
+      neverthrow: 7.2.0
 
   '@upstash/redis@1.37.0':
     dependencies:
@@ -12428,6 +12497,8 @@ snapshots:
       path-key: 3.1.1
       shebang-command: 2.0.0
       which: 2.0.2
+
+  crypto-js@4.2.0: {}
 
   csstype@3.1.3: {}
 
@@ -13746,6 +13817,8 @@ snapshots:
 
   jiti@2.6.1: {}
 
+  jose@5.10.0: {}
+
   js-cookie@3.0.5: {}
 
   js-tokens@4.0.0: {}
@@ -14350,6 +14423,8 @@ snapshots:
   neo-async@2.6.2: {}
 
   nested-error-stacks@2.0.1: {}
+
+  neverthrow@7.2.0: {}
 
   next@16.1.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
     dependencies:

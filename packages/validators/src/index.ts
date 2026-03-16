@@ -17,6 +17,8 @@ export {
   isMessagingConfigured,
   isAgentEmailConfigured,
 } from "./messaging-env";
+export { qstashEnv, isQStashConfigured } from "./qstash-env";
+export { redisEnv, isRedisConfigured } from "./redis-env";
 
 // Platform AI & DevOps
 export {

@@ -1,3 +1,7 @@
+// ─────────────────────────────────────────────
+// AI platform types
+// ─────────────────────────────────────────────
+
 export type {
   CiFailureEvent,
   SentryErrorEvent,
@@ -17,3 +21,39 @@ export {
   normalizeGitHubWorkflowRun,
   normalizeSentryWebhook,
 } from "./ai/normalize";
+
+// ─────────────────────────────────────────────
+// Zod schemas (for runtime validation)
+// ─────────────────────────────────────────────
+
+export {
+  CiFailureEventSchema,
+  SentryErrorEventSchema,
+  PlatformEventSchema,
+  AnalysisResultSchema,
+  IncidentRecordSchema,
+} from "./ai/events-schema";
+
+// ─────────────────────────────────────────────
+// Queue job payloads (for QStash)
+// ─────────────────────────────────────────────
+
+export {
+  CiJobPayloadSchema,
+  SentryJobPayloadSchema,
+  JobPayloadSchema,
+} from "./queue";
+
+export type { CiJobPayload, SentryJobPayload, JobPayload } from "./queue";
+
+// ─────────────────────────────────────────────
+// Event bus
+// ─────────────────────────────────────────────
+
+export { createEventBus } from "./event-bus";
+export type {
+  EventBus,
+  EventHandler,
+  PlatformEventMap,
+  PlatformEventType,
+} from "./event-bus";

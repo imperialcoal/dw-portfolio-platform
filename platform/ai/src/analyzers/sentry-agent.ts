@@ -1,3 +1,7 @@
+// Sentry incident agent — runs in Node.js runtime via /api/process/sentry.
+// Called by the QStash processing endpoint after webhook enqueue.
+// Never called directly from Edge routes.
+
 import { normalizeSentryWebhook } from "@dw/contracts";
 import { analyzeEvent } from "@dw/llm";
 import { sendIncidentEmail } from "@dw/messaging";
@@ -6,7 +10,6 @@ import { createIssue } from "../actions/github";
 import { generateAndCommitIncidentDoc } from "../actions/incident-doc";
 import { isDuplicate, logEvent, logIncident } from "../memory/redis";
 
-// Safely converts an unknown value to string without risking [object Object]
 function safeId(v: unknown): string {
   if (typeof v === "string") return v;
   if (typeof v === "number") return String(v);
@@ -14,6 +17,18 @@ function safeId(v: unknown): string {
   return "";
 }
 
+/**
+ * Analyzes a Sentry incident and fans out outputs:
+ * - GitHub Issue created with severity label
+ * - Incident doc committed to docs/incidents/
+ * - Email notification via Resend
+ * - Incident record persisted to Redis for dashboard
+ *
+ * Only processes "created" and "triggered" actions — ignores resolved,
+ * assigned, and other lifecycle events.
+ *
+ * Idempotent — deduplicates by issueId with a 7d TTL.
+ */
 export async function runSentryAgent(
   payload: Record<string, unknown>,
 ): Promise<void> {
@@ -27,7 +42,6 @@ export async function runSentryAgent(
       ? (issueRaw as Record<string, unknown>)
       : {};
 
-  // safeId instead of String() — avoids no-base-to-string when id is unknown
   const issueId = safeId(issue.id);
   const action = typeof payload.action === "string" ? payload.action : "";
 
@@ -35,26 +49,27 @@ export async function runSentryAgent(
     JSON.stringify({
       level: "info",
       agent: "sentry",
-      event: "triggered",
+      event: "started",
       issueId,
       action,
     }),
   );
 
-  // Only handle new issues
+  // Only handle new issues — ignore resolved, assigned, etc.
   if (action !== "created" && action !== "triggered") {
     console.log(
       JSON.stringify({
         level: "info",
         agent: "sentry",
         event: "action_skip",
+        issueId,
         action,
       }),
     );
     return;
   }
 
-  // 1. Dedup
+  // 1. Dedup — prevents re-analyzing the same issue
   if (await isDuplicate("sentry_error", issueId)) {
     console.log(
       JSON.stringify({
@@ -67,14 +82,15 @@ export async function runSentryAgent(
     return;
   }
 
-  // 2. Normalize
+  // 2. Normalize raw webhook payload → typed SentryErrorEvent
   const event = normalizeSentryWebhook(payload);
 
-  // 3. Log raw event
+  // 3. Persist raw event to Redis
   await logEvent(event);
 
   // 4. LLM analysis
   const analysis = await analyzeEvent(event);
+
   console.log(
     JSON.stringify({
       level: "info",
@@ -82,12 +98,11 @@ export async function runSentryAgent(
       event: "analyzed",
       issueId,
       severity: analysis.severity,
+      summary: analysis.summary,
     }),
   );
 
   // 5. Fan out (parallel)
-  // createIssue returns { number, url } — never null/undefined when fulfilled
-  // generateAndCommitIncidentDoc returns IncidentDocResult — never null when fulfilled
   const [issueResult, docResult] = await Promise.allSettled([
     createIssue(`[Incident] ${analysis.summary}`, analysis, [
       "incident",
@@ -97,11 +112,9 @@ export async function runSentryAgent(
     generateAndCommitIncidentDoc(event, analysis, event.context.issueUrl),
   ]);
 
-  // issueResult.value is { number: number; url: string } when fulfilled — always has url
   const issueUrl: string | undefined =
     issueResult.status === "fulfilled" ? issueResult.value.url : undefined;
 
-  // docResult.value is IncidentDocResult when fulfilled — always has filePath
   const incidentDocPath: string | undefined =
     docResult.status === "fulfilled" ? docResult.value.filePath : undefined;
 
@@ -111,6 +124,7 @@ export async function runSentryAgent(
         level: "error",
         agent: "sentry",
         step: "issue",
+        issueId,
         error: String(issueResult.reason),
       }),
     );
@@ -121,12 +135,13 @@ export async function runSentryAgent(
         level: "error",
         agent: "sentry",
         step: "incident_doc",
+        issueId,
         error: String(docResult.reason),
       }),
     );
   }
 
-  // 6. Email
+  // 6. Email notification
   await sendIncidentEmail({ event, analysis, incidentDocPath, issueUrl }).catch(
     (e: unknown) => {
       console.error(
@@ -134,13 +149,14 @@ export async function runSentryAgent(
           level: "error",
           agent: "sentry",
           step: "email",
+          issueId,
           error: String(e),
         }),
       );
     },
   );
 
-  // 7. Persist for dashboard
+  // 7. Persist incident to Redis for dashboard
   await logIncident({
     type: "sentry_error",
     id: issueId,
@@ -161,6 +177,7 @@ export async function runSentryAgent(
       event: "complete",
       issueId,
       issueUrl,
+      incidentDocPath,
     }),
   );
 }

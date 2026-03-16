@@ -26,6 +26,7 @@
     "@dw/db": "workspace:*",
     "@dw/env": "workspace:*",
     "@dw/llm": "workspace:*",
+    "@dw/qstash": "workspace:*",
     "@dw/redis": "workspace:*",
     "@dw/runtime": "workspace:*",
     "@dw/ui": "workspace:*",

@@ -16,6 +16,10 @@
       "types": "./dist/boot-guard.d.ts",
       "default": "./src/boot-guard.ts"
     },
+    "./capabilities": {
+      "types": "./dist/capabilities.d.ts",
+      "default": "./src/capabilities.ts"
+    },
     "./context": {
       "types": "./dist/context.d.ts",
       "default": "./src/context.ts"
@@ -23,6 +27,10 @@
     "./deployment-environment": {
       "types": "./dist/deployment-environment.d.ts",
       "default": "./src/deployment-environment.ts"
+    },
+    "./execution-runtime": {
+      "types": "./dist/execution-runtime.d.ts",
+      "default": "./src/execution-runtime.ts"
     },
     "./init": {
       "types": "./dist/init.d.ts",

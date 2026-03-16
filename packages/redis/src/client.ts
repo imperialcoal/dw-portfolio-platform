@@ -1,6 +1,6 @@
 import { Redis } from "@upstash/redis";
 
-import { apiEnv } from "@dw/validators/api-env";
+import { redisEnv } from "@dw/validators/redis-env";
 
 export type { Redis };
 
@@ -9,7 +9,7 @@ const globalForRedis = globalThis as unknown as {
 };
 
 function createRedisClient(): Redis {
-  const env = apiEnv();
+  const env = redisEnv();
 
   const isLocal =
     env.APP_ENV === "local" &&

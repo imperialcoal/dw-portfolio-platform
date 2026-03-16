@@ -1,5 +1,5 @@
 {
-  "name": "@dw/llm",
+  "name": "@dw/qstash",
   "private": true,
   "type": "module",
   "license": "MIT",
@@ -17,18 +17,21 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
+  "dependencies": {
+    "@dw/config": "workspace:*",
+    "@dw/contracts": "workspace:*",
+    "@dw/validators": "workspace:*",
+    "@t3-oss/env-core": "catalog:",
+    "@upstash/qstash": "^2.9.0"
+  },
   "devDependencies": {
     "@dw/eslint-config": "workspace:*",
     "@dw/prettier-config": "workspace:*",
     "@dw/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
     "eslint": "catalog:",
     "prettier": "catalog:",
     "typescript": "catalog:"
-  },
-  "dependencies": {
-    "@anthropic-ai/sdk": "^0.78.0",
-    "@dw/config": "workspace:*",
-    "@dw/contracts": "workspace:*"
   },
   "prettier": "@dw/prettier-config"
 }

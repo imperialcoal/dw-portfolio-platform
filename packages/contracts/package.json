@@ -7,6 +7,18 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./src/index.ts"
+    },
+    "./queue": {
+      "types": "./dist/queue.d.ts",
+      "default": "./src/queue.ts"
+    },
+    "./event-bus": {
+      "types": "./dist/event-bus.d.ts",
+      "default": "./src/event-bus.ts"
+    },
+    "./ai/events-schema": {
+      "types": "./dist/ai/events-schema.d.ts",
+      "default": "./src/ai/events-schema.ts"
     }
   },
   "scripts": {
@@ -16,6 +28,9 @@
     "format": "prettier --check . --ignore-path ../../.gitignore",
     "lint": "eslint",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
+  },
+  "dependencies": {
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@dw/eslint-config": "workspace:*",

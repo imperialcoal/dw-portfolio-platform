@@ -18,6 +18,7 @@ const config = {
     "@dw/db",
     "@dw/env",
     "@dw/llm",
+    "@dw/qstash",
     "@dw/redis",
     "@dw/runtime",
     "@dw/ui",
