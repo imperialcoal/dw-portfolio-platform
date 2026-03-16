@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// import { resetRedis } from "@dw/redis";
+import { resetRedis } from "@dw/redis";
 
 import { bootstrapInfra } from "../src/bootstrap";
 import { runtimeDb, runtimeRedis } from "../src/singletons";
@@ -25,12 +25,10 @@ describe("Boot Guard Integration", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Reset module state to clear the 'booted' flag
     vi.resetModules();
   });
 
   it("Bootstraps successfully with valid configuration", async () => {
-    // Re-import after reset to get fresh module state
     const { ensurePlatformBooted } = await import("../src/boot-guard");
 
     process.env.APP_ENV = "local";
@@ -38,7 +36,6 @@ describe("Boot Guard Integration", () => {
     process.env.UPSTASH_REDIS_REST_URL = "https://mock-redis.upstash.io";
     process.env.UPSTASH_REDIS_REST_TOKEN = "mock_token";
 
-    // Spy on console to keep test output clean and verify logging
     const consoleSpy = vi
       .spyOn(console, "log")
       .mockImplementation(() => undefined);
@@ -51,7 +48,6 @@ describe("Boot Guard Integration", () => {
   });
 
   it("Prevents booting if APP_ENV is missing", async () => {
-    // Re-import after reset to get fresh module state
     const { ensurePlatformBooted } = await import("../src/boot-guard");
 
     delete process.env.APP_ENV;
@@ -63,44 +59,50 @@ describe("Boot Guard Integration", () => {
 describe("Runtime Singletons", () => {
   cleanEnv();
 
-  it("runtimeRedis() throws assertNodeRuntime error in test runtime", () => {
-    // Clear the singleton so getRedis() re-initializes from env -- NOTE: currently not being used
-    // resetRedis();
-    // delete process.env.UPSTASH_REDIS_REST_URL;
-    // delete process.env.UPSTASH_REDIS_REST_TOKEN;
-
-    // The test runtime returns "test" (not "node"), so assertNodeRuntime() throws.
-    // This is the correct behavior — runtimeRedis() must only be called from
-    // Node.js route handlers, not from Edge or test contexts directly.
-    // In real usage the process routes (runtime = "nodejs") call this correctly.
-    expect(() => runtimeRedis()).toThrow(
-      /requires Node\.js runtime but is running in "test" runtime/,
-    );
+  it("runtimeRedis() succeeds in test runtime (test runs in real Node.js)", () => {
+    // test runtime has full Node.js capabilities — TCP sockets, filesystem, etc.
+    // assertNodeRuntime() correctly allows test runtime through.
+    process.env.UPSTASH_REDIS_REST_URL = "https://mock-redis.upstash.io";
+    process.env.UPSTASH_REDIS_REST_TOKEN = "mock_token";
+    expect(() => runtimeRedis()).not.toThrow();
   });
 
-  it("runtimeDb() throws assertNodeRuntime error in test runtime", () => {
-    expect(() => runtimeDb()).toThrow(
-      /requires Node\.js runtime but is running in "test" runtime/,
-    );
+  it("runtimeDb() succeeds in test runtime (test runs in real Node.js)", () => {
+    process.env.APP_ENV = "test";
+    expect(() => runtimeDb()).not.toThrow();
   });
 
-  it("runtimeDb() returns same instance on multiple calls (singleton) in node runtime", () => {
-    // Temporarily simulate node runtime for singleton test
+  it("runtimeDb() throws assertNodeRuntime error in edge runtime", () => {
     const g = globalThis as { EdgeRuntime?: unknown };
-    const originalNodeEnv = process.env.NODE_ENV;
-
+    g.EdgeRuntime = "edge";
     try {
-      process.env.NODE_ENV = "production"; // forces "node" runtime
-      delete g.EdgeRuntime;
-
-      process.env.APP_ENV = "test";
-
-      const db1 = runtimeDb();
-      const db2 = runtimeDb();
-      expect(db1).toBe(db2); // Same reference — singleton behavior
+      expect(() => runtimeDb()).toThrow(
+        /requires Node\.js runtime but is running in "edge" runtime/,
+      );
     } finally {
-      process.env.NODE_ENV = originalNodeEnv;
+      delete g.EdgeRuntime;
     }
+  });
+
+  it("runtimeRedis() throws assertNodeRuntime error in edge runtime", () => {
+    // Reset singleton so it re-initializes with the edge runtime check
+    resetRedis();
+    const g = globalThis as { EdgeRuntime?: unknown };
+    g.EdgeRuntime = "edge";
+    try {
+      expect(() => runtimeRedis()).toThrow(
+        /requires Node\.js runtime but is running in "edge" runtime/,
+      );
+    } finally {
+      delete g.EdgeRuntime;
+    }
+  });
+
+  it("runtimeDb() returns same instance on multiple calls (singleton)", () => {
+    process.env.APP_ENV = "test";
+    const db1 = runtimeDb();
+    const db2 = runtimeDb();
+    expect(db1).toBe(db2);
   });
 });
 
