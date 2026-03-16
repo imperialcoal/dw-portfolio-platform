@@ -45,48 +45,59 @@ describe("Runtime Capabilities", () => {
   });
 
   // ─────────────────────────────────────────────
-  // Node-only capabilities
+  // Node-only capabilities (also available in test)
   // ─────────────────────────────────────────────
 
-  describe("Node-only capabilities (false in Edge/Browser)", () => {
-    it("hasTcpSockets() — true in test (Node-like), false in Edge", () => {
+  describe("Node capabilities (true in Node and test, false in Edge/Browser)", () => {
+    it("hasTcpSockets() — true in test runtime", () => {
+      // The vitest process runs in Node.js with full TCP access.
+      // NODE_ENV=test returns "test" runtime which correctly has TCP sockets.
       process.env.NODE_ENV = "test";
-      // test runtime maps to isNodeRuntime() === false, so hasTcpSockets === false
-      // In our setup, NODE_ENV=test returns "test" runtime, not "node"
-      // So hasTcpSockets should be false in test environment
-      expect(hasTcpSockets()).toBe(false);
+      expect(hasTcpSockets()).toBe(true);
+    });
 
-      // Simulate Edge
+    it("hasTcpSockets() — true in node runtime", () => {
+      process.env.NODE_ENV = "production";
+      expect(hasTcpSockets()).toBe(true);
+    });
+
+    it("hasTcpSockets() — false in edge runtime", () => {
       g.EdgeRuntime = "edge";
       expect(hasTcpSockets()).toBe(false);
     });
 
-    it("hasTcpSockets() — true only in node runtime", () => {
-      process.env.NODE_ENV = "production"; // forces "node" runtime
-      expect(hasTcpSockets()).toBe(true);
+    it("hasTcpSockets() — false in browser runtime", () => {
+      g.window = {};
+      expect(hasTcpSockets()).toBe(false);
     });
 
-    it("hasFilesystem() mirrors hasTcpSockets()", () => {
+    it("hasFilesystem() — true in test and node, false in edge", () => {
+      process.env.NODE_ENV = "test";
+      expect(hasFilesystem()).toBe(true);
+
       process.env.NODE_ENV = "production";
       expect(hasFilesystem()).toBe(true);
 
-      process.env.NODE_ENV = "test";
+      g.EdgeRuntime = "edge";
       expect(hasFilesystem()).toBe(false);
     });
 
-    it("hasLongRunningProcesses() mirrors hasTcpSockets()", () => {
-      process.env.NODE_ENV = "production";
+    it("hasLongRunningProcesses() — true in test and node, false in edge", () => {
+      process.env.NODE_ENV = "test";
       expect(hasLongRunningProcesses()).toBe(true);
 
       g.EdgeRuntime = "edge";
       expect(hasLongRunningProcesses()).toBe(false);
     });
 
-    it("hasNodeBuiltins() mirrors hasTcpSockets()", () => {
+    it("hasNodeBuiltins() — true in test and node, false in edge", () => {
+      process.env.NODE_ENV = "test";
+      expect(hasNodeBuiltins()).toBe(true);
+
       process.env.NODE_ENV = "production";
       expect(hasNodeBuiltins()).toBe(true);
 
-      process.env.NODE_ENV = "test";
+      g.EdgeRuntime = "edge";
       expect(hasNodeBuiltins()).toBe(false);
     });
   });
@@ -97,12 +108,10 @@ describe("Runtime Capabilities", () => {
 
   describe("Cross-runtime capabilities (available in Node 18+)", () => {
     it("hasWebCrypto() — true in Node 20+ test environment", () => {
-      // Node 20+ has Web Crypto API built in — our platform targets Node 22
       expect(hasWebCrypto()).toBe(true);
     });
 
     it("hasFetch() — true in Node 18+ test environment", () => {
-      // Node 18+ has fetch built in — our platform targets Node 22
       expect(hasFetch()).toBe(true);
     });
   });
@@ -152,22 +161,23 @@ describe("Runtime Capabilities", () => {
       );
     });
 
-    it("throws with context name in the error message", () => {
+    it("includes context name in the error message", () => {
       g.EdgeRuntime = "edge";
       expect(() => assertNodeRuntime("myDatabaseFunction()")).toThrowError(
         /myDatabaseFunction\(\)/,
       );
     });
 
-    it("does NOT throw when called in node runtime", () => {
+    it("does NOT throw in node runtime", () => {
       process.env.NODE_ENV = "production";
       expect(() => assertNodeRuntime("runtimeRedis()")).not.toThrow();
     });
 
-    it("throws when called in test runtime (test is not node)", () => {
+    it("does NOT throw in test runtime — test runs in real Node.js", () => {
       process.env.NODE_ENV = "test";
-      // test runtime returns "test", not "node", so hasTcpSockets() === false
-      expect(() => assertNodeRuntime("runtimeRedis()")).toThrow();
+      // vitest runs in a real Node.js process — TCP sockets, filesystem,
+      // and Node built-ins are all available. The guard must not block tests.
+      expect(() => assertNodeRuntime("runtimeRedis()")).not.toThrow();
     });
   });
 });

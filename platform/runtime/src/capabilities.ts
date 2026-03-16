@@ -10,48 +10,52 @@ import { getExecutionRuntime } from "./execution-runtime";
 
 /**
  * TCP socket support — required for Postgres drivers and Redis TCP clients.
- * Only available in Node.js runtime.
+ * Available in Node.js and test runtimes. NOT available in Edge or Browser.
  */
 export function hasTcpSockets(): boolean {
-  return getExecutionRuntime() === "node";
+  const runtime = getExecutionRuntime();
+  return runtime === "node" || runtime === "test";
 }
 
 /**
  * Filesystem access — required for reading files at runtime.
- * Only available in Node.js runtime.
+ * Available in Node.js and test runtimes.
  */
 export function hasFilesystem(): boolean {
-  return getExecutionRuntime() === "node";
+  const runtime = getExecutionRuntime();
+  return runtime === "node" || runtime === "test";
 }
 
 /**
  * Long-running processes — required for AI agent execution,
  * LLM API calls, and multi-step workflows.
- * Only available in Node.js runtime.
+ * Available in Node.js and test runtimes.
  */
 export function hasLongRunningProcesses(): boolean {
-  return getExecutionRuntime() === "node";
+  const runtime = getExecutionRuntime();
+  return runtime === "node" || runtime === "test";
 }
 
 /**
  * Node.js built-in modules — required for packages that import
  * node:crypto, node:http, node:stream, etc.
- * Only available in Node.js runtime.
+ * Available in Node.js and test runtimes.
  */
 export function hasNodeBuiltins(): boolean {
-  return getExecutionRuntime() === "node";
+  const runtime = getExecutionRuntime();
+  return runtime === "node" || runtime === "test";
 }
 
 /**
- * Web Crypto API — available in Edge, Node (18+), and Browser.
- * Not available in old Node versions but your platform targets Node 20+.
+ * Web Crypto API — available in Edge, Node (18+), Browser, and test.
+ * Your platform targets Node 22 which has Web Crypto built in.
  */
 export function hasWebCrypto(): boolean {
   return typeof crypto !== "undefined" && typeof crypto.subtle !== "undefined";
 }
 
 /**
- * fetch API — available in Edge, Node (18+), and Browser.
+ * fetch API — available in Edge, Node (18+), Browser, and test.
  */
 export function hasFetch(): boolean {
   return typeof fetch !== "undefined";
@@ -59,10 +63,11 @@ export function hasFetch(): boolean {
 
 /**
  * Process handlers (unhandledRejection, uncaughtException) —
- * only meaningful in Node.js runtime.
+ * meaningful in Node.js and test runtimes.
  */
 export function hasProcessHandlers(): boolean {
-  return getExecutionRuntime() === "node" || getExecutionRuntime() === "test";
+  const runtime = getExecutionRuntime();
+  return runtime === "node" || runtime === "test";
 }
 
 // ─────────────────────────────────────────────
@@ -70,9 +75,12 @@ export function hasProcessHandlers(): boolean {
 // ─────────────────────────────────────────────
 
 /**
- * Asserts that the current runtime supports TCP sockets.
- * Call this at the top of functions that require Node.js-only SDKs
- * to get a clear error message instead of a cryptic SDK crash.
+ * Asserts that the current runtime supports TCP sockets (Node or test).
+ * Throws only for Edge and Browser runtimes where Node.js SDKs cannot run.
+ *
+ * Why test is allowed: vitest runs in a real Node.js process with full
+ * access to TCP sockets, filesystem, and Node built-ins. NODE_ENV=test
+ * is not a runtime restriction — it's an environment signal.
  */
 export function assertNodeRuntime(context: string): void {
   if (!hasTcpSockets()) {
