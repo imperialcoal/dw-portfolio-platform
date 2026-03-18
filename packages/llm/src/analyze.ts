@@ -1,5 +1,5 @@
 // Core analysis function
-import type { Anthropic } from "@anthropic-ai/sdk";
+import type Anthropic from "@anthropic-ai/sdk";
 
 import type { PlatformEvent } from "@dw/contracts";
 
