@@ -1,7 +1,7 @@
 // Core analysis function
 import type { PlatformEvent } from "@dw/contracts";
 
-import type { Anthropic } from "./client";
+import type { Anthropic } from "./types";
 import { ANALYSIS_MODEL, getAnthropicClient } from "./client";
 import {
   buildCiFailureUserPrompt,
@@ -34,9 +34,8 @@ export async function analyzeEvent(
     messages: [{ role: "user", content: userPrompt }],
   });
 
-  // message.content is Anthropic.Messages.ContentBlock[]
-  // Filter to TextBlock entries (type === "text"), then extract the text.
-  // ContentBlock is the union — TextBlock is the narrowed member we need.
+  // message.content is ContentBlock[] (Anthropic.Messages.ContentBlock union).
+  // Narrow to TextBlock entries where type === "text" to safely access .text.
   const rawText = message.content
     .filter(
       (block): block is Anthropic.Messages.TextBlock => block.type === "text",
