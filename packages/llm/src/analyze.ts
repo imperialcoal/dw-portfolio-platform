@@ -1,7 +1,7 @@
 // Core analysis function
 import type { PlatformEvent } from "@dw/contracts";
 
-import type { Anthropic } from "./types";
+import type { ContentBlock } from "./types";
 import { ANALYSIS_MODEL, getAnthropicClient } from "./client";
 import {
   buildCiFailureUserPrompt,
@@ -21,6 +21,12 @@ export interface AnalysisResult {
   labels: string[];
 }
 
+// Narrowed text block type — extracted from the ContentBlock union.
+// Defined here so the type predicate below has an explicit, resolvable type
+// rather than relying on namespace traversal (Anthropic.Messages.TextBlock)
+// which some TypeScript versions fail to resolve in type predicate position.
+type TextBlock = Extract<ContentBlock, { type: "text" }>;
+
 export async function analyzeEvent(
   event: PlatformEvent,
 ): Promise<AnalysisResult> {
@@ -34,12 +40,10 @@ export async function analyzeEvent(
     messages: [{ role: "user", content: userPrompt }],
   });
 
-  // message.content is ContentBlock[] (Anthropic.Messages.ContentBlock union).
-  // Narrow to TextBlock entries where type === "text" to safely access .text.
+  // message.content is ContentBlock[].
+  // Narrow to TextBlock (type === "text") to safely access .text.
   const rawText = message.content
-    .filter(
-      (block): block is Anthropic.Messages.TextBlock => block.type === "text",
-    )
+    .filter((block): block is TextBlock => block.type === "text")
     .map((block) => block.text)
     .join("");
 
