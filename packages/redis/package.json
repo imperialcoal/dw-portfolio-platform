@@ -17,6 +17,12 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
+  "dependencies": {
+    "@dw/validators": "workspace:*",
+    "@t3-oss/env-core": "catalog:",
+    "@trpc/server": "catalog:",
+    "@upstash/redis": "^1.37.0"
+  },
   "devDependencies": {
     "@dw/eslint-config": "workspace:*",
     "@dw/prettier-config": "workspace:*",
@@ -26,11 +32,5 @@
     "prettier": "catalog:",
     "typescript": "catalog:"
   },
-  "prettier": "@dw/prettier-config",
-  "dependencies": {
-    "@dw/validators": "workspace:*",
-    "@t3-oss/env-core": "catalog:",
-    "@trpc/server": "catalog:",
-    "@upstash/redis": "^1.36.1"
-  }
+  "prettier": "@dw/prettier-config"
 }

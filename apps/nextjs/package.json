@@ -31,7 +31,7 @@
     "@dw/runtime": "workspace:*",
     "@dw/ui": "workspace:*",
     "@dw/validators": "workspace:*",
-    "@sentry/nextjs": "^10.39.0",
+    "@sentry/nextjs": "^10.44.0",
     "@supabase/supabase-js": "catalog:",
     "@t3-oss/env-nextjs": "^0.13.8",
     "@tanstack/react-form": "catalog:",
@@ -40,11 +40,11 @@
     "@trpc/server": "catalog:",
     "@trpc/tanstack-react-query": "catalog:",
     "@vercel/functions": "^3.4.3",
-    "next": "^16.1.6",
+    "next": "^16.1.7",
     "react": "catalog:react19",
     "react-dom": "catalog:react19",
     "superjson": "catalog:",
-    "svix": "^1.84.1",
+    "svix": "^1.88.0",
     "zod": "catalog:"
   },
   "devDependencies": {
