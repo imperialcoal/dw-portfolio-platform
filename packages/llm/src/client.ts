@@ -2,6 +2,12 @@ import Anthropic from "@anthropic-ai/sdk";
 
 import { config } from "@dw/config";
 
+// Re-export the Anthropic namespace so consumers can access its nested types
+// (e.g. Anthropic.Messages.ContentBlock, Anthropic.Messages.TextBlock)
+// without importing directly from @anthropic-ai/sdk.
+// This file is the sole adapter — all SDK imports live here.
+export type { Anthropic };
+
 let _client: Anthropic | null = null;
 
 /**
