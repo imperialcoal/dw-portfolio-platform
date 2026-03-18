@@ -1,4 +1,6 @@
 // Core analysis function
+import type { Anthropic } from "@anthropic-ai/sdk";
+
 import type { PlatformEvent } from "@dw/contracts";
 
 import { ANALYSIS_MODEL, getAnthropicClient } from "./client";
@@ -34,7 +36,7 @@ export async function analyzeEvent(
   });
 
   const rawText = message.content
-    .filter((block) => block.type === "text")
+    .filter((block): block is Anthropic.TextBlock => block.type === "text")
     .map((block) => block.text)
     .join("");
 
