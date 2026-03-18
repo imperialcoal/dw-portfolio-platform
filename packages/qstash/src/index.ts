@@ -3,4 +3,9 @@ export type { QStashClient } from "./client";
 
 export { verifyQStashRequest } from "./verify";
 
-export { publishCiJob, publishSentryJob } from "./publish";
+export {
+  publishCiJob,
+  publishSentryJob,
+  publishGithubResolution,
+  publishSentryResolution,
+} from "./publish";

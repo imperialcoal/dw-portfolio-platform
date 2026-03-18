@@ -8,7 +8,12 @@ import { sendIncidentEmail } from "@dw/messaging";
 
 import { createIssue } from "../actions/github";
 import { generateAndCommitIncidentDoc } from "../actions/incident-doc";
-import { isDuplicate, logEvent, logIncident } from "../memory/redis";
+import {
+  isDuplicate,
+  logEvent,
+  logIncident,
+  markIncidentOpen,
+} from "../memory/redis";
 
 function safeId(v: unknown): string {
   if (typeof v === "string") return v;
@@ -17,18 +22,6 @@ function safeId(v: unknown): string {
   return "";
 }
 
-/**
- * Analyzes a Sentry incident and fans out outputs:
- * - GitHub Issue created with severity label
- * - Incident doc committed to docs/incidents/
- * - Email notification via Resend
- * - Incident record persisted to Redis for dashboard
- *
- * Only processes "created" and "triggered" actions — ignores resolved,
- * assigned, and other lifecycle events.
- *
- * Idempotent — deduplicates by issueId with a 7d TTL.
- */
 export async function runSentryAgent(
   payload: Record<string, unknown>,
 ): Promise<void> {
@@ -55,7 +48,6 @@ export async function runSentryAgent(
     }),
   );
 
-  // Only handle new issues — ignore resolved, assigned, etc.
   if (action !== "created" && action !== "triggered") {
     console.log(
       JSON.stringify({
@@ -69,7 +61,6 @@ export async function runSentryAgent(
     return;
   }
 
-  // 1. Dedup — prevents re-analyzing the same issue
   if (await isDuplicate("sentry_error", issueId)) {
     console.log(
       JSON.stringify({
@@ -82,13 +73,9 @@ export async function runSentryAgent(
     return;
   }
 
-  // 2. Normalize raw webhook payload → typed SentryErrorEvent
   const event = normalizeSentryWebhook(payload);
-
-  // 3. Persist raw event to Redis
   await logEvent(event);
 
-  // 4. LLM analysis
   const analysis = await analyzeEvent(event);
 
   console.log(
@@ -102,7 +89,6 @@ export async function runSentryAgent(
     }),
   );
 
-  // 5. Fan out (parallel)
   const [issueResult, docResult] = await Promise.allSettled([
     createIssue(`[Incident] ${analysis.summary}`, analysis, [
       "incident",
@@ -112,10 +98,13 @@ export async function runSentryAgent(
     generateAndCommitIncidentDoc(event, analysis, event.context.issueUrl),
   ]);
 
-  const issueUrl: string | undefined =
+  const issueUrl =
     issueResult.status === "fulfilled" ? issueResult.value.url : undefined;
+  const githubIssueNumber = issueUrl
+    ? parseInt(issueUrl.split("/").pop() ?? "", 10) || undefined
+    : undefined;
 
-  const incidentDocPath: string | undefined =
+  const incidentDocPath =
     docResult.status === "fulfilled" ? docResult.value.filePath : undefined;
 
   if (issueResult.status === "rejected") {
@@ -141,7 +130,6 @@ export async function runSentryAgent(
     );
   }
 
-  // 6. Email notification
   await sendIncidentEmail({ event, analysis, incidentDocPath, issueUrl }).catch(
     (e: unknown) => {
       console.error(
@@ -156,7 +144,6 @@ export async function runSentryAgent(
     },
   );
 
-  // 7. Persist incident to Redis for dashboard
   await logIncident({
     type: "sentry_error",
     id: issueId,
@@ -167,8 +154,13 @@ export async function runSentryAgent(
     service: event.service,
     timestamp: event.timestamp,
     issueUrl,
+    githubIssueNumber,
     incidentDocPath,
+    // Store Sentry issue ID for resolution webhook matching
+    sentryIssueId: issueId,
   });
+
+  await markIncidentOpen(issueId);
 
   console.log(
     JSON.stringify({
@@ -178,6 +170,7 @@ export async function runSentryAgent(
       issueId,
       issueUrl,
       incidentDocPath,
+      githubIssueNumber,
     }),
   );
 }

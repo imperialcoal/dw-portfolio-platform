@@ -1,14 +1,15 @@
-// CI failure agent — runs in Node.js runtime via /api/process/ci.
-// Called by the QStash processing endpoint after webhook enqueue.
-// Never called directly from Edge routes.
-
 import { normalizeGitHubWorkflowRun } from "@dw/contracts";
 import { analyzeEvent } from "@dw/llm";
 import { sendIncidentEmail } from "@dw/messaging";
 
 import { createIssue, postPrComment } from "../actions/github";
 import { generateAndCommitIncidentDoc } from "../actions/incident-doc";
-import { isDuplicate, logEvent, logIncident } from "../memory/redis";
+import {
+  isDuplicate,
+  logEvent,
+  logIncident,
+  markIncidentOpen,
+} from "../memory/redis";
 import { fetchCiJobDetails } from "../sensors/github-ci";
 
 function safeId(v: unknown): string {
@@ -18,17 +19,6 @@ function safeId(v: unknown): string {
   return "";
 }
 
-/**
- * Analyzes a CI workflow_run failure and fans out outputs:
- * - PR comment (if the failure was on a PR)
- * - GitHub Issue (if the failure was on a protected branch with no PR)
- * - Incident doc committed to docs/incidents/
- * - Email notification via Resend
- * - Incident record persisted to Redis for dashboard
- *
- * Idempotent — deduplicates by runId with a 24h TTL.
- * QStash retries on non-200 responses from the calling route.
- */
 export async function runCiAgent(
   payload: Record<string, unknown>,
 ): Promise<void> {
@@ -46,33 +36,62 @@ export async function runCiAgent(
   const repoFullName =
     typeof repository.full_name === "string" ? repository.full_name : "";
 
+  const headCommit =
+    workflowRun.head_commit !== null &&
+    typeof workflowRun.head_commit === "object"
+      ? (workflowRun.head_commit as Record<string, unknown>)
+      : {};
+  const commitSha = safeId(workflowRun.head_sha ?? headCommit.id);
+  const branch = safeId(workflowRun.head_branch);
+  const workflowName = safeId(workflowRun.name ?? workflowRun.workflow_id);
+
   console.log(
-    JSON.stringify({ level: "info", agent: "ci", event: "started", runId }),
+    JSON.stringify({
+      level: "info",
+      agent: "ci",
+      event: "started",
+      runId,
+      commitSha: commitSha.slice(0, 7),
+      branch,
+    }),
   );
 
-  // 1. Dedup — prevents re-analyzing the same run
+  // ── Layer 1: Dedup by run ID ──────────────────────────────────────────────
   if (await isDuplicate("ci_failure", runId)) {
     console.log(
       JSON.stringify({
         level: "info",
         agent: "ci",
         event: "duplicate_skip",
+        reason: "run_id",
         runId,
       }),
     );
     return;
   }
 
-  // 2. Fetch job details from GitHub API (structured step-level failure info)
+  // ── Layer 2: Dedup by commit SHA + workflow ───────────────────────────────
+  if (commitSha) {
+    const commitDedupKey = `ci:commit:${commitSha.slice(0, 12)}:${workflowName}:${branch}`;
+    if (await isDuplicate("ci_failure", commitDedupKey)) {
+      console.log(
+        JSON.stringify({
+          level: "info",
+          agent: "ci",
+          event: "duplicate_skip",
+          reason: "commit_sha",
+          commitSha: commitSha.slice(0, 7),
+          runId,
+        }),
+      );
+      return;
+    }
+  }
+
   const jobLogs = await fetchCiJobDetails(repoFullName, runId);
-
-  // 3. Normalize raw webhook payload → typed CiFailureEvent
   const event = normalizeGitHubWorkflowRun(payload, jobLogs);
-
-  // 4. Persist raw event to Redis
   await logEvent(event);
 
-  // 5. LLM analysis — the core of the agent
   const analysis = await analyzeEvent(event);
 
   console.log(
@@ -81,42 +100,42 @@ export async function runCiAgent(
       agent: "ci",
       event: "analyzed",
       runId,
+      commitSha: commitSha.slice(0, 7),
       severity: analysis.severity,
       summary: analysis.summary,
     }),
   );
 
-  // 6. Fan out (parallel, non-blocking individually)
   const prNumber = event.context.prNumber;
   const isProtectedBranch = ["main", "dev"].includes(event.context.branch);
 
   const [prResult, issueResult, docResult] = await Promise.allSettled([
-    // PR comment — when failure was triggered by a PR
     prNumber !== null
       ? postPrComment(prNumber, analysis, "ci_failure")
       : Promise.resolve(null),
-
-    // GitHub Issue — when failure was a direct push to protected branch
     isProtectedBranch && prNumber === null
       ? createIssue(`[CI] ${analysis.summary}`, analysis, [
           "ci",
           event.context.workflow,
         ])
       : Promise.resolve(null),
-
-    // Incident doc committed to docs/incidents/
     generateAndCommitIncidentDoc(event, analysis),
   ]);
 
-  const issueUrl: string | undefined =
+  const issueResult_ =
     issueResult.status === "fulfilled" && issueResult.value !== null
-      ? issueResult.value.url
-      : undefined;
+      ? issueResult.value
+      : null;
+  const issueUrl = issueResult_?.url;
+  // Extract issue number from URL for resolution tracking
+  // URL format: https://github.com/{owner}/{repo}/issues/{number}
+  const githubIssueNumber = issueUrl
+    ? parseInt(issueUrl.split("/").pop() ?? "", 10) || undefined
+    : undefined;
 
-  const incidentDocPath: string | undefined =
+  const incidentDocPath =
     docResult.status === "fulfilled" ? docResult.value.filePath : undefined;
 
-  // Log any fan-out failures — non-fatal, agent continues
   if (prResult.status === "rejected") {
     console.error(
       JSON.stringify({
@@ -151,7 +170,6 @@ export async function runCiAgent(
     );
   }
 
-  // 7. Email notification
   await sendIncidentEmail({ event, analysis, incidentDocPath, issueUrl }).catch(
     (e: unknown) => {
       console.error(
@@ -166,7 +184,7 @@ export async function runCiAgent(
     },
   );
 
-  // 8. Persist incident to Redis for dashboard
+  // Persist incident — status starts as "investigating" (set by logIncident)
   await logIncident({
     type: "ci_failure",
     id: runId,
@@ -177,8 +195,14 @@ export async function runCiAgent(
     service: event.service,
     timestamp: event.timestamp,
     issueUrl,
+    githubIssueNumber,
     incidentDocPath,
+    commitSha: commitSha || undefined,
+    branch: event.context.branch || undefined,
   });
+
+  // Transition to "open" — agent analysis complete, awaiting resolution
+  await markIncidentOpen(runId);
 
   console.log(
     JSON.stringify({
@@ -186,8 +210,10 @@ export async function runCiAgent(
       agent: "ci",
       event: "complete",
       runId,
+      commitSha: commitSha.slice(0, 7),
       issueUrl,
       incidentDocPath,
+      githubIssueNumber,
     }),
   );
 }

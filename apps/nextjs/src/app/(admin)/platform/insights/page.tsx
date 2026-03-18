@@ -4,10 +4,18 @@ import type { IncidentRecord } from "@dw/contracts";
 import { getIncidents } from "@dw/ai/memory";
 
 // ─────────────────────────────────────────────
-// Pattern analysis (pure TS — no LLM call needed)
+// Pattern analysis
 // ─────────────────────────────────────────────
 
 function analyzePatterns(incidents: IncidentRecord[]) {
+  const active = incidents.filter(
+    (i) => i.status === "open" || i.status === "investigating",
+  );
+  const resolved = incidents.filter(
+    (i) => i.status === "resolved" || i.status === "closed",
+  );
+  const monitoring = incidents.filter((i) => i.status === "monitoring");
+
   const labelCounts: Record<string, number> = {};
   for (const incident of incidents) {
     for (const label of incident.labels) {
@@ -39,14 +47,36 @@ function analyzePatterns(incidents: IncidentRecord[]) {
 
   const now = Date.now();
   const week1 = incidents.filter(
-    (i) => now - new Date(i.timestamp).getTime() < 7 * 86400_000,
+    (i) => now - new Date(i.timestamp).getTime() < 7 * 86_400_000,
   ).length;
   const week2 = incidents.filter((i) => {
     const age = now - new Date(i.timestamp).getTime();
-    return age >= 7 * 86400_000 && age < 14 * 86400_000;
+    return age >= 7 * 86_400_000 && age < 14 * 86_400_000;
   }).length;
 
+  // Resolution rate
+  const resolutionRate =
+    incidents.length > 0
+      ? Math.round((resolved.length / incidents.length) * 100)
+      : 100;
+
+  // Average time to resolve (hours) for resolved incidents
+  const resolvedWithTime = resolved.filter((i) => i.resolvedAt !== undefined);
+  const avgResolutionHours =
+    resolvedWithTime.length > 0
+      ? Math.round(
+          resolvedWithTime.reduce((sum, i) => {
+            const detected = new Date(i.timestamp).getTime();
+            const resolvedAt = new Date(i.resolvedAt ?? i.timestamp).getTime();
+            return sum + (resolvedAt - detected) / (1000 * 60 * 60);
+          }, 0) / resolvedWithTime.length,
+        )
+      : null;
+
   return {
+    active,
+    resolved,
+    monitoring,
     topLabels,
     topServices,
     severityDist,
@@ -54,6 +84,8 @@ function analyzePatterns(incidents: IncidentRecord[]) {
     sentryCount,
     week1,
     week2,
+    resolutionRate,
+    avgResolutionHours,
   };
 }
 
@@ -68,6 +100,22 @@ function generateRecommendations(
   patterns: ReturnType<typeof analyzePatterns>,
 ): Recommendation[] {
   const recs: Recommendation[] = [];
+
+  if (patterns.active.length > 0 && patterns.resolutionRate < 50) {
+    recs.push({
+      title: "Low resolution rate — active incidents need attention",
+      description: `${patterns.active.length} incidents are unresolved out of ${incidents.length} total (${patterns.resolutionRate}% resolved). Review active incidents and close corresponding GitHub issues to update status.`,
+      priority: "high",
+    });
+  }
+
+  if (patterns.monitoring.length > 2) {
+    recs.push({
+      title: "Multiple incidents in monitoring state",
+      description: `${patterns.monitoring.length} incidents are in monitoring after Sentry resolved them. Verify the fixes are stable and close the GitHub issues to mark them fully resolved.`,
+      priority: "medium",
+    });
+  }
 
   if (patterns.topLabels.some(([l]) => l === "migration" || l === "database")) {
     recs.push({
@@ -105,11 +153,25 @@ function generateRecommendations(
     });
   }
 
-  if (patterns.severityDist.critical > 0) {
+  if (
+    patterns.severityDist.critical > 0 &&
+    patterns.active.some((i) => i.severity === "critical")
+  ) {
     recs.push({
-      title: "Review critical incident resolutions",
-      description: `${patterns.severityDist.critical} critical incidents recorded. Verify each has a corresponding fix merged. Check docs/incidents/ for resolution status.`,
+      title: "Unresolved critical incidents",
+      description: `${patterns.active.filter((i) => i.severity === "critical").length} critical incidents are still open. These should be the highest priority.`,
       priority: "high",
+    });
+  }
+
+  if (
+    patterns.avgResolutionHours !== null &&
+    patterns.avgResolutionHours > 24
+  ) {
+    recs.push({
+      title: "Resolution time exceeding 24h",
+      description: `Average time to resolve incidents is ${patterns.avgResolutionHours}h. Consider setting up alerts for incidents open longer than 12h.`,
+      priority: "medium",
     });
   }
 
@@ -126,21 +188,30 @@ function generateRecommendations(
 }
 
 const PRIORITY_STYLES = {
-  high: "border-red-500/20 bg-red-500/5 text-red-400",
-  medium: "border-yellow-500/20 bg-yellow-500/5 text-yellow-400",
-  low: "border-green-500/20 bg-green-500/5 text-green-400",
+  high: "border-red-500/20 bg-red-500/5",
+  medium: "border-yellow-500/20 bg-yellow-500/5",
+  low: "border-green-500/20 bg-green-500/5",
 } as const;
 
+const PRIORITY_TEXT = {
+  high: "text-red-400",
+  medium: "text-yellow-400",
+  low: "text-green-400",
+} as const;
+
+// ─────────────────────────────────────────────
+// Page
+// ─────────────────────────────────────────────
+
 export default async function InsightsPage() {
-  // getSystemHealth() not needed here — insights derive patterns from
-  // the incident log directly. Removing the unused health variable.
-  const incidents = await getIncidents(50);
+  const incidents = await getIncidents(100);
   const patterns = analyzePatterns(incidents);
   const recommendations = generateRecommendations(incidents, patterns);
 
   return (
     <div className="min-h-screen bg-zinc-950 p-6 text-zinc-100 lg:p-10">
       <div className="mx-auto max-w-5xl space-y-8">
+        {/* Header */}
         <div className="flex items-center gap-4">
           <Link
             href="/platform"
@@ -158,6 +229,56 @@ export default async function InsightsPage() {
           </div>
         </div>
 
+        {/* Resolution health */}
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {[
+            {
+              label: "Resolution Rate",
+              value: `${patterns.resolutionRate}%`,
+              style:
+                patterns.resolutionRate >= 80
+                  ? "text-green-400"
+                  : patterns.resolutionRate >= 50
+                    ? "text-yellow-400"
+                    : "text-red-400",
+            },
+            {
+              label: "Avg Resolution",
+              value:
+                patterns.avgResolutionHours !== null
+                  ? `${patterns.avgResolutionHours}h`
+                  : "—",
+              style: "text-white",
+            },
+            {
+              label: "Active Now",
+              value: patterns.active.length,
+              style:
+                patterns.active.length > 0 ? "text-red-400" : "text-green-400",
+            },
+            {
+              label: "Monitoring",
+              value: patterns.monitoring.length,
+              style:
+                patterns.monitoring.length > 0
+                  ? "text-blue-400"
+                  : "text-zinc-400",
+            },
+          ].map((item) => (
+            <div
+              key={item.label}
+              className="rounded-xl border border-white/10 bg-white/5 p-5"
+            >
+              <p className="mb-1 text-xs font-medium tracking-widest text-zinc-500 uppercase">
+                {item.label}
+              </p>
+              <p className={`text-3xl font-bold tabular-nums ${item.style}`}>
+                {item.value}
+              </p>
+            </div>
+          ))}
+        </div>
+
         {/* Recommendations */}
         <div>
           <h2 className="mb-4 text-xs font-semibold tracking-widest text-zinc-500 uppercase">
@@ -167,11 +288,11 @@ export default async function InsightsPage() {
             {recommendations.map((rec, i) => (
               <div
                 key={i}
-                className={`rounded-xl border p-5 ${PRIORITY_STYLES[rec.priority].split(" ").slice(0, 2).join(" ")}`}
+                className={`rounded-xl border p-5 ${PRIORITY_STYLES[rec.priority]}`}
               >
                 <div className="mb-2 flex items-center gap-2">
                   <span
-                    className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold tracking-widest uppercase ${PRIORITY_STYLES[rec.priority]}`}
+                    className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold tracking-widest uppercase ${PRIORITY_STYLES[rec.priority]} border-current ${PRIORITY_TEXT[rec.priority]}`}
                   >
                     {rec.priority}
                   </span>
@@ -290,7 +411,7 @@ export default async function InsightsPage() {
           </div>
         </div>
 
-        {/* Top Services (bonus — topServices is computed, show it) */}
+        {/* Top services */}
         {patterns.topServices.length > 0 && (
           <div className="rounded-xl border border-white/10 bg-white/5 p-5">
             <h2 className="mb-4 text-xs font-semibold tracking-widest text-zinc-500 uppercase">
@@ -306,6 +427,38 @@ export default async function InsightsPage() {
                   <p className="text-xs text-zinc-500">{count} incidents</p>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Resolution source breakdown */}
+        {patterns.resolved.length > 0 && (
+          <div className="rounded-xl border border-white/10 bg-white/5 p-5">
+            <h2 className="mb-4 text-xs font-semibold tracking-widest text-zinc-500 uppercase">
+              Resolution Sources
+            </h2>
+            <div className="flex flex-wrap gap-4">
+              {(
+                [
+                  { key: "github_issue_closed", label: "GitHub Issue Closed" },
+                  { key: "sentry_resolved", label: "Sentry Resolved" },
+                  { key: "manual", label: "Manual Override" },
+                ] as const
+              ).map((source) => {
+                const count = patterns.resolved.filter(
+                  (i) => i.resolvedBy === source.key,
+                ).length;
+                if (count === 0) return null;
+                return (
+                  <div
+                    key={source.key}
+                    className="rounded-lg border border-white/10 bg-white/5 px-3 py-2"
+                  >
+                    <p className="text-sm font-bold text-zinc-200">{count}</p>
+                    <p className="text-xs text-zinc-500">{source.label}</p>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

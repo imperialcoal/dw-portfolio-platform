@@ -29,6 +29,9 @@ const isWebhookRoute = createRouteMatcher([
   "/api/webhooks/clerk",
   "/api/webhooks/github",
   "/api/webhooks/sentry",
+  "/api/process/ci",
+  "/api/process/sentry",
+  "/api/process/resolve",
 ]);
 
 export default clerkMiddleware(async (auth, request) => {

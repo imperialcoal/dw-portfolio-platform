@@ -9,7 +9,13 @@ export type {
   VercelDeployment,
 } from "./ai/events";
 
-export type { IncidentDocResult, IncidentRecord } from "./ai/incidents";
+export type {
+  IncidentDocResult,
+  IncidentRecord,
+  IncidentStatus,
+  IncidentSummary,
+} from "./ai/incidents";
+export { toIncidentSummary, INCIDENT_STATUSES } from "./ai/incidents";
 
 export type { SentryIssue, SentryIssueDetail } from "./ai/issues";
 
@@ -42,9 +48,17 @@ export {
   CiJobPayloadSchema,
   SentryJobPayloadSchema,
   JobPayloadSchema,
+  GithubResolutionPayloadSchema,
+  SentryResolutionPayloadSchema,
 } from "./queue";
 
-export type { CiJobPayload, SentryJobPayload, JobPayload } from "./queue";
+export type {
+  CiJobPayload,
+  SentryJobPayload,
+  JobPayload,
+  GithubResolutionPayload,
+  SentryResolutionPayload,
+} from "./queue";
 
 // ─────────────────────────────────────────────
 // Event bus

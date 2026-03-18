@@ -33,7 +33,7 @@ function findCorrelatedIncidents(
   incidents: IncidentRecord[],
 ): IncidentRecord[] {
   const deployTime = deploy.createdAt;
-  const windowEnd = deployTime + 1000 * 60 * 60 * 2;
+  const windowEnd = deployTime + 1000 * 60 * 60 * 2; // 2h window
   return incidents.filter((incident) => {
     const incidentTime = new Date(incident.timestamp).getTime();
     return incidentTime >= deployTime && incidentTime <= windowEnd;
@@ -41,7 +41,7 @@ function findCorrelatedIncidents(
 }
 
 // ─────────────────────────────────────────────
-// Components
+// Styles
 // ─────────────────────────────────────────────
 
 const STATE_STYLES: Record<string, { badge: string; dot: string }> = {
@@ -70,6 +70,18 @@ const SEVERITY_COLOR: Record<IncidentRecord["severity"], string> = {
   low: "text-green-400",
 };
 
+const STATUS_BADGE: Record<string, string> = {
+  open: "bg-red-500/10 text-red-400 border-red-500/20",
+  investigating: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+  monitoring: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  resolved: "bg-green-500/10 text-green-400 border-green-500/20",
+  closed: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+};
+
+// ─────────────────────────────────────────────
+// Components
+// ─────────────────────────────────────────────
+
 function DeployRow({
   deploy,
   correlated,
@@ -79,21 +91,31 @@ function DeployRow({
   correlated: IncidentRecord[];
   currentEnv: string;
 }) {
-  const style = STATE_STYLES[deploy.state] ?? STATE_STYLES.CANCELED;
+  const style = STATE_STYLES[deploy.state] ??
+    STATE_STYLES.CANCELED ?? {
+      badge: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+      dot: "bg-zinc-400",
+    };
   const commitSha = deploy.meta.githubCommitSha ?? null;
   const commitMessage = deploy.meta.githubCommitMessage ?? null;
   const branch = deploy.meta.githubBranch ?? null;
+
+  const activeCorrelated = correlated.filter(
+    (i) => i.status === "open" || i.status === "investigating",
+  );
+  const resolvedCorrelated = correlated.filter(
+    (i) => i.status === "resolved" || i.status === "closed",
+  );
 
   return (
     <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex flex-wrap items-center gap-2">
           <span
-            className={`rounded border px-1.5 py-0.5 text-[11px] font-semibold tracking-wider uppercase ${style?.badge}`}
+            className={`rounded border px-1.5 py-0.5 text-[11px] font-semibold tracking-wider uppercase ${style.badge}`}
           >
             {deploy.state}
           </span>
-          {/* Show current env label — always accurate to which dashboard you're on */}
           <span className="rounded border border-white/10 bg-white/5 px-1.5 py-0.5 text-[11px] text-zinc-500">
             {currentEnv}
           </span>
@@ -129,6 +151,16 @@ function DeployRow({
         <div className="border-t border-white/10 pt-3">
           <p className="mb-2 text-[10px] font-semibold tracking-widest text-zinc-600 uppercase">
             Incidents within 2h of deploy
+            {activeCorrelated.length > 0 && (
+              <span className="ml-2 text-red-400">
+                {activeCorrelated.length} active
+              </span>
+            )}
+            {resolvedCorrelated.length > 0 && (
+              <span className="ml-2 text-green-400">
+                {resolvedCorrelated.length} resolved
+              </span>
+            )}
           </p>
           <div className="space-y-1.5">
             {correlated.map((incident) => (
@@ -140,6 +172,11 @@ function DeployRow({
                   className={`text-[10px] font-semibold uppercase ${SEVERITY_COLOR[incident.severity]}`}
                 >
                   {incident.severity}
+                </span>
+                <span
+                  className={`rounded border px-1 py-0.5 text-[9px] font-semibold ${STATUS_BADGE[incident.status] ?? ""}`}
+                >
+                  {incident.status}
                 </span>
                 <span className="truncate text-xs text-zinc-400">
                   {incident.summary}
@@ -173,12 +210,16 @@ function DeployRow({
 export default async function DeploymentsPage() {
   const [deploys, incidents] = await Promise.all([
     fetchRecentDeployments(20),
-    getIncidents(50),
+    getIncidents(100),
   ]);
 
-  // APP_ENV tells us which environment this dashboard is running in
   const currentEnv = env.NEXT_PUBLIC_APP_ENV;
-  const deploysWithIncidents = deploys.filter(
+  const deploysWithActiveIncidents = deploys.filter((d) =>
+    findCorrelatedIncidents(d, incidents).some(
+      (i) => i.status === "open" || i.status === "investigating",
+    ),
+  );
+  const deploysWithAnyIncidents = deploys.filter(
     (d) => findCorrelatedIncidents(d, incidents).length > 0,
   );
 
@@ -224,27 +265,38 @@ export default async function DeploymentsPage() {
           </div>
           <div
             className={`rounded-xl border p-5 ${
-              deploysWithIncidents.length > 0
-                ? "border-orange-500/20 bg-orange-500/5"
-                : "border-white/10 bg-white/5"
+              deploysWithActiveIncidents.length > 0
+                ? "border-red-500/20 bg-red-500/5"
+                : deploysWithAnyIncidents.length > 0
+                  ? "border-orange-500/20 bg-orange-500/5"
+                  : "border-white/10 bg-white/5"
             }`}
           >
             <p className="mb-1 text-xs font-medium tracking-widest text-zinc-500 uppercase">
-              With Incidents
+              Active Incidents
             </p>
             <p
               className={`text-3xl font-bold tabular-nums ${
-                deploysWithIncidents.length > 0
-                  ? "text-orange-400"
-                  : "text-white"
+                deploysWithActiveIncidents.length > 0
+                  ? "text-red-400"
+                  : deploysWithAnyIncidents.length > 0
+                    ? "text-orange-400"
+                    : "text-white"
               }`}
             >
-              {deploysWithIncidents.length}
+              {deploysWithActiveIncidents.length}
             </p>
+            {deploysWithAnyIncidents.length >
+              deploysWithActiveIncidents.length && (
+              <p className="mt-1 text-xs text-zinc-600">
+                {deploysWithAnyIncidents.length -
+                  deploysWithActiveIncidents.length}{" "}
+                resolved
+              </p>
+            )}
           </div>
         </div>
 
-        {/* Deploy list */}
         {deploys.length === 0 ? (
           <div className="rounded-xl border border-white/10 bg-white/5 p-12 text-center">
             <p className="text-zinc-500">No deployments found.</p>
