@@ -22,8 +22,8 @@ export function ResolveButton({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Don't show the button for already-closed incidents
-  if (currentStatus === "closed") return null;
+  // Only show for active/monitoring incidents — resolved and closed are final
+  if (currentStatus === "resolved" || currentStatus === "closed") return null;
 
   async function handleSubmit() {
     setLoading(true);
@@ -51,7 +51,7 @@ export function ResolveButton({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="rounded border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-zinc-400 transition-colors hover:border-white/20 hover:text-zinc-200"
+        className="cursor-pointer rounded border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-zinc-400 transition-colors hover:border-white/20 hover:text-zinc-200"
       >
         Resolve
       </button>
@@ -70,15 +70,18 @@ export function ResolveButton({
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as IncidentStatus)}
-                className="w-full rounded-lg border border-white/10 bg-zinc-800 px-3 py-2 text-sm text-zinc-200 focus:border-white/20 focus:outline-none"
+                className="w-full cursor-pointer rounded-lg border border-white/10 bg-zinc-800 px-3 py-2 text-sm text-zinc-200 focus:border-white/20 focus:outline-none"
               >
-                {INCIDENT_STATUSES.filter((s) => s !== currentStatus).map(
-                  (s) => (
-                    <option key={s} value={s}>
-                      {s.charAt(0).toUpperCase() + s.slice(1)}
-                    </option>
-                  ),
-                )}
+                {INCIDENT_STATUSES.filter(
+                  (s) =>
+                    s !== currentStatus &&
+                    s !== "open" &&
+                    s !== "investigating",
+                ).map((s) => (
+                  <option key={s} value={s}>
+                    {s.charAt(0).toUpperCase() + s.slice(1)}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -95,7 +98,7 @@ export function ResolveButton({
               />
             </div>
 
-            {error && (
+            {error !== null && (
               <p className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-400">
                 {error}
               </p>
@@ -108,14 +111,14 @@ export function ResolveButton({
                   setError(null);
                 }}
                 disabled={loading}
-                className="flex-1 rounded-lg border border-white/10 bg-white/5 py-2 text-sm text-zinc-400 transition-colors hover:text-zinc-200 disabled:opacity-50"
+                className="flex-1 cursor-pointer rounded-lg border border-white/10 bg-white/5 py-2 text-sm text-zinc-400 transition-colors hover:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={loading}
-                className="flex-1 rounded-lg border border-green-500/20 bg-green-500/10 py-2 text-sm text-green-400 transition-colors hover:bg-green-500/20 disabled:opacity-50"
+                className="flex-1 cursor-pointer rounded-lg border border-green-500/20 bg-green-500/10 py-2 text-sm text-green-400 transition-colors hover:bg-green-500/20 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading ? "Saving..." : "Confirm"}
               </button>
