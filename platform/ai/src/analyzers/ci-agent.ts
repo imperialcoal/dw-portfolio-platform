@@ -19,6 +19,19 @@ function safeId(v: unknown): string {
   return "";
 }
 
+/**
+ * Returns true if this branch should get a GitHub Issue created on failure.
+ * Protected branches (main, dev) always get issues.
+ * Dependabot branches get issues so resolution tracking works — closing the
+ * issue marks the incident resolved in the dashboard.
+ */
+function shouldCreateIssue(branch: string, prNumber: number | null): boolean {
+  if (prNumber !== null) return false; // PR comment path handles this case
+  if (["main", "dev"].includes(branch)) return true;
+  if (branch.startsWith("dependabot/")) return true;
+  return false;
+}
+
 export async function runCiAgent(
   payload: Record<string, unknown>,
 ): Promise<void> {
@@ -107,13 +120,13 @@ export async function runCiAgent(
   );
 
   const prNumber = event.context.prNumber;
-  const isProtectedBranch = ["main", "dev"].includes(event.context.branch);
+  const createGithubIssue = shouldCreateIssue(event.context.branch, prNumber);
 
   const [prResult, issueResult, docResult] = await Promise.allSettled([
     prNumber !== null
       ? postPrComment(prNumber, analysis, "ci_failure")
       : Promise.resolve(null),
-    isProtectedBranch && prNumber === null
+    createGithubIssue
       ? createIssue(`[CI] ${analysis.summary}`, analysis, [
           "ci",
           event.context.workflow,
@@ -127,8 +140,6 @@ export async function runCiAgent(
       ? issueResult.value
       : null;
   const issueUrl = issueResult_?.url;
-  // Extract issue number from URL for resolution tracking
-  // URL format: https://github.com/{owner}/{repo}/issues/{number}
   const githubIssueNumber = issueUrl
     ? parseInt(issueUrl.split("/").pop() ?? "", 10) || undefined
     : undefined;
@@ -184,7 +195,6 @@ export async function runCiAgent(
     },
   );
 
-  // Persist incident — status starts as "investigating" (set by logIncident)
   await logIncident({
     type: "ci_failure",
     id: runId,
@@ -201,7 +211,6 @@ export async function runCiAgent(
     branch: event.context.branch || undefined,
   });
 
-  // Transition to "open" — agent analysis complete, awaiting resolution
   await markIncidentOpen(runId);
 
   console.log(
