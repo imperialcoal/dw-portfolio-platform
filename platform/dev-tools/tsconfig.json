@@ -1,5 +1,5 @@
 {
   "extends": "@dw/tsconfig/base.json",
-  "include": ["*.ts", "src", "./scripts/typescript/*"],
+  "include": ["src", "./scripts/typescript/*"],
   "exclude": ["node_modules"]
 }
