@@ -4,6 +4,7 @@ import type { IncidentRecord, IncidentStatus } from "@dw/contracts";
 import { getIncidents } from "@dw/ai/memory";
 
 import { env } from "~/env";
+import { ResolveButtonWithRefresh } from "./_components/resolve-button-with-refresh";
 
 // ─────────────────────────────────────────────
 // Helpers
@@ -197,8 +198,8 @@ function IncidentCard({ incident }: { incident: IncidentRecord }) {
         </div>
       )}
 
-      {/* Links */}
-      <div className="flex flex-wrap gap-4 pt-1">
+      {/* Links + Manual Resolve */}
+      <div className="flex flex-wrap items-center gap-4 pt-1">
         {incident.issueUrl !== undefined && (
           <a
             href={incident.issueUrl}
@@ -229,6 +230,13 @@ function IncidentCard({ incident }: { incident: IncidentRecord }) {
             Sentry #{incident.sentryIssueId}
           </span>
         )}
+        {/* Manual resolution — only for non-closed incidents */}
+        <div className="ml-auto">
+          <ResolveButtonWithRefresh
+            incidentId={incident.id}
+            currentStatus={incident.status}
+          />
+        </div>
       </div>
     </div>
   );
