@@ -22,7 +22,7 @@ catalog:
   '@trpc/server': ^11.10.0
   '@trpc/tanstack-react-query': ^11.10.0
   '@types/node': ^22.19.11
-  '@vitejs/plugin-react': 5.1.4
+  '@vitejs/plugin-react': 5.2.0
   eslint: ^9.39.2
   prettier: ^3.8.1
   resend: ^6.9.2
