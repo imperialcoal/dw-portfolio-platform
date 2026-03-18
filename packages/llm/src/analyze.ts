@@ -21,10 +21,7 @@ export interface AnalysisResult {
   labels: string[];
 }
 
-// Narrowed text block type — extracted from the ContentBlock union.
-// Defined here so the type predicate below has an explicit, resolvable type
-// rather than relying on namespace traversal (Anthropic.Messages.TextBlock)
-// which some TypeScript versions fail to resolve in type predicate position.
+// TextBlock is the text-only member of the ContentBlock union.
 type TextBlock = Extract<ContentBlock, { type: "text" }>;
 
 export async function analyzeEvent(
@@ -40,11 +37,14 @@ export async function analyzeEvent(
     messages: [{ role: "user", content: userPrompt }],
   });
 
-  // message.content is ContentBlock[].
-  // Narrow to TextBlock (type === "text") to safely access .text.
-  const rawText = message.content
-    .filter((block): block is TextBlock => block.type === "text")
-    .map((block) => block.text)
+  // Assign to an explicitly typed variable before chaining.
+  // This ensures TypeScript resolves ContentBlock[] as the array element type
+  // before inferring the callback parameter types in filter/map.
+  const blocks: ContentBlock[] = message.content;
+
+  const rawText = blocks
+    .filter((block: ContentBlock): block is TextBlock => block.type === "text")
+    .map((block: TextBlock) => block.text)
     .join("");
 
   return parseAnalysisXml(rawText);
