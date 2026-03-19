@@ -1,497 +1,106 @@
 # @dw/db
 
-Database layer using Drizzle ORM with PostgreSQL for the DW Portfolio Platform.
+Database package providing the Drizzle ORM client, schema definitions, and migration files. Uses Supabase (PostgreSQL 16) in production and a local Docker Postgres instance in development.
 
-## Overview
+## Purpose
 
-This package provides the entire database layer including:
+Centralizes all database schema definitions and the ORM client singleton. Any package that needs to query the database imports `getDb()` or the lazy `db` proxy from this package.
 
-- **Drizzle ORM** client configuration
-- **Type-safe schema** definitions
-- **Migration system** via Drizzle Kit
-- **Zod validation schemas** generated from database schema
+## Architecture
 
-All database interactions across the platform use this package to ensure type safety and consistency.
+```
+src/
+├── auth-schema.ts    # user table: id (Clerk ID), email, role, banned, metadata
+├── schema.ts         # post table + re-exports auth-schema
+├── client.ts         # getDb() singleton factory, lazy db proxy
+└── index.ts          # Re-exports
 
-## Features
-
-- **PostgreSQL 16** as the database
-- **Drizzle ORM 0.44.7** for type-safe queries
-- **Drizzle Kit** for migrations and schema management
-- **postgres** driver for connection pooling
-- **Drizzle Studio** for database GUI
-- **drizzle-zod** for automatic Zod schema generation
-
-## Exports
-
-```typescript
-// Database client
-export { db } from "./client";
-
-// Schema tables
-export { Post, user, session, account, verification } from "./schema";
-
-// Generated Zod schemas
-export { CreatePostSchema } from "./schema";
-
-// Drizzle helpers (re-exported)
-export { eq, and, or, desc, asc } from "drizzle-orm";
+drizzle/              # Generated migration SQL files
+drizzle.config.ts     # Drizzle Kit configuration
 ```
 
 ## Database Schema
 
-### Application Tables
+```mermaid
+erDiagram
+    user {
+        text id PK "Clerk User ID"
+        text email UK
+        boolean emailVerified
+        text name
+        text image
+        role_enum role "admin | user"
+        boolean banned
+        text primaryOrgId
+        jsonb metadata
+        timestamp createdAt
+        timestamp updatedAt
+        timestamp lastSeenAt
+        timestamp deletedAt
+    }
 
-#### Post Table
+    post {
+        uuid id PK
+        varchar title
+        text content
+        timestamp createdAt
+        timestamp updatedAt
+        text authorId FK
+    }
 
-Blog posts or content items.
+    user ||--o{ post : "authors"
+```
+
+## Key Exports
 
 ```typescript
-export const Post = pgTable("post", (t) => ({
-  id: t.uuid().notNull().primaryKey().defaultRandom(),
-  title: t.varchar({ length: 256 }).notNull(),
-  content: t.text().notNull(),
-  createdAt: t.timestamp().defaultNow().notNull(),
-  updatedAt: t.timestamp().$onUpdateFn(() => sql`now()`),
-  authorId: t
-    .text()
-    .notNull()
-    .references(() => user.id, {
-      onDelete: "cascade",
-    }),
-}));
+// Export paths: ".", "./client", "./schema"
+
+// Lazy proxy — safe to import at module load time
+export const db: DbInstance
+
+// Factory function — validates env vars and creates connection
+export function getDb(): DbInstance
+export type DbInstance = PostgresJsDatabase<typeof schema>
+
+// Schema
+export { user, roleEnum, Post, CreatePostSchema }
 ```
 
-**Generated Zod Schema**:
+### Connection Configuration
 
-```typescript
-export const CreatePostSchema = createInsertSchema(Post, {
-  title: z.string().max(256),
-  content: z.string().max(256),
-}).omit({
-  id: true,
-  authorId: true,
-  createdAt: true,
-  updatedAt: true,
-});
-```
+The client (`src/client.ts`) configures `postgres.js` for Supabase PgBouncer compatibility:
+- `prepare: false` — required for PgBouncer transaction pooler mode
+- `max: 3` in production (Supabase free tier limit), `max: 5` in local dev
+- `idle_timeout: 30`, `connect_timeout: 10`
 
-## Database Client
-
-The Drizzle client is configured with connection pooling:
-
-```typescript
-// src/client.ts
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
-
-import * as schema from "./schema";
-
-const queryClient = postgres(env.DATABASE_URL);
-
-export const db = drizzle(queryClient, { schema });
-```
-
-## Environment Variables
-
-Required environment variables:
-
-```bash
-# Connection string (for application)
-DATABASE_URL=postgresql://user:password@localhost:5433/dbname
-
-# Direct URL (for migrations)
-DIRECT_URL=postgresql://user:password@localhost:5433/dbname
-```
-
-For serverless environments (Vercel, etc.), use connection pooling:
-
-```bash
-# Pooled connection for serverless
-DATABASE_URL=postgres://user:password@host:5432/db?pgbouncer=true
-
-# Direct connection for migrations
-DIRECT_URL=postgres://user:password@host:5432/db
-```
-
-## Usage
-
-### Querying
-
-```typescript
-import { desc, eq } from "@dw/db";
-import { db } from "@dw/db/client";
-import { Post, user } from "@dw/db/schema";
-
-// Query all posts
-const posts = await db.query.Post.findMany({
-  orderBy: desc(Post.createdAt),
-  limit: 10,
-});
-
-// Query with relation
-const posts = await db.query.Post.findMany({
-  with: {
-    author: true, // Auto-populated via foreign key
-  },
-});
-
-// Query builder
-const posts = await db
-  .select()
-  .from(Post)
-  .where(eq(Post.authorId, userId))
-  .orderBy(desc(Post.createdAt));
-```
-
-### Inserting
-
-```typescript
-import { db } from "@dw/db/client";
-import { Post } from "@dw/db/schema";
-
-const result = await db.insert(Post).values({
-  title: "Hello World",
-  content: "This is my first post",
-  authorId: userId,
-});
-```
-
-### Updating
-
-```typescript
-import { eq } from "@dw/db";
-import { db } from "@dw/db/client";
-import { Post } from "@dw/db/schema";
-
-await db
-  .update(Post)
-  .set({ title: "Updated Title" })
-  .where(eq(Post.id, postId));
-```
-
-### Deleting
-
-```typescript
-import { eq } from "@dw/db";
-import { db } from "@dw/db/client";
-import { Post } from "@dw/db/schema";
-
-await db.delete(Post).where(eq(Post.id, postId));
-```
-
-### Type Inference
-
-Drizzle automatically infers types:
-
-```typescript
-import type { Post } from "@dw/db/schema";
-
-// Infer select type (what you get from queries)
-type PostRow = typeof Post.$inferSelect;
-
-// Infer insert type (what you pass to insert)
-type PostInsert = typeof Post.$inferInsert;
-
-// Use in functions
-function createPost(data: PostInsert) {
-  return db.insert(Post).values(data);
-}
-```
-
-## Migrations
-
-### Generate Migration
-
-After changing schema:
-
-```bash
-# From monorepo root
-pnpm db:generate
-
-# Or from this package
-pnpm db:generate
-```
-
-This generates SQL migration files in `drizzle/` directory.
-
-### Apply Migration
-
-For development, use push (no migration files):
-
-```bash
-pnpm db:push
-```
-
-This directly syncs schema to database without creating migration files.
-
-For production, use migrate:
-
-```bash
-# Run generated migrations
-pnpm drizzle-kit migrate
-```
-
-### Migration Files
-
-Migrations are stored in `drizzle/` directory:
-
-```
-drizzle/
-├── 0000_initial_schema.sql
-├── 0001_add_posts_table.sql
-└── meta/
-    └── _journal.json
-```
-
-## Drizzle Studio
-
-Interactive database GUI:
-
-```bash
-# From monorepo root
-pnpm db:studio
-
-# Or from this package
-pnpm db:studio
-```
-
-Drizzle Studio will open at `https://local.drizzle.studio`.
-
-Features:
-
-- Browse tables and data
-- Run queries
-- Edit records
-- View relations
-
-## Configuration
-
-### drizzle.config.ts
-
-```typescript
-export default {
-  schema: "./src/schema.ts", // Schema definition
-  out: "./drizzle", // Migration output directory
-  dialect: "postgresql", // Database type
-  dbCredentials: {
-    url: env.DIRECT_URL, // Direct connection (no pooling)
-  },
-  casing: "snake_case", // Column naming convention
-} satisfies Config;
-```
-
-### Snake Case Naming
-
-Database columns use `snake_case`:
-
-```typescript
-// Schema definition
-createdAt: t.timestamp()
-
-// In database
-created_at TIMESTAMP
-```
-
-Drizzle automatically converts between camelCase (TypeScript) and snake_case (SQL).
-
-## Adding New Tables
-
-1. Define schema in `src/schema.ts`:
-
-```typescript
-export const Comment = pgTable("comment", (t) => ({
-  id: t.uuid().notNull().primaryKey().defaultRandom(),
-  content: t.text().notNull(),
-  postId: t
-    .uuid()
-    .notNull()
-    .references(() => Post.id, {
-      onDelete: "cascade",
-    }),
-  authorId: t
-    .text()
-    .notNull()
-    .references(() => user.id, {
-      onDelete: "cascade",
-    }),
-  createdAt: t.timestamp().defaultNow().notNull(),
-}));
-```
-
-2. Generate Zod schema (optional):
-
-```typescript
-export const CreateCommentSchema = createInsertSchema(Comment).omit({
-  id: true,
-  createdAt: true,
-});
-```
-
-3. Generate and apply migration:
-
-```bash
-pnpm db:generate
-pnpm db:push
-```
-
-## Type Safety
-
-All database operations are fully type-checked:
-
-```typescript
-// ✅ Type-safe
-const posts = await db.select().from(Post).where(eq(Post.id, "123"));
-
-// ❌ TypeScript error - invalid column
-const posts = await db.select().from(Post).where(eq(Post.invalidCol, "123"));
-
-// ✅ Type-safe insert
-await db.insert(Post).values({
-  title: "Hello",
-  content: "World",
-  authorId: "user-123",
-});
-
-// ❌ TypeScript error - missing required field
-await db.insert(Post).values({
-  title: "Hello",
-  // content is required!
-});
-```
-
-## Relations
-
-Define relations for easier querying:
-
-```typescript
-import { relations } from "drizzle-orm";
-
-export const postRelations = relations(Post, ({ one }) => ({
-  author: one(user, {
-    fields: [Post.authorId],
-    references: [user.id],
-  }),
-}));
-```
-
-Usage:
-
-```typescript
-// Query with relation
-const posts = await db.query.Post.findMany({
-  with: {
-    author: true, // Automatically joins user table
-  },
-});
-
-// Result type
-type PostWithAuthor = {
-  id: string;
-  title: string;
-  content: string;
-  author: {
-    id: string;
-    email: string;
-    name: string;
-  };
-};
-```
-
-## Connection Pooling
-
-For serverless environments, use connection pooling:
-
-```typescript
-// Production connection with pooling
-DATABASE_URL=postgres://...?pgbouncer=true&connection_limit=10
-```
-
-The `postgres` driver automatically handles pooling.
-
-## Development
-
-```bash
-# Generate migration from schema changes
-pnpm db:generate
-
-# Push schema directly to database (no migration files)
-pnpm db:push
-
-# Open Drizzle Studio
-pnpm db:studio
-
-# Build TypeScript
-pnpm build
-
-# Type check
-pnpm typecheck
-
-# Lint
-pnpm lint
-```
-
-## Scripts
-
-```json
-{
-  "db:generate": "pnpm with-env drizzle-kit generate",
-  "db:push": "pnpm with-env drizzle-kit push",
-  "db:studio": "pnpm with-env drizzle-kit studio",
-  "with-env": "dotenv -e ../../.env.local --"
-}
-```
+The `db` export is a `Proxy` that defers `getDb()` invocation until first property access — this allows safe import at module load time without immediately connecting.
 
 ## Dependencies
 
-- `drizzle-orm` - ORM runtime
-- `drizzle-kit` - CLI for migrations and studio
-- `drizzle-zod` - Zod schema generation
-- `postgres` - PostgreSQL driver
-- `zod` - Schema validation
-- `@t3-oss/env-core` - Environment validation
+Consumes: `@dw/validators` (for `dbEnv()` — validates `DATABASE_URL` and `DIRECT_URL`)
 
-## Best Practices
+Consumed by: `@dw/api`, `@dw/auth`, `@dw/runtime`, `@dw/dev-tools`
 
-1. **Use query builder for complex queries** - `.select().from().where()`
-2. **Use query API for simple queries** - `db.query.Post.findMany()`
-3. **Always use transactions** for multiple related operations
-4. **Generate Zod schemas** from Drizzle schema for validation
-5. **Use relations** for cleaner join queries
-6. **Keep schema in sync** - Run `db:generate` after changes
-7. **Use migrations in production** - Don't use `db:push` in prod
-8. **Use connection pooling** in serverless environments
+## Local Development
 
-## Troubleshooting
+```bash
+# Generate migration files after schema changes
+pnpm dw db generate
 
-### Connection Errors
+# Apply migrations to local Docker DB
+pnpm dw db migrate.local
 
-If database connection fails:
+# Push schema directly (no migration file, dev only)
+pnpm dw db push.local
 
-1. Ensure PostgreSQL is running: `pnpm infra:up`
-2. Verify `DATABASE_URL` in `.env.local`
-3. Check port (default: 5433)
-4. Test connection: `psql $DATABASE_URL`
+# Open Drizzle Studio visual browser
+pnpm dw db studio.local
+```
 
-### Migration Errors
+Migrations require `DIRECT_URL` (not `DATABASE_URL`) because PgBouncer's transaction pooler does not support the `SET` commands that migration runners use.
 
-If migrations fail:
+## Developer Notes
 
-1. Check migration SQL in `drizzle/` directory
-2. Verify schema syntax in `src/schema.ts`
-3. Run `pnpm db:push` to force sync (dev only)
-4. Drop database and recreate if needed (dev only)
-
-### Type Errors
-
-If TypeScript errors occur:
-
-1. Ensure schema is exported from `src/schema.ts`
-2. Run `pnpm build` to generate type definitions
-3. Restart TypeScript language server in editor
-
-## Related Packages
-
-- [`@dw/api`](../api/README.md) - Uses db client in tRPC procedures
-- [`@dw/auth`](../auth/README.md) - Generates auth schema
-- [`@dw/validators`](../validators/README.md) - Uses generated Zod schemas
+> **Developer Note**
+> Drizzle is configured with `casing: "snake_case"` — TypeScript field names like `authorId` are automatically mapped to `author_id` in SQL. You do not need to manually specify column names for snake_case fields.

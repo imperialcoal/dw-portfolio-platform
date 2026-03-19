@@ -1,119 +1,75 @@
 # @dw/validators
 
-Shared Zod validation schemas for the DW Portfolio Platform.
+Per-domain environment variable validators using `@t3-oss/env-core` and Zod. Each module validates a specific subset of `process.env`, providing type-safe access and clear startup errors when required variables are missing.
 
-## Overview
+## Purpose
 
-This package provides centralized validation schemas used across the platform for API inputs, form validation, and type safety.
+Separates env validation into focused domains (db, auth, devops, etc.) so each package only validates the variables it needs, avoiding god-object env files. The companion `@dw/config` package composes all validators into a single `config` object.
 
-## Features
+## Architecture
 
-- **Zod v4** for runtime validation
-- **Type inference** from schemas
-- **Reusable schemas** across web and mobile
-- **Consistent validation** logic
-
-## Exports
-
-```typescript
-// Export all validation schemas
-export * from "./src/index";
+```
+src/
+├── api-env.ts          # NODE_ENV, APP_ENV
+├── auth-env.ts         # OWNER_EMAILS
+├── clerk-env.ts        # CLERK_SECRET_KEY, CLERK_WEBHOOK_SECRET, AUTH_REDIRECT_PROXY_URL
+├── db-env.ts           # DATABASE_URL, DIRECT_URL
+├── devops-env.ts       # ANTHROPIC_API_KEY, GITHUB_TOKEN, GITHUB_WEBHOOK_SECRET, GITHUB_REPO
+├── messaging-env.ts    # RESEND_API_KEY, RESEND_FROM_EMAIL, RESEND_AGENT_FROM_EMAIL, RESEND_TO_EMAIL
+├── observability-env.ts # SENTRY_*, VERCEL_API_TOKEN, VERCEL_PROJECT_ID
+├── qstash-env.ts       # QSTASH_TOKEN, QSTASH_URL, QSTASH_*_SIGNING_KEY
+├── redis-env.ts        # UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
+├── supabase-env.ts     # SUPABASE_PROJECT_REF, SUPABASE_SECRET_DEFAULT_KEY
+└── env-schemas.ts      # Shared Zod schema utilities
 ```
 
-## Usage
+## Key Exports
 
-### In tRPC Procedures
+Each module exports two items:
 
-```typescript
-import { createPostSchema } from "@dw/validators";
-
-export const postRouter = {
-  create: protectedProcedure
-    .input(createPostSchema)
-    .mutation(({ input, ctx }) => {
-      // input is fully typed and validated
-      return ctx.db.insert(posts).values(input);
-    }),
-};
-```
-
-### In Forms (Next.js)
+1. A `*Env()` factory function that validates and returns typed env vars
+2. One or more `is*Configured()` guard functions for graceful degradation
 
 ```typescript
-import { useForm } from "@tanstack/react-form";
-import { zodValidator } from "@tanstack/zod-form-adapter";
-
-import { createPostSchema } from "@dw/validators";
-
-const form = useForm({
-  defaultValues: { title: "", content: "" },
-  validators: {
-    onChange: createPostSchema,
-  },
-});
-```
-
-### In Forms (Expo)
-
-```typescript
-import { createPostSchema } from "@dw/validators";
-
-// Validate manually
-const result = createPostSchema.safeParse(formData);
-
-if (!result.success) {
-  // Handle validation errors
-  console.error(result.error.flatten());
+// Example: devops-env.ts
+export function devopsEnv(): {
+  ANTHROPIC_API_KEY?: string;
+  GITHUB_TOKEN?: string;
+  GITHUB_WEBHOOK_SECRET?: string;
+  SENTRY_WEBHOOK_SECRET?: string;
+  GITHUB_REPO?: string;
+  NODE_ENV: "development" | "test" | "production";
+  APP_ENV: "local" | "test" | "preview" | "production";
 }
+
+export function isDevopsConfigured(): boolean  // ANTHROPIC_API_KEY + GITHUB_TOKEN + GITHUB_REPO
+export function isWebhookConfigured(type: "github" | "sentry"): boolean
 ```
 
-## Adding Schemas
+## Export Paths
 
-Create new validation schemas in `src/`:
+| Path | Contents |
+|---|---|
+| `@dw/validators` | All validators (via index.ts) |
+| `@dw/validators/api-env` | `apiEnv()` |
+| `@dw/validators/auth-env` | `authEnv()` |
+| `@dw/validators/clerk-env` | `clerkEnv()`, `isClerkConfigured()` |
+| `@dw/validators/db-env` | `dbEnv()` |
+| `@dw/validators/devops-env` | `devopsEnv()`, `isDevopsConfigured()`, `isWebhookConfigured()` |
+| `@dw/validators/messaging-env` | `messagingEnv()`, `isMessagingConfigured()`, `isAgentEmailConfigured()` |
+| `@dw/validators/observability-env` | `observabilityEnv()`, `isSentryApiConfigured()`, `isVercelApiConfigured()` |
+| `@dw/validators/qstash-env` | `qstashEnv()`, `isQStashConfigured()` |
+| `@dw/validators/redis-env` | `redisEnv()`, `isRedisConfigured()` |
+| `@dw/validators/supabase-env` | `supabaseEnv()`, `isSupabaseConfigured()` |
 
-```typescript
-// src/comment.ts
-import { z } from "zod/v4";
+## Configuration Behavior
 
-export const createCommentSchema = z.object({
-  content: z.string().min(1).max(500),
-  postId: z.string().uuid(),
-});
-
-export const updateCommentSchema = createCommentSchema.partial();
-```
-
-Export from `src/index.ts`:
-
-```typescript
-export * from "./comment";
-```
-
-## Development
-
-```bash
-# Build TypeScript
-pnpm build
-
-# Watch mode
-pnpm dev
-
-# Type check
-pnpm typecheck
-```
+All validators use `skipValidation: !!process.env.CI || process.env.npm_lifecycle_event === "lint"`. This means:
+- CI runs (lint, typecheck, format) skip validation — no env vars needed in CI for code quality checks
+- Production/preview deployments validate all required variables at startup and fail with a descriptive error if any are missing
 
 ## Dependencies
 
-- `zod` - Schema validation library
+No monorepo dependencies (leaf package — uses only `@t3-oss/env-core` and `zod`).
 
-## Best Practices
-
-1. **Colocate with database schema** - Generate from Drizzle when possible
-2. **Use refinements** for complex validation
-3. **Provide error messages** for better UX
-4. **Share schemas** - Don't duplicate validation logic
-
-## Related Packages
-
-- [`@dw/api`](../api/README.md) - Uses validators for input validation
-- [`@dw/db`](../db/README.md) - Generates validators from schema
+Consumed by: every package that reads environment variables

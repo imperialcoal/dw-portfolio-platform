@@ -1,93 +1,38 @@
 # @dw/health
 
-Infrastructure health check utilities for the DW Portfolio Platform.
+Infrastructure health check primitives. Provides `verifyInfra()` — a function that confirms Postgres and Redis are reachable with a read/write roundtrip test. Used during bootstrap and test setup to fail fast if infra is unavailable.
 
-## Overview
+## Purpose
 
-This package provides utilities to verify database and Redis connectivity for monitoring and health check endpoints.
+Centralizes the infra verification logic so it can be called identically from the runtime bootstrap (`platform/runtime/src/bootstrap.ts`), test setup scripts, and any health check endpoint. The function uses abstract interfaces (`DbHealthCheck`, `RedisHealthCheck`) rather than concrete types, allowing it to be tested with any adapter.
 
-## Features
-
-- **Database health checks** - Verify PostgreSQL connectivity
-- **Redis health checks** - Verify Redis connectivity
-- **Structured responses** - Consistent health check format
-- **Fast checks** - Lightweight queries for quick responses
-
-## Exports
+## Key Exports
 
 ```typescript
-export { verifyInfra } from "./checks";
-export type { DbHealthCheck, RedisHealthCheck } from "./checks";
-```
-
-## Usage
-
-### In tRPC Health Endpoint
-
-```typescript
-import { verifyInfra } from "@dw/health";
-
-export const healthRouter = {
-  check: publicProcedure.query(async ({ ctx }) => {
-    const health = await verifyInfra(ctx.db, ctx.redis);
-    return health;
-  }),
-};
-```
-
-### Response Format
-
-```typescript
-type HealthCheck = {
-  database: {
-    status: "healthy" | "unhealthy";
-    latency: number; // milliseconds
-    error?: string;
-  };
-  redis: {
-    status: "healthy" | "unhealthy";
-    latency: number; // milliseconds
-    error?: string;
-  };
-  overall: "healthy" | "degraded" | "unhealthy";
-};
-```
-
-### Example Response
-
-```json
-{
-  "database": {
-    "status": "healthy",
-    "latency": 12
-  },
-  "redis": {
-    "status": "healthy",
-    "latency": 5
-  },
-  "overall": "healthy"
+export interface DbHealthCheck {
+  execute: (query: string) => Promise<unknown>;
 }
+export interface RedisHealthCheck {
+  ping: () => Promise<string>;
+  set: (key: string, value: string, ex: number) => Promise<unknown>;
+  get: (key: string) => Promise<string | null>;
+}
+
+export async function verifyInfra(
+  db: DbHealthCheck,
+  redis: RedisHealthCheck,
+): Promise<void>
 ```
 
-## Development
+### Behavior
 
-```bash
-# Build TypeScript
-pnpm build
-
-# Watch mode
-pnpm dev
-
-# Type check
-pnpm typecheck
-```
+- Runs DB and Redis checks in parallel with `Promise.all`
+- Redis check performs a full roundtrip: `PING` + `SET` + `GET` with value assertion
+- Timeout: 3000ms (local), 15000ms (CI — slower Docker startup)
+- Includes a safety guard: throws if `NODE_ENV === "test"` but `DATABASE_URL` does not contain `"test"` — prevents tests from accidentally running against a non-test database
 
 ## Dependencies
 
-None - this package has no external dependencies.
+No monorepo dependencies (leaf package).
 
-## Related Packages
-
-- [`@dw/api`](../api/README.md) - Uses health checks in internal procedures
-- [`@dw/db`](../db/README.md) - Database to check
-- [`@dw/redis`](../redis/README.md) - Redis to check
+Consumed by: `@dw/runtime`

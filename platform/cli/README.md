@@ -1,136 +1,79 @@
-# Platform CLI
+# @dw/cli
 
-Command-line tools for platform operations and automation.
+The `pnpm dw` command-line interface for monorepo operations. Provides a domain-routed CLI system where commands are discovered by filesystem convention — no manual command registration required.
 
-## Overview
+## Purpose
 
-This package provides CLI tools for common platform operations, database management, and deployment helpers.
+Centralizes developer tooling into a single, memorable interface (`pnpm dw <domain> <command>`) rather than requiring developers to remember long Turbo filter flags or package-specific scripts.
 
-**Status**: Placeholder - CLI tools will be added as needed.
+## Architecture
 
-## Package
+```
+src/
+├── index.ts           # Entry point: calls route(process.argv.slice(2))
+├── router/
+│   ├── index.ts       # Dynamic discovery: lists domains/commands from filesystem
+│   ├── db/            # Database commands
+│   │   ├── generate.ts
+│   │   ├── migrate.ts / migrate.local.ts
+│   │   ├── push.ts / push.local.ts
+│   │   ├── seed.ts
+│   │   ├── studio.ts / studio.local.ts
+│   │   └── test-setup.ts
+│   └── infra/         # Infrastructure commands
+│       ├── up.ts / down.ts / restart.ts / logs.ts
+│       └── tf.*.ts    # Terraform commands (init, plan, apply, import, state-rm)
+├── types/
+│   ├── command.ts     # CLICommand, CLICommandModule types
+│   └── turbo.ts       # Turbo command builder types
+└── utils/
+    ├── run.ts          # execa wrapper for subprocess execution
+    ├── turbo-command.ts # Builds turbo filter flags
+    └── workspace.ts    # Workspace package discovery utilities
+```
 
-**Name**: `@dw/cli`
+### Router Discovery
 
-**Dependencies**:
+The CLI uses a filesystem-based router: `route(args)` lists subdirectories of `src/router/` as domains, then lists `.js` files within the matched domain directory as commands. Each command file exports a `default` function (the command handler) and an optional `description` string.
 
-- `@dw/api` - API operations
-- `@dw/db` - Database operations
-- `@dw/redis` - Redis operations
-- `commander` - CLI framework
-- `uuid` - UUID generation
+Adding a new command requires only creating a new `.ts` file in the appropriate domain directory — the router discovers it automatically.
 
-## Planned Features
-
-### Database Operations
+## Usage
 
 ```bash
-# Backup database
-dw-cli db:backup
+# Database commands
+pnpm dw db generate        # Generate Drizzle migration files
+pnpm dw db migrate         # Apply migrations (remote DB)
+pnpm dw db migrate.local   # Apply migrations (local Docker DB)
+pnpm dw db push.local      # Push schema without migration file
+pnpm dw db seed            # Seed the database
+pnpm dw db studio          # Open Drizzle Studio (remote)
+pnpm dw db studio.local    # Open Drizzle Studio (local Docker)
+pnpm dw db test-setup      # Set up test database
 
-# Restore database
-dw-cli db:restore backup.sql
+# Infrastructure commands
+pnpm dw infra up           # Start Docker infrastructure
+pnpm dw infra down         # Stop Docker infrastructure
+pnpm dw infra restart      # Restart Docker infrastructure
+pnpm dw infra logs         # Stream Docker logs
+pnpm dw infra tf.init      # Terraform init
+pnpm dw infra tf.plan      # Terraform plan
+pnpm dw infra tf.apply     # Terraform apply
+pnpm dw infra tf.import    # Terraform import (all resources)
+pnpm dw infra tf.state-rm  # Remove resource from Terraform state
 
-# Reset database (dev only)
-dw-cli db:reset
+# Help
+pnpm dw db help     # List all db commands
+pnpm dw infra help  # List all infra commands
 ```
 
-### User Management
+## Dependencies
 
-```bash
-# Create admin user
-dw-cli user:create-admin
+No monorepo dependencies. Uses `execa` for subprocess execution and `uuid` for run IDs.
 
-# List users
-dw-cli user:list
+Consumed by: root `package.json` (`postinstall` links it as a dev dependency)
 
-# Ban user
-dw-cli user:ban <user-id>
-```
+## Developer Notes
 
-### Deployment
-
-```bash
-# Pre-deployment checks
-dw-cli deploy:check
-
-# Run migrations
-dw-cli deploy:migrate
-
-# Rollback
-dw-cli deploy:rollback
-```
-
-### Cache Management
-
-```bash
-# Clear all caches
-dw-cli cache:clear
-
-# Clear specific cache
-dw-cli cache:clear posts
-
-# View cache stats
-dw-cli cache:stats
-```
-
-## Development
-
-Currently, the CLI is a placeholder. To add CLI commands:
-
-1. **Install CLI framework**:
-
-```bash
-cd platform/cli
-pnpm add commander inquirer
-```
-
-2. **Create command structure**:
-
-```typescript
-// src/index.ts
-import { Command } from "commander";
-
-const program = new Command();
-
-program
-  .name("dw-cli")
-  .description("DW Portfolio Platform CLI")
-  .version("1.0.0");
-
-program
-  .command("db:backup")
-  .description("Backup database")
-  .action(async () => {
-    // Implementation
-  });
-
-program.parse();
-```
-
-3. **Build and link**:
-
-```bash
-pnpm build
-pnpm link --global
-```
-
-4. **Use CLI**:
-
-```bash
-dw-cli db:backup
-```
-
-## Future Enhancements
-
-- [ ] Database backup/restore
-- [ ] User management commands
-- [ ] Cache management
-- [ ] Deployment helpers
-- [ ] Health check reporting
-- [ ] Log aggregation and viewing
-
-## Related Documentation
-
-- [Dev Tools](../dev-tools/README.md) - Scripts and seeding
-- [Platform Overview](../README.md) - Platform architecture
+> **Developer Note**
+> The CLI is built as ESM (`"type": "module"`) and runs from `dist/` after `tsc` compilation. The bin entry `"dw": "./dist/index.js"` is linked via `@dw/cli: workspace:*` in the root `package.json`. The router uses `import.meta.dirname` (Node 22 ESM) for the current directory, and `pathToFileURL()` for dynamic imports — both required for ESM module loading from absolute paths.
