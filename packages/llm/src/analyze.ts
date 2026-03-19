@@ -8,6 +8,10 @@ import {
   CI_FAILURE_SYSTEM_PROMPT,
 } from "./prompts/ci-failure";
 import {
+  buildSecurityAlertUserPrompt,
+  SECURITY_ALERT_SYSTEM_PROMPT,
+} from "./prompts/security-alert";
+import {
   buildSentryIncidentUserPrompt,
   SENTRY_INCIDENT_SYSTEM_PROMPT,
 } from "./prompts/sentry-incident";
@@ -64,6 +68,11 @@ function buildPrompts(event: PlatformEvent): {
       return {
         systemPrompt: SENTRY_INCIDENT_SYSTEM_PROMPT,
         userPrompt: buildSentryIncidentUserPrompt(event),
+      };
+    case "security_alert":
+      return {
+        systemPrompt: SECURITY_ALERT_SYSTEM_PROMPT,
+        userPrompt: buildSecurityAlertUserPrompt(event),
       };
   }
 }

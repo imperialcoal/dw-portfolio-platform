@@ -7,6 +7,7 @@ export {
   getIncidents,
   findIncidentByGithubIssue,
   findIncidentBySentryIssue,
+  findIncidentBySecurityAlert,
   logEvent,
   getEvents,
   getSystemHealth,

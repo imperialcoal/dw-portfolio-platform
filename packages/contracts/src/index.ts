@@ -5,6 +5,7 @@
 export type {
   CiFailureEvent,
   SentryErrorEvent,
+  SecurityAlertEvent,
   PlatformEvent,
   VercelDeployment,
 } from "./ai/events";
@@ -26,6 +27,7 @@ export type { ControlLoopResult } from "./ai/control-loop";
 export {
   normalizeGitHubWorkflowRun,
   normalizeSentryWebhook,
+  normalizeSecurityAlert,
 } from "./ai/normalize";
 
 // ─────────────────────────────────────────────
@@ -35,6 +37,7 @@ export {
 export {
   CiFailureEventSchema,
   SentryErrorEventSchema,
+  SecurityAlertEventSchema,
   PlatformEventSchema,
   AnalysisResultSchema,
   IncidentRecordSchema,
@@ -47,6 +50,7 @@ export {
 export {
   CiJobPayloadSchema,
   SentryJobPayloadSchema,
+  SecurityAlertJobPayloadSchema,
   JobPayloadSchema,
   GithubResolutionPayloadSchema,
   SentryResolutionPayloadSchema,
@@ -55,6 +59,7 @@ export {
 export type {
   CiJobPayload,
   SentryJobPayload,
+  SecurityAlertJobPayload,
   JobPayload,
   GithubResolutionPayload,
   SentryResolutionPayload,

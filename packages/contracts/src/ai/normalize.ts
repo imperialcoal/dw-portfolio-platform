@@ -1,4 +1,8 @@
-import type { CiFailureEvent, SentryErrorEvent } from "./events";
+import type {
+  CiFailureEvent,
+  SecurityAlertEvent,
+  SentryErrorEvent,
+} from "./events";
 
 const MAX_LOG_CHARS = 8_000;
 
@@ -20,8 +24,6 @@ function obj(v: unknown): Record<string, unknown> {
     : {};
 }
 
-// Safely converts an unknown value to string without risking
-// [object Object] — only stringifies primitives.
 function safeId(v: unknown): string {
   if (typeof v === "string") return v;
   if (typeof v === "number") return String(v);
@@ -48,8 +50,6 @@ export function normalizeGitHubWorkflowRun(
 
   return {
     type: "ci_failure",
-    // Use safeId — run.id is unknown, String() would give "[object Object]"
-    // if the payload is malformed
     id: safeId(run.id),
     timestamp: str(run.updated_at, new Date().toISOString()),
     service: str(repo.name, "unknown"),
@@ -81,7 +81,6 @@ export function normalizeSentryWebhook(
 
   return {
     type: "sentry_error",
-    // Use safeId — issue.id is unknown, String() would give "[object Object]"
     id: safeId(issue.id),
     timestamp: str(issue.firstSeen, new Date().toISOString()),
     service: str(payload.project_slug ?? project.slug, "unknown"),
@@ -94,6 +93,59 @@ export function normalizeSentryWebhook(
       userCount: num(issue.userCount, 0),
       firstSeen: str(issue.firstSeen, new Date().toISOString()),
       issueUrl: str(issue.permalink, ""),
+    },
+  };
+}
+
+// ─────────────────────────────────────────────
+// GitHub repository_vulnerability_alert → SecurityAlertEvent
+// ─────────────────────────────────────────────
+
+export function normalizeSecurityAlert(
+  payload: Record<string, unknown>,
+): SecurityAlertEvent {
+  const alert = obj(payload.alert);
+  const repo = obj(payload.repository);
+  const secAdvisory = obj(alert.security_advisory);
+  const secVuln = obj(alert.security_vulnerability);
+  const pkg = obj(secVuln.package);
+  const dependency = obj(alert.dependency);
+
+  const firstPatchedVersion =
+    secVuln.first_patched_version !== null &&
+    typeof secVuln.first_patched_version === "object"
+      ? str(obj(secVuln.first_patched_version).identifier, "")
+      : null;
+
+  const severityRaw = str(secAdvisory.severity, "medium").toLowerCase();
+  const ghSeverity = (["low", "medium", "high", "critical"] as const).includes(
+    severityRaw as "low" | "medium" | "high" | "critical",
+  )
+    ? (severityRaw as SecurityAlertEvent["context"]["ghSeverity"])
+    : "medium";
+
+  const scopeRaw = str(alert.dependency_scope, "");
+  const scope =
+    scopeRaw === "runtime" || scopeRaw === "development" ? scopeRaw : null;
+
+  return {
+    type: "security_alert",
+    id: safeId(alert.number ?? alert.id),
+    timestamp: new Date().toISOString(),
+    service: str(repo.full_name, "unknown"),
+    context: {
+      alertNumber: num(alert.number, 0),
+      packageName: str(pkg.name, "unknown"),
+      ecosystem: str(pkg.ecosystem, "unknown"),
+      vulnerableVersionRange: str(secVuln.vulnerable_version_range, "unknown"),
+      firstPatchedVersion: firstPatchedVersion ?? null,
+      ghSeverity,
+      cveId: str(secAdvisory.cve_id, "") || null,
+      ghsaId: str(secAdvisory.ghsa_id, ""),
+      summary: str(secAdvisory.summary, ""),
+      alertUrl: str(alert.html_url, ""),
+      manifestPath: str(dependency.manifest_path, ""),
+      scope,
     },
   };
 }

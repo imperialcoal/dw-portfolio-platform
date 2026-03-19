@@ -71,6 +71,19 @@ const STATUS_STYLES: Record<IncidentStatus, { badge: string; label: string }> =
     },
   };
 
+// Type badge styles — security alerts get a distinct purple treatment
+const TYPE_BADGE: Record<IncidentRecord["type"], string> = {
+  ci_failure: "", // uses severity color (existing behavior)
+  sentry_error: "", // uses severity color (existing behavior)
+  security_alert: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+};
+
+const TYPE_LABEL: Record<IncidentRecord["type"], string> = {
+  ci_failure: "CI Failure",
+  sentry_error: "Runtime Error",
+  security_alert: "Security Alert",
+};
+
 const RESOLVED_BY_LABELS: Record<
   NonNullable<IncidentRecord["resolvedBy"]>,
   string
@@ -87,22 +100,31 @@ const RESOLVED_BY_LABELS: Record<
 function IncidentCard({ incident }: { incident: IncidentRecord }) {
   const sev = SEVERITY_STYLES[incident.severity];
   const status = STATUS_STYLES[incident.status];
-  const typeLabel =
-    incident.type === "ci_failure" ? "CI Failure" : "Runtime Error";
+  const isSecurityAlert = incident.type === "security_alert";
+  const typeBadgeClass = isSecurityAlert
+    ? TYPE_BADGE.security_alert
+    : sev.badge;
+  const typeLabel = TYPE_LABEL[incident.type];
   const ghRepo = env.NEXT_PUBLIC_GITHUB_REPO;
   const isResolved =
     incident.status === "resolved" || incident.status === "closed";
 
   return (
     <div
-      className={`space-y-4 rounded-xl border p-5 ${isResolved ? "border-white/10 bg-white/5 opacity-80" : sev.card}`}
+      className={`space-y-4 rounded-xl border p-5 ${
+        isResolved
+          ? "border-white/10 bg-white/5 opacity-80"
+          : isSecurityAlert
+            ? "border-purple-500/20 bg-purple-500/5"
+            : sev.card
+      }`}
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex flex-wrap items-center gap-2">
             <span
-              className={`rounded border px-1.5 py-0.5 text-[11px] font-semibold tracking-wider uppercase ${sev.badge}`}
+              className={`rounded border px-1.5 py-0.5 text-[11px] font-semibold tracking-wider uppercase ${typeBadgeClass}`}
             >
               {typeLabel}
             </span>
@@ -130,22 +152,44 @@ function IncidentCard({ incident }: { incident: IncidentRecord }) {
         </div>
       </div>
 
-      {/* Correlation row */}
-      {(incident.commitSha !== undefined || incident.branch !== undefined) && (
-        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-white/5 bg-black/20 px-3 py-2">
-          <span className="text-[10px] font-semibold tracking-widest text-zinc-600 uppercase">
-            Correlation
-          </span>
-          {incident.commitSha !== undefined && (
-            <span className="font-mono text-[11px] text-zinc-400">
-              {incident.commitSha.slice(0, 7)}
-            </span>
+      {/* Correlation row — CI/Sentry show commit+branch, security shows package+CVE */}
+      {isSecurityAlert
+        ? // Security alert correlation: package name, ecosystem, CVE/GHSA
+          // Labels carry this info since we don't have a separate context field here
+          incident.labels.length > 0 && (
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-purple-500/10 bg-purple-500/5 px-3 py-2">
+              <span className="text-[10px] font-semibold tracking-widest text-purple-700 uppercase">
+                Vulnerability
+              </span>
+              {incident.labels.slice(0, 5).map((l) => (
+                <span
+                  key={l}
+                  className="rounded border border-purple-500/20 bg-purple-500/10 px-1.5 py-0.5 text-[10px] text-purple-300"
+                >
+                  {l}
+                </span>
+              ))}
+            </div>
+          )
+        : // CI/Sentry correlation: commit SHA + branch
+          (incident.commitSha !== undefined ||
+            incident.branch !== undefined) && (
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-white/5 bg-black/20 px-3 py-2">
+              <span className="text-[10px] font-semibold tracking-widest text-zinc-600 uppercase">
+                Correlation
+              </span>
+              {incident.commitSha !== undefined && (
+                <span className="font-mono text-[11px] text-zinc-400">
+                  {incident.commitSha.slice(0, 7)}
+                </span>
+              )}
+              {incident.branch !== undefined && (
+                <span className="text-[11px] text-zinc-500">
+                  {incident.branch}
+                </span>
+              )}
+            </div>
           )}
-          {incident.branch !== undefined && (
-            <span className="text-[11px] text-zinc-500">{incident.branch}</span>
-          )}
-        </div>
-      )}
 
       {/* AI Analysis */}
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
@@ -225,12 +269,19 @@ function IncidentCard({ incident }: { incident: IncidentRecord }) {
             → Incident Doc
           </a>
         )}
-        {incident.sentryIssueId !== undefined && (
+        {/* For security alerts, sentryIssueId stores the alert number — show alert link */}
+        {isSecurityAlert && incident.sentryIssueId !== undefined && (
+          <span className="text-xs text-zinc-600">
+            Alert #{incident.sentryIssueId}
+          </span>
+        )}
+        {/* For Sentry incidents, show Sentry issue ID */}
+        {!isSecurityAlert && incident.sentryIssueId !== undefined && (
           <span className="text-xs text-zinc-600">
             Sentry #{incident.sentryIssueId}
           </span>
         )}
-        {/* Manual resolution — only for non-closed incidents */}
+        {/* Manual resolution — only for non-resolved/closed incidents */}
         <div className="ml-auto">
           <ResolveButtonWithRefresh
             incidentId={incident.id}
@@ -283,6 +334,10 @@ export default async function IncidentsPage() {
   const bySeverity = (s: IncidentRecord["severity"]) =>
     incidents.filter((i) => i.severity === s);
 
+  const securityCount = incidents.filter(
+    (i) => i.type === "security_alert",
+  ).length;
+
   return (
     <div className="min-h-screen bg-zinc-950 p-6 text-zinc-100 lg:p-10">
       <div className="mx-auto max-w-5xl space-y-10">
@@ -301,6 +356,15 @@ export default async function IncidentsPage() {
             <p className="mt-0.5 text-sm text-zinc-500">
               {incidents.length} total · {active.length} active ·{" "}
               {resolved.length} resolved
+              {securityCount > 0 && (
+                <>
+                  {" "}
+                  ·{" "}
+                  <span className="text-purple-400">
+                    {securityCount} security
+                  </span>
+                </>
+              )}
             </p>
           </div>
         </div>
@@ -347,8 +411,8 @@ export default async function IncidentsPage() {
           ))}
         </div>
 
-        {/* Severity breakdown */}
-        <div className="grid grid-cols-4 gap-3">
+        {/* Severity + type breakdown */}
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
           {(["critical", "high", "medium", "low"] as const).map((s) => (
             <div
               key={s}
@@ -364,14 +428,23 @@ export default async function IncidentsPage() {
               </p>
             </div>
           ))}
+          {/* Security alert count chip */}
+          <div className="rounded-lg border border-purple-500/20 bg-purple-500/5 p-3 text-center">
+            <p className="text-xl font-bold text-purple-400 tabular-nums">
+              {securityCount}
+            </p>
+            <p className="mt-0.5 text-[10px] tracking-widest text-zinc-600 uppercase">
+              security
+            </p>
+          </div>
         </div>
 
         {incidents.length === 0 ? (
           <div className="rounded-xl border border-white/10 bg-white/5 p-12 text-center">
             <p className="text-zinc-500">No incidents yet.</p>
             <p className="mt-1 text-xs text-zinc-700">
-              Incidents are recorded automatically when GitHub CI fails or a new
-              Sentry error is detected.
+              Incidents are recorded automatically when GitHub CI fails, a new
+              Sentry error is detected, or Dependabot flags a vulnerability.
             </p>
           </div>
         ) : (

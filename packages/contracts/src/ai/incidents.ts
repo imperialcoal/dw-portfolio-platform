@@ -28,21 +28,12 @@ export interface IncidentDocResult {
   slug: string;
 }
 
-/**
- * Stored in Redis platform:incident:{id} for individual access,
- * and platform:incidents:index list for ordered retrieval.
- *
- * Extended from the original IncidentRecord with:
- * - status lifecycle tracking
- * - resolution metadata
- * - correlation fields (deployment, Sentry, GitHub)
- */
 export interface IncidentRecord {
   // ── Identity ──────────────────────────────────────────────────────────────
-  type: "ci_failure" | "sentry_error";
+  type: "ci_failure" | "sentry_error" | "security_alert";
   id: string;
   service: string;
-  timestamp: string; // first detected
+  timestamp: string;
 
   // ── AI analysis ───────────────────────────────────────────────────────────
   summary: string;
@@ -64,7 +55,10 @@ export interface IncidentRecord {
   issueUrl?: string;
   /** GitHub issue number for webhook resolution matching */
   githubIssueNumber?: number;
-  /** Sentry issue ID for webhook resolution matching */
+  /**
+   * Sentry issue ID for sentry_error incidents.
+   * Dependabot alert number (as string) for security_alert incidents.
+   */
   sentryIssueId?: string;
   /** Incident doc path committed to the repo */
   incidentDocPath?: string;
@@ -74,10 +68,6 @@ export interface IncidentRecord {
   branch?: string;
 }
 
-/**
- * Lightweight summary used in list views and the dashboard overview.
- * Derived from IncidentRecord — never stored separately.
- */
 export interface IncidentSummary {
   id: string;
   type: IncidentRecord["type"];

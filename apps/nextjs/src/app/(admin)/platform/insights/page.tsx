@@ -44,6 +44,12 @@ function analyzePatterns(incidents: IncidentRecord[]) {
 
   const ciCount = incidents.filter((i) => i.type === "ci_failure").length;
   const sentryCount = incidents.filter((i) => i.type === "sentry_error").length;
+  const securityCount = incidents.filter(
+    (i) => i.type === "security_alert",
+  ).length;
+  const activeSecurityCount = active.filter(
+    (i) => i.type === "security_alert",
+  ).length;
 
   const now = Date.now();
   const week1 = incidents.filter(
@@ -54,13 +60,11 @@ function analyzePatterns(incidents: IncidentRecord[]) {
     return age >= 7 * 86_400_000 && age < 14 * 86_400_000;
   }).length;
 
-  // Resolution rate
   const resolutionRate =
     incidents.length > 0
       ? Math.round((resolved.length / incidents.length) * 100)
       : 100;
 
-  // Average time to resolve (hours) for resolved incidents
   const resolvedWithTime = resolved.filter((i) => i.resolvedAt !== undefined);
   const avgResolutionHours =
     resolvedWithTime.length > 0
@@ -82,6 +86,8 @@ function analyzePatterns(incidents: IncidentRecord[]) {
     severityDist,
     ciCount,
     sentryCount,
+    securityCount,
+    activeSecurityCount,
     week1,
     week2,
     resolutionRate,
@@ -100,6 +106,15 @@ function generateRecommendations(
   patterns: ReturnType<typeof analyzePatterns>,
 ): Recommendation[] {
   const recs: Recommendation[] = [];
+
+  // Security alerts first — highest priority
+  if (patterns.activeSecurityCount > 0) {
+    recs.push({
+      title: "Active security vulnerabilities need attention",
+      description: `${patterns.activeSecurityCount} Dependabot security ${patterns.activeSecurityCount === 1 ? "alert is" : "alerts are"} unresolved. Review the incident details for affected packages and update to the patched versions as soon as possible.`,
+      priority: "high",
+    });
+  }
 
   if (patterns.active.length > 0 && patterns.resolutionRate < 50) {
     recs.push({
@@ -257,11 +272,11 @@ export default async function InsightsPage() {
                 patterns.active.length > 0 ? "text-red-400" : "text-green-400",
             },
             {
-              label: "Monitoring",
-              value: patterns.monitoring.length,
+              label: "Security Alerts",
+              value: patterns.securityCount,
               style:
-                patterns.monitoring.length > 0
-                  ? "text-blue-400"
+                patterns.activeSecurityCount > 0
+                  ? "text-purple-400"
                   : "text-zinc-400",
             },
           ].map((item) => (
@@ -369,6 +384,22 @@ export default async function InsightsPage() {
                     className="h-full rounded-full bg-purple-500"
                     style={{
                       width: `${incidents.length > 0 ? (patterns.sentryCount / incidents.length) * 100 : 0}%`,
+                    }}
+                  />
+                </div>
+              </div>
+              <div>
+                <div className="mb-1 flex justify-between text-xs">
+                  <span className="text-zinc-400">Security Alerts</span>
+                  <span className="text-zinc-500">
+                    {patterns.securityCount}
+                  </span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-white/5">
+                  <div
+                    className="h-full rounded-full bg-violet-400"
+                    style={{
+                      width: `${incidents.length > 0 ? (patterns.securityCount / incidents.length) * 100 : 0}%`,
                     }}
                   />
                 </div>

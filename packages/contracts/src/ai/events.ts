@@ -38,7 +38,33 @@ export interface SentryErrorEvent {
   };
 }
 
-export type PlatformEvent = CiFailureEvent | SentryErrorEvent;
+export interface SecurityAlertEvent {
+  type: "security_alert";
+  /** Dependabot alert number — used as dedup key */
+  id: string;
+  timestamp: string;
+  service: string; // repo full name
+  context: {
+    alertNumber: number;
+    packageName: string;
+    ecosystem: string;
+    vulnerableVersionRange: string;
+    firstPatchedVersion: string | null;
+    /** Severity from GitHub's CVSS assessment */
+    ghSeverity: "low" | "medium" | "high" | "critical";
+    cveId: string | null;
+    ghsaId: string;
+    summary: string;
+    alertUrl: string;
+    manifestPath: string;
+    scope: "runtime" | "development" | null;
+  };
+}
+
+export type PlatformEvent =
+  | CiFailureEvent
+  | SentryErrorEvent
+  | SecurityAlertEvent;
 
 export interface VercelDeployment {
   id: string;

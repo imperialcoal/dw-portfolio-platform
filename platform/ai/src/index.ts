@@ -6,6 +6,7 @@ export { runControlLoop, checkAgentHealth } from "./agent/control-loop";
 
 export { runCiAgent } from "./analyzers/ci-agent";
 export { runSentryAgent } from "./analyzers/sentry-agent";
+export { runSecurityAgent } from "./analyzers/security-agent";
 
 export {
   isDuplicate,
@@ -16,6 +17,7 @@ export {
   getIncidents,
   findIncidentByGithubIssue,
   findIncidentBySentryIssue,
+  findIncidentBySecurityAlert,
   logEvent,
   getEvents,
   getSystemHealth,

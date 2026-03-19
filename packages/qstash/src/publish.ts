@@ -1,6 +1,7 @@
 import type {
   CiJobPayload,
   GithubResolutionPayload,
+  SecurityAlertJobPayload,
   SentryJobPayload,
   SentryResolutionPayload,
 } from "@dw/contracts/queue";
@@ -33,10 +34,6 @@ function assertQStash(): void {
   }
 }
 
-// ─────────────────────────────────────────────
-// CI failure
-// ─────────────────────────────────────────────
-
 export async function publishCiJob(payload: CiJobPayload): Promise<string> {
   assertQStash();
   const client = getQStash();
@@ -59,10 +56,6 @@ export async function publishCiJob(payload: CiJobPayload): Promise<string> {
   );
   return result.messageId;
 }
-
-// ─────────────────────────────────────────────
-// Sentry incident
-// ─────────────────────────────────────────────
 
 export async function publishSentryJob(
   payload: SentryJobPayload,
@@ -89,9 +82,32 @@ export async function publishSentryJob(
   return result.messageId;
 }
 
-// ─────────────────────────────────────────────
-// Resolution — GitHub issue closed
-// ─────────────────────────────────────────────
+export async function publishSecurityAlert(
+  payload: SecurityAlertJobPayload,
+): Promise<string> {
+  assertQStash();
+  const client = getQStash();
+  const result = await client.publishJSON({
+    url: getProcessorUrl("/api/process/security"),
+    body: payload,
+    headers: {
+      // Include action in dedup ID — dismissed events must still process
+      "Upstash-Deduplication-Id": `security-${payload.alertId}-${payload.action}`,
+      "Upstash-Retries": "3",
+    },
+  });
+  console.log(
+    JSON.stringify({
+      level: "info",
+      qstash: "publish",
+      job: "security",
+      alertId: payload.alertId,
+      action: payload.action,
+      messageId: result.messageId,
+    }),
+  );
+  return result.messageId;
+}
 
 export async function publishGithubResolution(
   payload: GithubResolutionPayload,
@@ -117,10 +133,6 @@ export async function publishGithubResolution(
   );
   return result.messageId;
 }
-
-// ─────────────────────────────────────────────
-// Resolution — Sentry issue resolved
-// ─────────────────────────────────────────────
 
 export async function publishSentryResolution(
   payload: SentryResolutionPayload,

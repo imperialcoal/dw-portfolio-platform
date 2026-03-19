@@ -64,12 +64,10 @@ export async function logIncident(
     updatedAt: now,
   };
 
-  // Store individual record
   await redis.set(INCIDENT_KEY(incident.id), JSON.stringify(record), {
     ex: INCIDENT_TTL,
   });
 
-  // Add to ordered index (newest first)
   await redis.lpush(INCIDENT_INDEX_KEY, incident.id);
   await redis.ltrim(INCIDENT_INDEX_KEY, 0, MAX_INCIDENTS - 1);
   await redis.expire(INCIDENT_INDEX_KEY, INCIDENT_TTL);
@@ -157,11 +155,9 @@ export async function getIncidents(
 ): Promise<IncidentRecord[]> {
   const redis = runtimeRedis();
 
-  // Get ordered IDs from index
   const ids = await redis.lrange(INCIDENT_INDEX_KEY, 0, MAX_INCIDENTS - 1);
   if (!ids.length) return [];
 
-  // Fetch all records in parallel
   const records = await Promise.all(
     ids.map((id) =>
       redis
@@ -205,7 +201,26 @@ export async function findIncidentBySentryIssue(
   sentryIssueId: string,
 ): Promise<IncidentRecord | null> {
   const incidents = await getIncidents(MAX_INCIDENTS);
-  return incidents.find((i) => i.sentryIssueId === sentryIssueId) ?? null;
+  return (
+    incidents.find(
+      (i) => i.sentryIssueId === sentryIssueId && i.type === "sentry_error",
+    ) ?? null
+  );
+}
+
+/**
+ * Finds a security alert incident by Dependabot alert number.
+ * Uses sentryIssueId field which stores the alert number for security_alert type.
+ */
+export async function findIncidentBySecurityAlert(
+  alertId: string,
+): Promise<IncidentRecord | null> {
+  const incidents = await getIncidents(MAX_INCIDENTS);
+  return (
+    incidents.find(
+      (i) => i.sentryIssueId === alertId && i.type === "security_alert",
+    ) ?? null
+  );
 }
 
 // ─────────────────────────────────────────────

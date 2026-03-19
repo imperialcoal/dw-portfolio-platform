@@ -2,7 +2,11 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { verifyGitHubSignature } from "@dw/ai/actions";
-import { publishCiJob, publishGithubResolution } from "@dw/qstash";
+import {
+  publishCiJob,
+  publishGithubResolution,
+  publishSecurityAlert,
+} from "@dw/qstash";
 import { isQStashConfigured } from "@dw/validators/qstash-env";
 
 export const runtime = "edge";
@@ -34,7 +38,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   const event = req.headers.get("x-github-event");
 
-  // ── workflow_run: CI failure → enqueue agent ──────────────────────────────
+  // ── workflow_run: CI failure → enqueue CI agent ───────────────────────────
   if (event === "workflow_run") {
     const workflowRun =
       payload.workflow_run !== null && typeof payload.workflow_run === "object"
@@ -89,7 +93,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ ok: true, skipped: "no_issue_number" });
     }
 
-    // Only process issues created by the platform agent
     const labels = Array.isArray(issue.labels)
       ? (issue.labels as Record<string, unknown>[])
       : [];
@@ -112,6 +115,42 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       issueNumber,
       issueUrl: typeof issue.html_url === "string" ? issue.html_url : "",
     });
+
+    return NextResponse.json({ ok: true, queued: true, messageId });
+  }
+
+  // ── repository_vulnerability_alert: Dependabot security → enqueue security agent
+  if (event === "repository_vulnerability_alert") {
+    const action = typeof payload.action === "string" ? payload.action : "";
+
+    const alert =
+      payload.alert !== null && typeof payload.alert === "object"
+        ? (payload.alert as Record<string, unknown>)
+        : {};
+
+    const alertId = safeId(alert.number ?? alert.id);
+
+    if (!isQStashConfigured()) {
+      return NextResponse.json({ ok: true, skipped: "qstash_not_configured" });
+    }
+
+    const messageId = await publishSecurityAlert({
+      type: "security.alert",
+      alertId,
+      action,
+      githubPayload: payload,
+    });
+
+    console.log(
+      JSON.stringify({
+        level: "info",
+        webhook: "github",
+        event: "security_alert_queued",
+        alertId,
+        action,
+        messageId,
+      }),
+    );
 
     return NextResponse.json({ ok: true, queued: true, messageId });
   }

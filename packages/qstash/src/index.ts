@@ -6,6 +6,7 @@ export { verifyQStashRequest } from "./verify";
 export {
   publishCiJob,
   publishSentryJob,
+  publishSecurityAlert,
   publishGithubResolution,
   publishSentryResolution,
 } from "./publish";

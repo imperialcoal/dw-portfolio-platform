@@ -43,9 +43,31 @@ export const SentryErrorEventSchema = z.object({
   }),
 });
 
+export const SecurityAlertEventSchema = z.object({
+  type: z.literal("security_alert"),
+  id: z.string(),
+  timestamp: z.string(),
+  service: z.string(),
+  context: z.object({
+    alertNumber: z.number(),
+    packageName: z.string(),
+    ecosystem: z.string(),
+    vulnerableVersionRange: z.string(),
+    firstPatchedVersion: z.string().nullable(),
+    ghSeverity: z.enum(["low", "medium", "high", "critical"]),
+    cveId: z.string().nullable(),
+    ghsaId: z.string(),
+    summary: z.string(),
+    alertUrl: z.string(),
+    manifestPath: z.string(),
+    scope: z.enum(["runtime", "development"]).nullable(),
+  }),
+});
+
 export const PlatformEventSchema = z.discriminatedUnion("type", [
   CiFailureEventSchema,
   SentryErrorEventSchema,
+  SecurityAlertEventSchema,
 ]);
 
 export type PlatformEventFromSchema = z.infer<typeof PlatformEventSchema>;
@@ -60,7 +82,7 @@ export const AnalysisResultSchema = z.object({
 });
 
 export const IncidentRecordSchema = z.object({
-  type: z.enum(["ci_failure", "sentry_error"]),
+  type: z.enum(["ci_failure", "sentry_error", "security_alert"]),
   id: z.string(),
   service: z.string(),
   timestamp: z.string(),

@@ -8,8 +8,6 @@ export async function generateAndCommitIncidentDoc(
   analysis: AnalysisResult,
   issueUrl?: string,
 ): Promise<IncidentDocResult> {
-  // Avoid non-null assertion (!) — split("T")[0] can be undefined
-  // if the string is empty, so we provide a fallback.
   const isoDate = new Date().toISOString();
   const date = isoDate.split("T")[0] ?? isoDate.slice(0, 10);
   const slug = buildSlug(analysis.summary);
@@ -36,14 +34,20 @@ function buildIncidentDoc(
     medium: "🟡 MEDIUM",
     low: "🟢 LOW",
   };
-  const label = event.type === "ci_failure" ? "CI Failure" : "Runtime Error";
+
+  const typeLabel =
+    event.type === "ci_failure"
+      ? "CI Failure"
+      : event.type === "security_alert"
+        ? "Security Alert"
+        : "Runtime Error";
 
   return `# Incident: ${analysis.summary}
 
 | Field | Value |
 |---|---|
 | **Date** | ${date} |
-| **Type** | ${label} |
+| **Type** | ${typeLabel} |
 | **Severity** | ${severityBadge[analysis.severity]} |
 | **Service** | \`${event.service}\` |
 ${issueUrl !== undefined ? `| **GitHub Issue** | ${issueUrl} |` : ""}
@@ -79,6 +83,20 @@ ${c.prNumber !== null ? `- **PR**: #${c.prNumber} — ${c.prTitle ?? ""}` : "- *
 - **Failed step**: ${c.failedStep}
 - **Triggered by**: ${c.triggeredBy}`;
   }
+
+  if (event.type === "security_alert") {
+    const c = event.context;
+    return `- **Package**: \`${c.packageName}\` (${c.ecosystem})
+- **Vulnerable range**: \`${c.vulnerableVersionRange}\`
+- **Fixed version**: ${c.firstPatchedVersion ?? "no fix available"}
+- **Scope**: ${c.scope ?? "unknown"}
+- **Manifest**: \`${c.manifestPath}\`
+${c.cveId !== null ? `- **CVE**: ${c.cveId}` : ""}
+- **GHSA**: ${c.ghsaId}
+- **Alert**: ${c.alertUrl}`;
+  }
+
+  // sentry_error
   const c = event.context;
   return `- **Error**: \`${c.title}\`
 - **Culprit**: \`${c.culprit}\`

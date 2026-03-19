@@ -83,6 +83,12 @@ function severityColor(s: IncidentRecord["severity"] | "healthy") {
   return SEVERITY_STYLES[s];
 }
 
+function getTypeLabel(type: IncidentRecord["type"]): string {
+  if (type === "ci_failure") return "CI";
+  if (type === "security_alert") return "Security";
+  return "Error";
+}
+
 // ─────────────────────────────────────────────
 // Components
 // ─────────────────────────────────────────────
@@ -137,10 +143,21 @@ function StatCard({
 function ActiveIncidentRow({ incident }: { incident: IncidentRecord }) {
   const sev = SEVERITY_STYLES[incident.severity];
   const status = STATUS_STYLES[incident.status];
-  const typeLabel = incident.type === "ci_failure" ? "CI" : "Error";
+  const isSecurityAlert = incident.type === "security_alert";
+  const typeLabel = getTypeLabel(incident.type);
+
+  // Security alerts get a purple type badge; CI/Sentry use severity color
+  const typeBadgeClass = isSecurityAlert
+    ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
+    : `${sev.bg} ${sev.text} ${sev.border}`;
+
   return (
     <div
-      className={`flex items-start gap-4 rounded-lg border p-4 ${sev.bg} ${sev.border}`}
+      className={`flex items-start gap-4 rounded-lg border p-4 ${
+        isSecurityAlert
+          ? "border-purple-500/20 bg-purple-500/5"
+          : `${sev.bg} ${sev.border}`
+      }`}
     >
       <div className="mt-1">
         <StatusDot severity={incident.severity} />
@@ -148,7 +165,7 @@ function ActiveIncidentRow({ incident }: { incident: IncidentRecord }) {
       <div className="min-w-0 flex-1">
         <div className="mb-1 flex flex-wrap items-center gap-2">
           <span
-            className={`rounded border px-1.5 py-0.5 text-[11px] font-semibold tracking-wider uppercase ${sev.bg} ${sev.text} ${sev.border}`}
+            className={`rounded border px-1.5 py-0.5 text-[11px] font-semibold tracking-wider uppercase ${typeBadgeClass}`}
           >
             {typeLabel}
           </span>
@@ -170,18 +187,22 @@ function ActiveIncidentRow({ incident }: { incident: IncidentRecord }) {
         </p>
         {/* Correlation badges */}
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          {incident.commitSha !== undefined && (
+          {!isSecurityAlert && incident.commitSha !== undefined && (
             <span className="font-mono text-[10px] text-zinc-600">
               {incident.commitSha.slice(0, 7)}
             </span>
           )}
-          {incident.branch !== undefined && (
+          {!isSecurityAlert && incident.branch !== undefined && (
             <span className="text-[10px] text-zinc-600">{incident.branch}</span>
           )}
           {incident.labels.slice(0, 3).map((l) => (
             <span
               key={l}
-              className="rounded border border-white/10 bg-white/5 px-1.5 py-0.5 text-[10px] text-zinc-400"
+              className={`rounded border px-1.5 py-0.5 text-[10px] ${
+                isSecurityAlert
+                  ? "border-purple-500/20 bg-purple-500/10 text-purple-300"
+                  : "border-white/10 bg-white/5 text-zinc-400"
+              }`}
             >
               {l}
             </span>
@@ -265,6 +286,9 @@ export default async function PlatformPage() {
   const resolvedIncidents = incidents.filter(
     (i) => i.status === "resolved" || i.status === "closed",
   );
+  const activeSecurityAlerts = activeIncidents.filter(
+    (i) => i.type === "security_alert",
+  );
 
   const healthColor = severityColor(health.recentSeverity);
   const lastDeployTime =
@@ -326,6 +350,29 @@ export default async function PlatformPage() {
             sub={lastDeployBranch}
           />
         </div>
+
+        {/* Security alert banner — only shown when active security alerts exist */}
+        {activeSecurityAlerts.length > 0 && (
+          <div className="flex items-center gap-3 rounded-xl border border-purple-500/20 bg-purple-500/5 px-4 py-3">
+            <span className="relative flex h-2.5 w-2.5 shrink-0">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-purple-400 opacity-50" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-purple-400" />
+            </span>
+            <p className="text-sm font-medium text-purple-300">
+              {activeSecurityAlerts.length} active{" "}
+              {activeSecurityAlerts.length === 1
+                ? "security vulnerability"
+                : "security vulnerabilities"}{" "}
+              detected by Dependabot
+            </p>
+            <Link
+              href="/platform/incidents"
+              className="ml-auto text-xs text-purple-400 transition-colors hover:text-purple-200"
+            >
+              View →
+            </Link>
+          </div>
+        )}
 
         {lastDeploy !== null && <DeployCard deploy={lastDeploy} />}
 

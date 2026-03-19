@@ -28,6 +28,21 @@ export const SentryJobPayloadSchema = z.object({
 export type SentryJobPayload = z.infer<typeof SentryJobPayloadSchema>;
 
 // ─────────────────────────────────────────────
+// Security alert job payload
+// ─────────────────────────────────────────────
+
+export const SecurityAlertJobPayloadSchema = z.object({
+  type: z.literal("security.alert"),
+  alertId: z.string(),
+  action: z.string(),
+  githubPayload: z.record(z.string(), z.unknown()),
+});
+
+export type SecurityAlertJobPayload = z.infer<
+  typeof SecurityAlertJobPayloadSchema
+>;
+
+// ─────────────────────────────────────────────
 // Resolution job payloads
 // ─────────────────────────────────────────────
 
@@ -57,6 +72,7 @@ export type SentryResolutionPayload = z.infer<
 export const JobPayloadSchema = z.discriminatedUnion("type", [
   CiJobPayloadSchema,
   SentryJobPayloadSchema,
+  SecurityAlertJobPayloadSchema,
   GithubResolutionPayloadSchema,
   SentryResolutionPayloadSchema,
 ]);
