@@ -20,27 +20,28 @@ src/
 
 ```typescript
 // Lazy proxy — safe to import at module load time
-export const redis: Redis
+export const redis: Redis;
 
 // Factory
-export function getRedis(): Redis
-export type { Redis }
+export function getRedis(): Redis;
+export type { Redis };
 
 // Rate limiter (used in tRPC middleware)
 export async function rateLimit(
   redis: Redis,
   key: string,
-  opts: { windowSeconds: number; maxRequests: number; prefix?: string }
-): Promise<void>  // throws TooManyRequestsError on limit exceeded
+  opts: { windowSeconds: number; maxRequests: number; prefix?: string },
+): Promise<void>; // throws TooManyRequestsError on limit exceeded
 
 // Test utilities
-export async function clearRedis(): Promise<void>  // flushes all keys
-export function resetRedis(): void                  // resets singleton for test isolation
+export async function clearRedis(): Promise<void>; // flushes all keys
+export function resetRedis(): void; // resets singleton for test isolation
 ```
 
 ### Local vs. Cloud Behavior
 
 The client detects `APP_ENV === "local"` with a `localhost` URL:
+
 - **Local**: Creates `new Redis({ url, token })` pointing to the Docker HTTP proxy on port 8079
 - **Cloud**: Uses `Redis.fromEnv()` which reads `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`
 

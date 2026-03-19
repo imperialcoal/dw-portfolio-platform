@@ -57,19 +57,20 @@ erDiagram
 // Export paths: ".", "./client", "./schema"
 
 // Lazy proxy — safe to import at module load time
-export const db: DbInstance
+export const db: DbInstance;
 
 // Factory function — validates env vars and creates connection
-export function getDb(): DbInstance
-export type DbInstance = PostgresJsDatabase<typeof schema>
+export function getDb(): DbInstance;
+export type DbInstance = PostgresJsDatabase<typeof schema>;
 
 // Schema
-export { user, roleEnum, Post, CreatePostSchema }
+export { user, roleEnum, Post, CreatePostSchema };
 ```
 
 ### Connection Configuration
 
 The client (`src/client.ts`) configures `postgres.js` for Supabase PgBouncer compatibility:
+
 - `prepare: false` — required for PgBouncer transaction pooler mode
 - `max: 3` in production (Supabase free tier limit), `max: 5` in local dev
 - `idle_timeout: 30`, `connect_timeout: 10`

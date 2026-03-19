@@ -28,28 +28,28 @@ src/
 
 ```typescript
 // Runtime detection
-export function getExecutionRuntime(): "node" | "edge" | "browser" | "test"
+export function getExecutionRuntime(): "node" | "edge" | "browser" | "test";
 
 // Capability guards (return boolean)
-export function hasTcpSockets(): boolean
-export function hasFilesystem(): boolean
-export function hasLongRunningProcesses(): boolean
-export function hasNodeBuiltins(): boolean
-export function hasWebCrypto(): boolean
-export function hasFetch(): boolean
+export function hasTcpSockets(): boolean;
+export function hasFilesystem(): boolean;
+export function hasLongRunningProcesses(): boolean;
+export function hasNodeBuiltins(): boolean;
+export function hasWebCrypto(): boolean;
+export function hasFetch(): boolean;
 
 // Assertion guard (throws on wrong runtime)
-export function assertNodeRuntime(context: string): void
+export function assertNodeRuntime(context: string): void;
 
 // Guarded singleton accessors
-export function runtimeDb(): DbInstance       // asserts Node runtime
-export function runtimeRedis(): Redis         // asserts Node runtime
+export function runtimeDb(): DbInstance; // asserts Node runtime
+export function runtimeRedis(): Redis; // asserts Node runtime
 
 // Context factory (used in tRPC context creation)
-export function createRuntimeContext(): { db: DbInstance; redis: Redis }
+export function createRuntimeContext(): { db: DbInstance; redis: Redis };
 
 // Bootstrap (used in server startup)
-export async function bootstrapInfra(): Promise<void>
+export async function bootstrapInfra(): Promise<void>;
 ```
 
 ### Runtime Guard Pattern
@@ -59,7 +59,7 @@ export async function bootstrapInfra(): Promise<void>
 import { assertNodeRuntime } from "@dw/runtime/capabilities";
 
 export function runtimeDb() {
-  assertNodeRuntime("runtimeDb()");  // throws in Edge/Browser
+  assertNodeRuntime("runtimeDb()"); // throws in Edge/Browser
   return getDb();
 }
 ```

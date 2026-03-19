@@ -31,11 +31,11 @@ src/
 
 ### Agent Execution Modes
 
-| Mode | Trigger | Path |
-|---|---|---|
-| Webhook (primary) | GitHub/Sentry webhook → QStash → `/api/process/*` | Calls agent directly, low latency |
-| Scheduled | Vercel Cron → `runControlLoop()` | Polls Sentry, processes new issues |
-| Manual | `pnpm dw platform scan` (CLI) | Calls `runControlLoop()` |
+| Mode              | Trigger                                           | Path                               |
+| ----------------- | ------------------------------------------------- | ---------------------------------- |
+| Webhook (primary) | GitHub/Sentry webhook → QStash → `/api/process/*` | Calls agent directly, low latency  |
+| Scheduled         | Vercel Cron → `runControlLoop()`                  | Polls Sentry, processes new issues |
+| Manual            | `pnpm dw platform scan` (CLI)                     | Calls `runControlLoop()`           |
 
 ### CI Agent Decision Logic
 
@@ -87,14 +87,14 @@ export async function getSystemHealth(): Promise<SystemHealth>
 
 ### Redis Key Schema
 
-| Key Pattern | Type | TTL | Purpose |
-|---|---|---|---|
-| `platform:incident:{id}` | String (JSON) | 30d | Individual incident record |
-| `platform:incidents:index` | List | 30d | Ordered list of incident IDs (newest first) |
-| `platform:events` | List | 7d | Raw PlatformEvent log |
-| `ci:failure:{runId}` | String | 24h | CI failure dedup by run ID |
-| `ci:commit:{sha}:{workflow}:{branch}` | String | 24h | CI failure dedup by commit |
-| `sentry:error:{issueId}` | String | 7d | Sentry/security alert dedup |
+| Key Pattern                           | Type          | TTL | Purpose                                     |
+| ------------------------------------- | ------------- | --- | ------------------------------------------- |
+| `platform:incident:{id}`              | String (JSON) | 30d | Individual incident record                  |
+| `platform:incidents:index`            | List          | 30d | Ordered list of incident IDs (newest first) |
+| `platform:events`                     | List          | 7d  | Raw PlatformEvent log                       |
+| `ci:failure:{runId}`                  | String        | 24h | CI failure dedup by run ID                  |
+| `ci:commit:{sha}:{workflow}:{branch}` | String        | 24h | CI failure dedup by commit                  |
+| `sentry:error:{issueId}`              | String        | 7d  | Sentry/security alert dedup                 |
 
 ## Dependencies
 

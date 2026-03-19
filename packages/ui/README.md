@@ -8,28 +8,28 @@ Provides a consistent design system across apps without duplicating component co
 
 ## Components
 
-| Component | Export Path | Description |
-|---|---|---|
-| `Button` | `@dw/ui/button` | Primary action button |
-| `DropdownMenu` | `@dw/ui/dropdown-menu` | Accessible dropdown with trigger and items |
-| `Field` | `@dw/ui/field` | Form field wrapper with label and error state |
-| `Input` | `@dw/ui/input` | Text input with consistent styling |
-| `Label` | `@dw/ui` | Accessible form label |
-| `Separator` | `@dw/ui` | Horizontal/vertical divider |
-| `Toast` | `@dw/ui` | Toast notification system |
-| `ThemeProvider` | `@dw/ui` | Dark/light theme context provider |
+| Component       | Export Path            | Description                                   |
+| --------------- | ---------------------- | --------------------------------------------- |
+| `Button`        | `@dw/ui/button`        | Primary action button                         |
+| `DropdownMenu`  | `@dw/ui/dropdown-menu` | Accessible dropdown with trigger and items    |
+| `Field`         | `@dw/ui/field`         | Form field wrapper with label and error state |
+| `Input`         | `@dw/ui/input`         | Text input with consistent styling            |
+| `Label`         | `@dw/ui`               | Accessible form label                         |
+| `Separator`     | `@dw/ui`               | Horizontal/vertical divider                   |
+| `Toast`         | `@dw/ui`               | Toast notification system                     |
+| `ThemeProvider` | `@dw/ui`               | Dark/light theme context provider             |
 
 ## Key Exports
 
 ```typescript
 // Named paths for tree-shaking
-import { Button } from "@dw/ui/button";
-import { Input } from "@dw/ui/input";
-import { Field } from "@dw/ui/field";
-import { DropdownMenu } from "@dw/ui/dropdown-menu";
 
 // Direct import
 import { Label, Separator, Toast } from "@dw/ui";
+import { Button } from "@dw/ui/button";
+import { DropdownMenu } from "@dw/ui/dropdown-menu";
+import { Field } from "@dw/ui/field";
+import { Input } from "@dw/ui/input";
 ```
 
 ## Configuration
@@ -47,6 +47,7 @@ Consumed by: `@dw/nextjs`, `@dw/expo`
 ## Local Development
 
 To add a new shadcn/ui component:
+
 ```bash
 pnpm ui-add
 # Interactive prompt to select components

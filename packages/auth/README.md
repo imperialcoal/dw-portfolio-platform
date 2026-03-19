@@ -51,21 +51,21 @@ export async function getAuthorityContext(
   auth: AuthObject,
   db: DbInstance,
   redis: Redis,
-): Promise<AuthorityContext>
+): Promise<AuthorityContext>;
 
 // RBAC assertions (throw TRPCError on failure)
-export function assertAdmin(ctx: RBACContext): void
-export function assertRole(ctx: RBACContext, role: Role): void
-export function assertNotBanned(ctx: RBACContext): void
-export function assertUser(ctx: RBACContext): void
+export function assertAdmin(ctx: RBACContext): void;
+export function assertRole(ctx: RBACContext, role: Role): void;
+export function assertNotBanned(ctx: RBACContext): void;
+export function assertUser(ctx: RBACContext): void;
 
 // Type guard
-export function hasUserId(auth: AuthObject): auth is { userId: string }
+export function hasUserId(auth: AuthObject): auth is { userId: string };
 
 // Types
-export type AuthorityContext = { userId: string; user: AuthorityUser }
-export type Role = "admin" | "user"
-export const ROLES: { ADMIN: "admin"; USER: "user" }
+export type AuthorityContext = { userId: string; user: AuthorityUser };
+export type Role = "admin" | "user";
+export const ROLES: { ADMIN: "admin"; USER: "user" };
 ```
 
 ## Configuration

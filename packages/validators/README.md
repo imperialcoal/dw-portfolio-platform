@@ -40,31 +40,32 @@ export function devopsEnv(): {
   GITHUB_REPO?: string;
   NODE_ENV: "development" | "test" | "production";
   APP_ENV: "local" | "test" | "preview" | "production";
-}
+};
 
-export function isDevopsConfigured(): boolean  // ANTHROPIC_API_KEY + GITHUB_TOKEN + GITHUB_REPO
-export function isWebhookConfigured(type: "github" | "sentry"): boolean
+export function isDevopsConfigured(): boolean; // ANTHROPIC_API_KEY + GITHUB_TOKEN + GITHUB_REPO
+export function isWebhookConfigured(type: "github" | "sentry"): boolean;
 ```
 
 ## Export Paths
 
-| Path | Contents |
-|---|---|
-| `@dw/validators` | All validators (via index.ts) |
-| `@dw/validators/api-env` | `apiEnv()` |
-| `@dw/validators/auth-env` | `authEnv()` |
-| `@dw/validators/clerk-env` | `clerkEnv()`, `isClerkConfigured()` |
-| `@dw/validators/db-env` | `dbEnv()` |
-| `@dw/validators/devops-env` | `devopsEnv()`, `isDevopsConfigured()`, `isWebhookConfigured()` |
-| `@dw/validators/messaging-env` | `messagingEnv()`, `isMessagingConfigured()`, `isAgentEmailConfigured()` |
+| Path                               | Contents                                                                   |
+| ---------------------------------- | -------------------------------------------------------------------------- |
+| `@dw/validators`                   | All validators (via index.ts)                                              |
+| `@dw/validators/api-env`           | `apiEnv()`                                                                 |
+| `@dw/validators/auth-env`          | `authEnv()`                                                                |
+| `@dw/validators/clerk-env`         | `clerkEnv()`, `isClerkConfigured()`                                        |
+| `@dw/validators/db-env`            | `dbEnv()`                                                                  |
+| `@dw/validators/devops-env`        | `devopsEnv()`, `isDevopsConfigured()`, `isWebhookConfigured()`             |
+| `@dw/validators/messaging-env`     | `messagingEnv()`, `isMessagingConfigured()`, `isAgentEmailConfigured()`    |
 | `@dw/validators/observability-env` | `observabilityEnv()`, `isSentryApiConfigured()`, `isVercelApiConfigured()` |
-| `@dw/validators/qstash-env` | `qstashEnv()`, `isQStashConfigured()` |
-| `@dw/validators/redis-env` | `redisEnv()`, `isRedisConfigured()` |
-| `@dw/validators/supabase-env` | `supabaseEnv()`, `isSupabaseConfigured()` |
+| `@dw/validators/qstash-env`        | `qstashEnv()`, `isQStashConfigured()`                                      |
+| `@dw/validators/redis-env`         | `redisEnv()`, `isRedisConfigured()`                                        |
+| `@dw/validators/supabase-env`      | `supabaseEnv()`, `isSupabaseConfigured()`                                  |
 
 ## Configuration Behavior
 
 All validators use `skipValidation: !!process.env.CI || process.env.npm_lifecycle_event === "lint"`. This means:
+
 - CI runs (lint, typecheck, format) skip validation — no env vars needed in CI for code quality checks
 - Production/preview deployments validate all required variables at startup and fail with a descriptive error if any are missing
 

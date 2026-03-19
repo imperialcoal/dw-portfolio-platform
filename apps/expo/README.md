@@ -37,6 +37,7 @@ The tRPC client in `src/utils/api.ts` uses HTTP transport pointing to the same `
 ## Dependencies
 
 Consumes:
+
 - `@dw/api` — tRPC `AppRouter` type
 - `@dw/auth` — auth types
 - `@dw/ui` — shared UI primitives

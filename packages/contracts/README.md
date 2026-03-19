@@ -66,12 +66,12 @@ type SecurityAlertJobPayload = { type: "security.alert"; alertId: string; action
 
 ## Export Paths
 
-| Path | Contents |
-|---|---|
-| `@dw/contracts` | All types and functions |
-| `@dw/contracts/queue` | QStash payload types + Zod schemas only |
-| `@dw/contracts/event-bus` | `createEventBus()`, `EventBus`, `PlatformEventMap` |
-| `@dw/contracts/ai/events-schema` | Zod schemas for PlatformEvent validation |
+| Path                             | Contents                                           |
+| -------------------------------- | -------------------------------------------------- |
+| `@dw/contracts`                  | All types and functions                            |
+| `@dw/contracts/queue`            | QStash payload types + Zod schemas only            |
+| `@dw/contracts/event-bus`        | `createEventBus()`, `EventBus`, `PlatformEventMap` |
+| `@dw/contracts/ai/events-schema` | Zod schemas for PlatformEvent validation           |
 
 ## Dependencies
 

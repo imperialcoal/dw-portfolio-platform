@@ -20,30 +20,38 @@ src/
 
 ```typescript
 // Publish functions — each returns the QStash messageId
-export async function publishCiJob(payload: CiJobPayload): Promise<string>
-export async function publishSentryJob(payload: SentryJobPayload): Promise<string>
-export async function publishSecurityAlert(payload: SecurityAlertJobPayload): Promise<string>
-export async function publishGithubResolution(payload: GithubResolutionPayload): Promise<string>
-export async function publishSentryResolution(payload: SentryResolutionPayload): Promise<string>
+export async function publishCiJob(payload: CiJobPayload): Promise<string>;
+export async function publishSentryJob(
+  payload: SentryJobPayload,
+): Promise<string>;
+export async function publishSecurityAlert(
+  payload: SecurityAlertJobPayload,
+): Promise<string>;
+export async function publishGithubResolution(
+  payload: GithubResolutionPayload,
+): Promise<string>;
+export async function publishSentryResolution(
+  payload: SentryResolutionPayload,
+): Promise<string>;
 
 // Verification — called in processor routes to validate QStash origin
 export async function verifyQStashRequest(
   signature: string | null,
   body: string,
-): Promise<boolean>
+): Promise<boolean>;
 ```
 
 ### Deduplication Strategy
 
 Each publish function sets an `Upstash-Deduplication-Id` header:
 
-| Job | Dedup ID |
-|---|---|
-| CI failure | `ci-{runId}` |
-| Sentry incident | `sentry-{issueId}` |
-| Security alert | `security-{alertId}-{action}` (action included — dismissed must not dedup with created) |
-| GitHub resolution | `gh-resolve-{issueNumber}` |
-| Sentry resolution | `sentry-resolve-{issueId}` |
+| Job               | Dedup ID                                                                                |
+| ----------------- | --------------------------------------------------------------------------------------- |
+| CI failure        | `ci-{runId}`                                                                            |
+| Sentry incident   | `sentry-{issueId}`                                                                      |
+| Security alert    | `security-{alertId}-{action}` (action included — dismissed must not dedup with created) |
+| GitHub resolution | `gh-resolve-{issueNumber}`                                                              |
+| Sentry resolution | `sentry-resolve-{issueId}`                                                              |
 
 ### Retry Configuration
 
@@ -52,6 +60,7 @@ All jobs are published with `Upstash-Retries: 3` (CI/Sentry/Security) or `Upstas
 ### URL Construction
 
 Processor URLs are constructed based on `APP_ENV`:
+
 - `production` → `https://dw-portfolio.dev/api/process/...`
 - all others → `https://dev.dw-portfolio.dev/api/process/...` (with optional Vercel bypass token)
 

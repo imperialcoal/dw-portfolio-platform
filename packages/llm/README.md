@@ -23,7 +23,9 @@ src/
 
 ```typescript
 // Core function
-export async function analyzeEvent(event: PlatformEvent): Promise<AnalysisResult>
+export async function analyzeEvent(
+  event: PlatformEvent,
+): Promise<AnalysisResult>;
 
 // Analysis output shape
 export interface AnalysisResult {
@@ -36,13 +38,14 @@ export interface AnalysisResult {
 }
 
 // Client (for direct use if needed)
-export function getAnthropicClient(): Anthropic
-export const ANALYSIS_MODEL: "claude-sonnet-4-20250514"
+export function getAnthropicClient(): Anthropic;
+export const ANALYSIS_MODEL: "claude-sonnet-4-20250514";
 ```
 
 ### Response Format
 
 All prompts instruct Claude to respond in XML:
+
 ```xml
 <summary>One-line incident summary</summary>
 <root_cause>Technical explanation</root_cause>

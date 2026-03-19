@@ -24,7 +24,7 @@ export async function sendContactEmail(params: {
   name: string;
   email: string;
   message: string;
-}): Promise<void>
+}): Promise<void>;
 
 // Incident notification email (sent by AI agents after analysis)
 export async function sendIncidentEmail(params: {
@@ -32,7 +32,7 @@ export async function sendIncidentEmail(params: {
   analysis: AnalysisResult;
   incidentDocPath?: string;
   issueUrl?: string;
-}): Promise<void>
+}): Promise<void>;
 ```
 
 ### Configuration Guards

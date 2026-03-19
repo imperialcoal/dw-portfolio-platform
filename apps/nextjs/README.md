@@ -39,12 +39,12 @@ src/
 
 ### Runtime Boundaries
 
-| Route | Runtime | Reason |
-|---|---|---|
-| `/api/webhooks/*` | Edge | Fast response; only HMAC verification + QStash publish |
-| `/api/process/*` | Node.js, `maxDuration: 300` | LLM calls, Postgres, Redis require TCP sockets |
-| `/api/platform/incidents/*/resolve` | Node.js | Requires Redis write access |
-| `/api/trpc/*` | Node.js | Postgres queries via Drizzle |
+| Route                               | Runtime                     | Reason                                                 |
+| ----------------------------------- | --------------------------- | ------------------------------------------------------ |
+| `/api/webhooks/*`                   | Edge                        | Fast response; only HMAC verification + QStash publish |
+| `/api/process/*`                    | Node.js, `maxDuration: 300` | LLM calls, Postgres, Redis require TCP sockets         |
+| `/api/platform/incidents/*/resolve` | Node.js                     | Requires Redis write access                            |
+| `/api/trpc/*`                       | Node.js                     | Postgres queries via Drizzle                           |
 
 ## Tech Stack
 

@@ -23,11 +23,11 @@ src/
 
 ### Docker Services
 
-| Service | Image | Port | Purpose |
-|---|---|---|---|
-| `postgres` | `postgres:16` | `5433` | Primary database (maps to 5432 internally) |
-| `redis` | `redis:7` | `6379` | Redis (password protected) |
-| `redis-proxy` | `hiett/serverless-redis-http` | `8079` | Upstash REST API emulator |
+| Service       | Image                         | Port   | Purpose                                    |
+| ------------- | ----------------------------- | ------ | ------------------------------------------ |
+| `postgres`    | `postgres:16`                 | `5433` | Primary database (maps to 5432 internally) |
+| `redis`       | `redis:7`                     | `6379` | Redis (password protected)                 |
+| `redis-proxy` | `hiett/serverless-redis-http` | `8079` | Upstash REST API emulator                  |
 
 The `redis-proxy` service (`hiett/serverless-redis-http`) emulates the Upstash Redis HTTP REST API. This means `@dw/redis`'s `getRedis()` function works identically in local dev (pointing to `http://localhost:8079`) and in production (pointing to Upstash cloud), using the same `@upstash/redis` client.
 
@@ -54,6 +54,7 @@ pnpm -F @dw/dev-tools dev-tools:db:seed
 ```
 
 Infrastructure requires `.env.local` to be present with:
+
 ```
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=password

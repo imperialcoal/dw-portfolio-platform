@@ -23,7 +23,7 @@ vitest.runtime.ts        # Runtime-level guard function (call in test setup file
 ```typescript
 // Call this in a globalSetup or beforeAll block for any test suite
 // that connects to Postgres or Redis
-export default function runtimeGuard(): void
+export default function runtimeGuard(): void;
 // Throws if:
 // - NODE_ENV !== "test"
 // - DATABASE_URL does not contain "test"
@@ -36,6 +36,7 @@ Environment validation that runs before any tests. Imported via Vitest's `global
 ## Usage
 
 In a package's `vitest.config.ts`:
+
 ```typescript
 import { defineConfig } from "vitest/config";
 
@@ -52,11 +53,11 @@ export default defineConfig({
 
 The monorepo has three test commands with different infrastructure requirements:
 
-| Command | Infra Required | Test Scope |
-|---|---|---|
-| `pnpm test:runtime` | None (mocked env vars) | Unit/logic tests — no real DB or Redis |
-| `pnpm test:api:infra` | Docker (Postgres + Redis) | Integration tests — real DB migrations and queries |
-| `pnpm test:clerk:webhook` | Docker (Postgres + Redis) | Clerk webhook handler integration tests |
+| Command                   | Infra Required            | Test Scope                                         |
+| ------------------------- | ------------------------- | -------------------------------------------------- |
+| `pnpm test:runtime`       | None (mocked env vars)    | Unit/logic tests — no real DB or Redis             |
+| `pnpm test:api:infra`     | Docker (Postgres + Redis) | Integration tests — real DB migrations and queries |
+| `pnpm test:clerk:webhook` | Docker (Postgres + Redis) | Clerk webhook handler integration tests            |
 
 ## Dependencies
 

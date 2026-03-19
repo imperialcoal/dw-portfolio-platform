@@ -49,7 +49,13 @@ Every procedure passes through at least two middlewares:
 export type AppRouter = typeof appRouter;
 
 // tRPC procedure factories
-export { publicProcedure, authProcedure, protectedProcedure, adminProcedure, internalProcedure };
+export {
+  publicProcedure,
+  authProcedure,
+  protectedProcedure,
+  adminProcedure,
+  internalProcedure,
+};
 
 // Context factory — called by the Next.js route handler
 export { createTRPCContext };
@@ -67,10 +73,11 @@ type TRPCContext = {
 };
 
 // Protected context (protectedProcedure and above)
-type ProtectedContext = TRPCContext & AuthorityContext & {
-  userId: string;
-  user: AuthorityUser;
-};
+type ProtectedContext = TRPCContext &
+  AuthorityContext & {
+    userId: string;
+    user: AuthorityUser;
+  };
 ```
 
 ## Dependencies

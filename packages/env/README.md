@@ -13,7 +13,7 @@ Provides a single, consistent way to load local environment variables for Node.j
  * Load .env.local into process.env once.
  * Runtime env variables always win (override: false).
  */
-export function loadEnv(): void
+export function loadEnv(): void;
 ```
 
 ### Usage

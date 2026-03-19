@@ -17,15 +17,15 @@ src/
 
 ```typescript
 export const config: Readonly<{
-  app: ReturnType<typeof apiEnv>;           // NODE_ENV, APP_ENV
-  auth: ReturnType<typeof authEnv>;         // OWNER_EMAILS
-  clerk: ReturnType<typeof clerkEnv>;       // CLERK_SECRET_KEY, CLERK_WEBHOOK_SECRET
-  db: ReturnType<typeof dbEnv>;             // DATABASE_URL, DIRECT_URL
-  devops: ReturnType<typeof devopsEnv>;     // ANTHROPIC_API_KEY, GITHUB_TOKEN, GITHUB_REPO
+  app: ReturnType<typeof apiEnv>; // NODE_ENV, APP_ENV
+  auth: ReturnType<typeof authEnv>; // OWNER_EMAILS
+  clerk: ReturnType<typeof clerkEnv>; // CLERK_SECRET_KEY, CLERK_WEBHOOK_SECRET
+  db: ReturnType<typeof dbEnv>; // DATABASE_URL, DIRECT_URL
+  devops: ReturnType<typeof devopsEnv>; // ANTHROPIC_API_KEY, GITHUB_TOKEN, GITHUB_REPO
   messaging: ReturnType<typeof messagingEnv>; // RESEND_API_KEY, RESEND_*_EMAIL
   observability: ReturnType<typeof observabilityEnv>; // SENTRY_*, VERCEL_API_TOKEN
-  qstash: ReturnType<typeof qstashEnv>;     // QSTASH_TOKEN, QSTASH_URL
-  redis: ReturnType<typeof redisEnv>;       // UPSTASH_REDIS_REST_*
+  qstash: ReturnType<typeof qstashEnv>; // QSTASH_TOKEN, QSTASH_URL
+  redis: ReturnType<typeof redisEnv>; // UPSTASH_REDIS_REST_*
   supabase: ReturnType<typeof supabaseEnv>; // SUPABASE_PROJECT_REF
 }>;
 

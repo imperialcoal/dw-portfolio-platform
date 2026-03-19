@@ -21,7 +21,7 @@ export interface RedisHealthCheck {
 export async function verifyInfra(
   db: DbHealthCheck,
   redis: RedisHealthCheck,
-): Promise<void>
+): Promise<void>;
 ```
 
 ### Behavior
