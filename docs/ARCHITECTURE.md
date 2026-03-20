@@ -356,7 +356,7 @@ sequenceDiagram
 | **Cloudflare** | DNS, R2 state storage, dev tunnel | `platform/infra/terraform/modules/cloudflare` | `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ZONE_ID` |
 | 
 
-... [truncated — 4636 chars omitted]
+... [truncated — 1449 chars omitted]
 
 ---
 
@@ -364,18 +364,7 @@ sequenceDiagram
 
 > Auto-detected by platform-agent · Review and update the sections above · Remove this block when resolved
 
-• New automated docs agent cron job added → Add to **External Integrations** section → Document `/api/cron/docs-agent` endpoint for automated documentation maintenance
-
-• Platform incident resolution endpoint created → Add to **System Architecture Diagram** section → Include `/api/platform/incidents/[id]/resolve` in incident management flow
-
-• Sentry example API route added for testing → Add to **External Integrations** section → Document `/api/sentry-example-api` endpoint under Sentry integration
-
-• tRPC API handler implemented → Add to **Tech Stack** section → Document `/api/trpc/[trpc]` as the main tRPC endpoint and update API architecture details
-
-• ESLint standards package created → Add to **Monorepo Structure** section → Include `platform/standards/eslint` package under standards tooling
-
-• Prettier standards package created → Add to **Monorepo Structure** section → Include `platform/standards/prettier` package under standards tooling
-
-• Tailwind standards package created → Add to **Monorepo Structure** section → Include `platform/standards/tailwind` package under standards tooling
-
-• TypeScript standards package created → Add to **Monorepo Structure** section → Include `platform/standards/typescript` package under standards tooling
+• Route `/api/cron/docs-agent` added → Update **External Integrations** section → Document automated documentation agent cron job endpoint
+• Route `/api/platform/incidents/[id]/resolve` added → Update **Primary Data Flow** section → Document incident resolution API endpoint and data flow
+• Route `/api/sentry-example-api` added → Update **External Integrations** section → Document Sentry error tracking example endpoint
+• Route `/api/trpc/[trpc]` added → Update **Tech Stack** and **Primary Data Flow** sections → Document tRPC API router endpoint and request handling flow
