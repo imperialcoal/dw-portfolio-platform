@@ -1,13 +1,13 @@
 # Documentation Drift Report — 2026-03-20
 
 **Branch**: `dev`
-**Scanned at**: 2026-03-20T23:08:19.337Z
-**Total items requiring attention**: 19
+**Scanned at**: 2026-03-20T23:21:29.659Z
+**Total items requiring attention**: 9
 
 ## Action Items
 
 - Add 4 new route(s) to ARCHITECTURE.md API Routes table and OPERATIONS.md
-- Document 11 undocumented env var(s) in OPERATIONS.md Environment Variables table
+- Document 1 undocumented env var(s) in OPERATIONS.md Environment Variables table
 - Add 1 new cron job(s) to OPERATIONS.md Cron Jobs table
 - Add 3 new webhook handler(s) to OPERATIONS.md Webhook Integrations table
 
@@ -38,38 +38,8 @@
 
 ### New or Undocumented Env Vars
 
-- `packages/validators/src/api-env.ts`
-  Env validator `api-env` content not available — verify its vars are documented in OPERATIONS.md
-  → Update: docs/OPERATIONS.md
-- `packages/validators/src/auth-env.ts`
-  Env validator `auth-env` content not available — verify its vars are documented in OPERATIONS.md
-  → Update: docs/OPERATIONS.md
-- `packages/validators/src/clerk-env.ts`
-  Env validator `clerk-env` content not available — verify its vars are documented in OPERATIONS.md
-  → Update: docs/OPERATIONS.md
 - `packages/validators/src/cron-env.ts`
-  Env validator `cron-env` content not available — verify its vars are documented in OPERATIONS.md
-  → Update: docs/OPERATIONS.md
-- `packages/validators/src/db-env.ts`
-  Env validator `db-env` content not available — verify its vars are documented in OPERATIONS.md
-  → Update: docs/OPERATIONS.md
-- `packages/validators/src/devops-env.ts`
-  Env validator `devops-env` content not available — verify its vars are documented in OPERATIONS.md
-  → Update: docs/OPERATIONS.md
-- `packages/validators/src/messaging-env.ts`
-  Env validator `messaging-env` content not available — verify its vars are documented in OPERATIONS.md
-  → Update: docs/OPERATIONS.md
-- `packages/validators/src/observability-env.ts`
-  Env validator `observability-env` content not available — verify its vars are documented in OPERATIONS.md
-  → Update: docs/OPERATIONS.md
-- `packages/validators/src/qstash-env.ts`
-  Env validator `qstash-env` content not available — verify its vars are documented in OPERATIONS.md
-  → Update: docs/OPERATIONS.md
-- `packages/validators/src/redis-env.ts`
-  Env validator `redis-env` content not available — verify its vars are documented in OPERATIONS.md
-  → Update: docs/OPERATIONS.md
-- `packages/validators/src/supabase-env.ts`
-  Env validator `supabase-env` content not available — verify its vars are documented in OPERATIONS.md
+  Validator `cron-env` has undocumented env vars: `CRON_SECRET` — add to OPERATIONS.md Environment Variables
   → Update: docs/OPERATIONS.md
 
 ---
