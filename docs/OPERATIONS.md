@@ -309,7 +309,7 @@ The production database uses Supabase's PgBouncer transaction pooler on `DATABAS
 **Accessing Sentry:**
 
 
-... [truncated — 2913 chars omitted]
+... [truncated — 3016 chars omitted]
 
 ---
 
@@ -317,38 +317,12 @@ The production database uses Supabase's PgBouncer transaction pooler on `DATABAS
 
 > Auto-detected by platform-agent · Review and update the sections above · Remove this block when resolved
 
-• New cron job `/api/cron/docs-agent` detected → Update **Monitoring and Alerting** section → Add cron schedule and purpose documentation
-
-• New API route `/api/platform/incidents/[id]/resolve` detected → Update **Infrastructure Overview** section → Add incident resolution endpoint details
-
-• New API route `/api/sentry-example-api` detected → Update **Monitoring and Alerting > Sentry** section → Add example API endpoint description
-
-• New tRPC route `/api/trpc/[trpc]` detected → Update **Infrastructure Overview** section → Add tRPC API gateway configuration
-
-• Environment validator `api-env` requires documentation → Update **Environment Variables > Core Application** section → Add API-specific environment variables
-
-• Environment validator `auth-env` requires documentation → Update **Environment Variables > Authentication (Clerk)** section → Add auth environment variables
-
-• Environment validator `clerk-env` requires documentation → Update **Environment Variables > Authentication (Clerk)** section → Add Clerk-specific environment variables
-
-• Environment validator `cron-env` requires documentation → Update **Environment Variables** section → Add new cron subsection with scheduling variables
-
-• Environment validator `db-env` requires documentation → Update **Environment Variables > Database (Supabase / PostgreSQL)** section → Add database environment variables
-
-• Environment validator `devops-env` requires documentation → Update **Environment Variables > AI / DevOps Platform** section → Add DevOps environment variables
-
-• Environment validator `messaging-env` requires documentation → Update **Environment Variables > Email (Resend)** section → Add messaging environment variables
-
-• Environment validator `observability-env` requires documentation → Update **Environment Variables > Observability (Sentry + Vercel API)** section → Add observability environment variables
-
-• Environment validator `qstash-env` requires documentation → Update **Environment Variables > Cache & Queues (Upstash)** section → Add QStash environment variables
-
-• Environment validator `redis-env` requires documentation → Update **Environment Variables > Cache & Queues (Upstash)** section → Add Redis environment variables
-
-• Environment validator `supabase-env` requires documentation → Update **Environment Variables > Database (Supabase / PostgreSQL)** section → Add Supabase environment variables
-
-• New webhook `/api/webhooks/clerk` detected → Update **Monitoring and Alerting** section → Add Clerk webhook endpoint and payload documentation
-
-• New webhook `/api/webhooks/github` detected → Update **Build and Deployment Pipeline** section → Add GitHub webhook configuration
-
-• New webhook `/api/webhooks/sentry` detected → Update **Monitoring and Alerting > Sentry** section → Add Sentry webhook integration details
+• New cron endpoint `/api/cron/docs-agent` discovered → add to **Local Development Setup** section → document cron job schedule and purpose
+• New incident resolution endpoint `/api/platform/incidents/[id]/resolve` discovered → add to **Infrastructure Overview** section → document incident management API endpoints
+• New Sentry example endpoint `/api/sentry-example-api` discovered → add to **Monitoring and Alerting** section → document testing/debugging endpoint for Sentry integration
+• New tRPC handler `/api/trpc/[trpc]` discovered → add to **Infrastructure Overview** section → document tRPC API gateway configuration
+• Environment variable `CRON_SECRET` missing from documentation → add to **Environment Variables > Core Application** section → add CRON_SECRET configuration requirement
+• Cron job `/api/cron/docs-agent` missing operational details → add to **Build and Deployment Pipeline** section → document automated cron job deployment and scheduling
+• Webhook handler `/api/webhooks/clerk` missing → add to **Environment Variables > Authentication (Clerk)** section → document Clerk webhook endpoint configuration
+• Webhook handler `/api/webhooks/github` missing → add to **Build and Deployment Pipeline** section → document GitHub webhook integration for CI/CD triggers
+• Webhook handler `/api/webhooks/sentry` missing → add to **Monitoring and Alerting > Sentry** section → document Sentry webhook configuration for incident reporting
