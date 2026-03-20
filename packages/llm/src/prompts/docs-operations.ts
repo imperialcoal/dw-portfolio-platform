@@ -1,4 +1,5 @@
 import type { RepoStructure } from "@dw/contracts";
+import { config } from "@dw/config";
 
 export const OPERATIONS_CHANGELOG_SYSTEM_PROMPT = `You are a senior DevOps engineer writing a concise documentation changelog entry.
 
@@ -33,7 +34,7 @@ export function buildOperationsChangelogPrompt(
 
   return `Write a changelog entry for OPERATIONS.md based on these detected structural changes.
 
-**Repository**: ${process.env.GITHUB_REPO ?? "dw-portfolio-platform"}
+**Repository**: ${config.devops.GITHUB_REPO ?? "dw-portfolio-platform"}
 **Branch**: ${repo.branch}
 **Detected drift (${driftItems.length} items)**:
 ${driftList}

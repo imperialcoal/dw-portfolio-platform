@@ -1,4 +1,5 @@
 import type { RepoStructure } from "@dw/contracts";
+import { config } from "@dw/config";
 
 // This prompt is only invoked when structural drift has already been detected
 // by the pure-function detectors in docs-agent.ts. Claude's job here is
@@ -39,7 +40,7 @@ export function buildArchitectureChangelogPrompt(
 
   return `Write a changelog entry for ARCHITECTURE.md based on these detected structural changes.
 
-**Repository**: ${process.env.GITHUB_REPO ?? "dw-portfolio-platform"}
+**Repository**: ${config.devops.GITHUB_REPO ?? "dw-portfolio-platform"}
 **Branch**: ${repo.branch}
 **Detected drift (${driftItems.length} items)**:
 ${driftList}
