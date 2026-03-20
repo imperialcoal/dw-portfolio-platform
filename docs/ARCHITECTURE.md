@@ -356,7 +356,7 @@ sequenceDiagram
 | **Cloudflare** | DNS, R2 state storage, dev tunnel | `platform/infra/terraform/modules/cloudflare` | `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ZONE_ID` |
 | 
 
-... [truncated — 1449 chars omitted]
+... [truncated — 766 chars omitted]
 
 ---
 
@@ -364,7 +364,7 @@ sequenceDiagram
 
 > Auto-detected by platform-agent · Review and update the sections above · Remove this block when resolved
 
-• Route `/api/cron/docs-agent` added → Update **External Integrations** section → Document automated documentation agent cron job endpoint
-• Route `/api/platform/incidents/[id]/resolve` added → Update **Primary Data Flow** section → Document incident resolution API endpoint and data flow
-• Route `/api/sentry-example-api` added → Update **External Integrations** section → Document Sentry error tracking example endpoint
-• Route `/api/trpc/[trpc]` added → Update **Tech Stack** and **Primary Data Flow** sections → Document tRPC API router endpoint and request handling flow
+• Route `/api/cron/docs-agent` added → Update **External Integrations** section → Add documentation agent cron job endpoint
+• Route `/api/platform/incidents/[id]/resolve` added → Update **Primary Data Flow** section → Add incident resolution API endpoint flow
+• Route `/api/sentry-example-api` added → Update **External Integrations** section → Add Sentry example API endpoint
+• Route `/api/trpc/[trpc]` added → Update **Primary Data Flow** section → Add tRPC API router endpoint configuration
