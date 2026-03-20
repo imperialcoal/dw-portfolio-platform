@@ -19,6 +19,10 @@
       "types": "./dist/clerk-env.d.ts",
       "default": "./src/clerk-env.ts"
     },
+    "./cron-env": {
+      "types": "./dist/cron-env.d.ts",
+      "default": "./src/cron-env.ts"
+    },
     "./db-env": {
       "types": "./dist/db-env.d.ts",
       "default": "./src/db-env.ts"

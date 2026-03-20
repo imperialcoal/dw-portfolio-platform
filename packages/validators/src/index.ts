@@ -31,6 +31,7 @@ export {
   isSentryApiConfigured,
   isVercelApiConfigured,
 } from "./observability-env";
+export { cronEnv } from "./cron-env";
 
 // ─────────────────────────────────────────────
 // Shared schema fragments (for createEnv spreads)

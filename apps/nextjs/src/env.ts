@@ -4,6 +4,7 @@ import { z } from "zod/v4";
 
 import { authEnv } from "@dw/validators/auth-env";
 import { clerkEnv } from "@dw/validators/clerk-env";
+import { cronEnv } from "@dw/validators/cron-env";
 import { devopsEnv } from "@dw/validators/devops-env";
 import {
   appEnvSchema,
@@ -22,6 +23,7 @@ export const env = createEnv({
   extends: [
     authEnv(),
     clerkEnv(),
+    cronEnv(),
     devopsEnv(),
     messagingEnv(),
     observabilityEnv(),

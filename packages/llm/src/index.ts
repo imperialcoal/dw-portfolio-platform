@@ -1,7 +1,7 @@
 export { analyzeEvent } from "./analyze";
 export type { AnalysisResult } from "./analyze";
 
-export { ANALYSIS_MODEL } from "./client";
+export { ANALYSIS_MODEL, getAnthropicClient } from "./client";
 
 export type { Anthropic, ContentBlock, MessageParam } from "./types";
 
@@ -19,3 +19,18 @@ export {
   SENTRY_INCIDENT_SYSTEM_PROMPT,
   buildSentryIncidentUserPrompt,
 } from "./prompts/sentry-incident";
+
+export {
+  ARCHITECTURE_CHANGELOG_SYSTEM_PROMPT,
+  buildArchitectureChangelogPrompt,
+} from "./prompts/docs-architecture";
+
+export {
+  OPERATIONS_CHANGELOG_SYSTEM_PROMPT,
+  buildOperationsChangelogPrompt,
+} from "./prompts/docs-operations";
+
+export {
+  PLAYBOOKS_CHANGELOG_SYSTEM_PROMPT,
+  buildPlaybooksChangelogPrompt,
+} from "./prompts/docs-playbooks";

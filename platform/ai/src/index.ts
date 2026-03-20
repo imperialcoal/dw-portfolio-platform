@@ -1,12 +1,18 @@
 export { verifyGitHubSignature, verifySentrySignature } from "./actions/crypto";
+
 export { createIssue, commitFile, postPrComment } from "./actions/github";
+
 export { generateAndCommitIncidentDoc } from "./actions/incident-doc";
 
 export { runControlLoop, checkAgentHealth } from "./agent/control-loop";
 
 export { runCiAgent } from "./analyzers/ci-agent";
+
 export { runSentryAgent } from "./analyzers/sentry-agent";
+
 export { runSecurityAgent } from "./analyzers/security-agent";
+
+export { runDocsAgent } from "./analyzers/docs-agent";
 
 export {
   isDuplicate,
@@ -24,13 +30,17 @@ export {
 } from "./memory/redis";
 
 export { fetchCiJobDetails } from "./sensors/github-ci";
+
 export {
   fetchSentryIssueDetail,
   fetchSentryIssueEvents,
   fetchSentryIssues,
 } from "./sensors/sentry";
+
 export {
   fetchRecentDeployments,
   getLastProductionDeploy,
   getLastDeploy,
 } from "./sensors/vercel";
+
+export { scanRepo } from "./sensors/repo";
