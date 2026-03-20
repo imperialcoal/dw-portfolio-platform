@@ -354,38 +354,28 @@ sequenceDiagram
 | **Resend** | Transactional email for contact form + incident alerts | `packages/messaging/src/resend-client.ts` | `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `RESEND_AGENT_FROM_EMAIL`, `RESEND_TO_EMAIL` |
 | **Vercel** | App hosting + deployment (Next.js) | Vercel dashboard | `VERCEL_API_TOKEN`, `VERCEL_PROJECT_ID` |
 | **Cloudflare** | DNS, R2 state storage, dev tunnel | `platform/infra/terraform/modules/cloudflare` | `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ZONE_ID` |
-| **Doppler** | Secrets management (all environments) | `doppler.yaml` | `DOPPLER_TOKEN`, `DOPPLER_PROJECT`, `DOPPLER_ENVIRONMENT` |
-| **Terraform** | Infrastructure provisioning (IaC) | `platform/infra/terraform/` | All provider credentials |
+| 
+
+... [truncated — 4636 chars omitted]
 
 ---
 
-## Key Architectural Decisions
+## Documentation Drift — 2026-03-20
 
-- **Edge/Node runtime split**: Webhook receivers (`/api/webhooks/*`) run on Edge for minimal cold-start latency and immediate HMAC verification. AI agent processors (`/api/process/*`) run on Node.js with `maxDuration: 300` because LLM API calls, Postgres connections, and filesystem access require TCP sockets unavailable in Edge. This split is enforced by `platform/runtime/src/capabilities.ts` runtime guards that throw at call time if code accidentally runs in the wrong runtime.
+> Auto-detected by platform-agent · Review and update the sections above · Remove this block when resolved
 
-- **QStash as reliability layer**: Instead of calling AI agents synchronously from webhook handlers (which would block for 10–30s and risk timeout), webhooks enqueue a typed job to QStash and immediately return `200`. QStash delivers the job to the processor with automatic retry on 5xx (up to 3 times) and deduplication via `Upstash-Deduplication-Id` headers — preventing double-processing if GitHub retries the webhook.
+• New automated docs agent cron job added → Add to **External Integrations** section → Document `/api/cron/docs-agent` endpoint for automated documentation maintenance
 
-- **Redis as incident memory**: Incidents are stored in Upstash Redis (not Postgres) because they are transient operational data with a 30-day TTL, require sub-millisecond read latency for the dashboard, and benefit from Redis's built-in list operations (`LPUSH`, `LTRIM`) for maintaining an ordered index without migration risk.
+• Platform incident resolution endpoint created → Add to **System Architecture Diagram** section → Include `/api/platform/incidents/[id]/resolve` in incident management flow
 
-- **XML-structured LLM responses**: The Anthropic prompt instructs Claude to respond in XML tags (`<summary>`, `<root_cause>`, `<severity>`, etc.) rather than JSON. This is more robust to model "thinking aloud" prefixes and avoids JSON escape issues in error messages that contain special characters. `parseAnalysisXml()` in `packages/llm/src/analyze.ts` extracts each field via regex.
+• Sentry example API route added for testing → Add to **External Integrations** section → Document `/api/sentry-example-api` endpoint under Sentry integration
 
-- **Layered deduplication for CI**: CI events have two dedup layers — run ID (24h TTL) and commit SHA + workflow + branch (24h TTL). This prevents the same workflow failure from being processed twice if GitHub delivers the webhook multiple times, while still correctly processing a retry of a previously failed workflow on the same commit.
+• tRPC API handler implemented → Add to **Tech Stack** section → Document `/api/trpc/[trpc]` as the main tRPC endpoint and update API architecture details
 
-- **Graceful degradation pattern**: Every external service client has a corresponding `is*Configured()` guard (e.g., `isQStashConfigured()`, `isDevopsConfigured()`, `isMessagingConfigured()`). Webhook routes check these guards and return `{ ok: true, skipped: "reason" }` rather than crashing when services are not configured in local development.
+• ESLint standards package created → Add to **Monorepo Structure** section → Include `platform/standards/eslint` package under standards tooling
 
-- **Terraform state in Cloudflare R2**: Terraform remote state uses an S3-compatible backend pointed at Cloudflare R2 instead of AWS S3. R2 has no egress fees and is managed by the same Cloudflare provider already in use for DNS.
+• Prettier standards package created → Add to **Monorepo Structure** section → Include `platform/standards/prettier` package under standards tooling
 
-- **Security alerts reuse the `sentryIssueId` field**: `IncidentRecord.sentryIssueId` stores the Dependabot alert number for `security_alert` type incidents. This field reuse is intentional to avoid a schema migration on Redis — the type discriminant (`incident.type === "security_alert"`) disambiguates lookup semantics in `findIncidentBySecurityAlert()`.
+• Tailwind standards package created → Add to **Monorepo Structure** section → Include `platform/standards/tailwind` package under standards tooling
 
----
-
-## Developer Notes
-
-> **Developer Note**
-> The `db` export from `@dw/db` is a lazy Proxy object, not a real Drizzle instance. This allows the singleton to be imported at module load time without immediately calling `getDb()` (which validates environment variables). The proxy intercepts property access and calls `getDb()` on first actual database operation. This prevents startup crashes in Edge routes that import the package without ever using the database.
-
-> **Developer Note**
-> `platform/runtime/src/singletons.ts` exports `runtimeDb()` and `runtimeRedis()`, which wrap `getDb()`/`getRedis()` with an `assertNodeRuntime()` call. The tRPC context factory (`packages/api/src/trpc.ts`) uses `createRuntimeContext()` which calls these singletons. This means tRPC routes implicitly require Node.js runtime — annotate any tRPC route handler with `export const runtime = "nodejs"` if you're unsure.
-
-> **Developer Note**
-> The `ContentBlock` type narrowing in `packages/llm/src/analyze.ts` (lines 47–53) assigns the SDK's response `message.content` to an explicitly typed `const blocks: ContentBlock[]` before calling `.filter()`. This is required because the Anthropic SDK's union type is complex enough that TypeScript needs an explicit intermediate type annotation to correctly narrow the callback parameter type in the filter predicate. Chaining `.filter()` directly on `message.content` without the intermediate variable causes a type error.
+• TypeScript standards package created → Add to **Monorepo Structure** section → Include `platform/standards/typescript` package under standards tooling
