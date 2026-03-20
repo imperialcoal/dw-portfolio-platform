@@ -83,6 +83,12 @@ function detectNewApiRoutes(
     });
 }
 
+// Packages that are intentionally grouped under a parent directory
+// and documented at that level rather than individually.
+const PACKAGE_EXCLUSION_PREFIXES = [
+  "platform/standards/", // documented as platform/standards/ collectively
+];
+
 function detectNewPackages(repo: RepoStructure, archDoc: string): DriftItem[] {
   return repo.allPaths
     .filter(
@@ -90,7 +96,9 @@ function detectNewPackages(repo: RepoStructure, archDoc: string): DriftItem[] {
         p.endsWith("/package.json") &&
         (p.startsWith("packages/") ||
           p.startsWith("apps/") ||
-          p.startsWith("platform/")),
+          p.startsWith("platform/")) &&
+        // Exclude packages grouped under a documented parent directory
+        !PACKAGE_EXCLUSION_PREFIXES.some((prefix) => p.startsWith(prefix)),
     )
     .filter((p) => {
       const dir = p.replace("/package.json", "");
@@ -109,30 +117,95 @@ function detectNewPackages(repo: RepoStructure, archDoc: string): DriftItem[] {
     });
 }
 
+/**
+ * Extracts env var names from a validator file's content.
+ *
+ * Handles the T3 Env pattern:
+ *   SOME_VAR: z.string()
+ *   NEXT_PUBLIC_SOMETHING: z.url()
+ *
+ * Matches uppercase identifiers followed by a colon and z.* — this covers
+ * both server and client schema blocks without needing to parse the AST.
+ */
+function extractEnvVarNames(fileContent: string): string[] {
+  const matches = fileContent.match(/\b([A-Z][A-Z0-9_]{2,})\s*:/g) ?? [];
+  return [
+    ...new Set(
+      matches
+        .map((m) => m.replace(/\s*:$/, "").trim())
+        // Filter out non-env-var patterns (Zod schema method names, etc.)
+        .filter(
+          (name) =>
+            !["NODE", "APP", "URL", "API", "KEY", "TOKEN"].includes(name) &&
+            name.length > 3,
+        ),
+    ),
+  ];
+}
+
+/**
+ * Detects env vars in validator files that aren't mentioned in OPERATIONS.md.
+ *
+ * Strategy:
+ * 1. Find all validator files in packages/validators/src/
+ * 2. Read their content from the already-fetched key files
+ * 3. Extract env var names using the T3 Env pattern
+ * 4. Check each var name against the OPERATIONS.md content
+ * 5. Flag vars that are undocumented
+ *
+ * This is fully dynamic — new validators with new vars are caught automatically.
+ * Existing validators whose vars are already in the docs are not flagged.
+ */
 function detectNewEnvValidators(
   repo: RepoStructure,
   opsDoc: string,
 ): DriftItem[] {
-  return repo.allPaths
-    .filter(
-      (p) =>
-        p.startsWith("packages/validators/src/") &&
-        p.endsWith("-env.ts") &&
-        !p.endsWith("index.ts"),
-    )
-    .filter((p) => {
-      const name = p.split("/").pop()?.replace(".ts", "") ?? "";
-      return !opsDoc.includes(name) && name.length > 0;
-    })
-    .map((p) => {
-      const name = p.split("/").pop()?.replace(".ts", "") ?? p;
-      return {
+  const validatorPaths = repo.allPaths.filter(
+    (p) =>
+      p.startsWith("packages/validators/src/") &&
+      p.endsWith("-env.ts") &&
+      !p.endsWith("index.ts"),
+  );
+
+  const items: DriftItem[] = [];
+
+  for (const validatorPath of validatorPaths) {
+    const fileContent = repo.keyFiles.find(
+      (f) => f.path === validatorPath,
+    )?.content;
+
+    // If we didn't fetch the content, fall back to filename check
+    if (!fileContent) {
+      const name = validatorPath.split("/").pop()?.replace(".ts", "") ?? "";
+      if (!opsDoc.includes(name) && name.length > 0) {
+        items.push({
+          category: "new_env_var" as const,
+          path: validatorPath,
+          description: `Env validator \`${name}\` content not available — verify its vars are documented in OPERATIONS.md`,
+          affectedDocs: ["docs/OPERATIONS.md"],
+        });
+      }
+      continue;
+    }
+
+    const envVarNames = extractEnvVarNames(fileContent);
+    const undocumentedVars = envVarNames.filter(
+      (varName) => !opsDoc.includes(varName),
+    );
+
+    if (undocumentedVars.length > 0) {
+      const validatorName =
+        validatorPath.split("/").pop()?.replace(".ts", "") ?? validatorPath;
+      items.push({
         category: "new_env_var" as const,
-        path: p,
-        description: `Env validator \`${name}\` is not mentioned in OPERATIONS.md — may introduce new required env vars`,
+        path: validatorPath,
+        description: `Validator \`${validatorName}\` has undocumented env vars: ${undocumentedVars.map((v) => `\`${v}\``).join(", ")} — add to OPERATIONS.md Environment Variables`,
         affectedDocs: ["docs/OPERATIONS.md"],
-      };
-    });
+      });
+    }
+  }
+
+  return items;
 }
 
 function detectNewCronJobs(repo: RepoStructure, opsDoc: string): DriftItem[] {
@@ -207,6 +280,12 @@ function detectReadmeIssues(repo: RepoStructure): DriftItem[] {
   ];
 
   for (const dir of docTargetDirs) {
+    // Skip if the second path segment is a file (e.g. apps/README.md)
+    // rather than a directory. A path segment ending in .md is a file,
+    // not a directory that could contain a README.
+    const secondSegment = dir.split("/")[1] ?? "";
+    if (secondSegment.includes(".")) continue;
+
     const readmePath = `${dir}/README.md`;
     if (!repo.allPaths.includes(readmePath)) {
       items.push({
@@ -232,7 +311,7 @@ function detectReadmeIssues(repo: RepoStructure): DriftItem[] {
 }
 
 // ─────────────────────────────────────────────
-// Existing doc lookup — synchronous, no await
+// Existing doc lookup — synchronous
 // ─────────────────────────────────────────────
 
 function getExistingDoc(path: string, repo: RepoStructure): string {
@@ -296,7 +375,7 @@ async function generateChangelogBullets(
 
   const message = await client.messages.create({
     model: ANALYSIS_MODEL,
-    max_tokens: 1024, // Changelog bullets only — deliberately small
+    max_tokens: 1024,
     system: spec.systemPrompt,
     messages: [{ role: "user", content: userPrompt }],
   });
@@ -320,7 +399,6 @@ function appendChangelog(
   date: string,
 ): string {
   // Remove any previous platform-agent changelog section before appending
-  // Prevents accumulation across nightly runs
   const clean = existingDoc
     .replace(/\n---\n\n## Documentation Drift — \d{4}-\d{2}-\d{2}[\s\S]*$/, "")
     .trimEnd();
@@ -363,7 +441,7 @@ function buildDriftReport(
   const categoryLabels: Record<string, string> = {
     new_api_route: "New API Routes (undocumented)",
     new_package: "New Packages (undocumented)",
-    new_env_var: "New Env Validators (may have new required vars)",
+    new_env_var: "New or Undocumented Env Vars",
     new_cron: "New Cron Jobs (undocumented)",
     new_webhook_handler: "New Webhook Handlers (undocumented)",
     missing_readme: "Missing README.md Files",
@@ -391,7 +469,7 @@ function buildDriftReport(
       ? `- Add ${byCategory.new_package.length} new package(s) to ARCHITECTURE.md Monorepo Structure section`
       : null,
     byCategory.new_env_var?.length
-      ? `- Review ${byCategory.new_env_var.length} new env validator(s) and update OPERATIONS.md Environment Variables table`
+      ? `- Document ${byCategory.new_env_var.length} undocumented env var(s) in OPERATIONS.md Environment Variables table`
       : null,
     byCategory.new_cron?.length
       ? `- Add ${byCategory.new_cron.length} new cron job(s) to OPERATIONS.md Cron Jobs table`
