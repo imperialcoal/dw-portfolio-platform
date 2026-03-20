@@ -118,26 +118,28 @@ function detectNewPackages(repo: RepoStructure, archDoc: string): DriftItem[] {
 }
 
 /**
- * Extracts env var names from a validator file's content.
+ * Extracts env var names from a T3 Env validator file's content.
  *
- * Handles the T3 Env pattern:
+ * Matches the exact T3 Env schema pattern:
  *   SOME_VAR: z.string()
  *   NEXT_PUBLIC_SOMETHING: z.url()
  *
- * Matches uppercase identifiers followed by a colon and z.* — this covers
- * both server and client schema blocks without needing to parse the AST.
+ * Requires the `: z.` suffix so only schema entries are matched,
+ * not TypeScript constants, type names, or other uppercase identifiers.
+ * Also requires at least one underscore — all real env vars have one.
  */
 function extractEnvVarNames(fileContent: string): string[] {
-  const matches = fileContent.match(/\b([A-Z][A-Z0-9_]{2,})\s*:/g) ?? [];
+  // Match UPPERCASE_NAME: z. — the `: z.` suffix anchors to schema entries only
+  const matches = fileContent.match(/\b([A-Z][A-Z0-9_]{2,})\s*:\s*z\./g) ?? [];
+
   return [
     ...new Set(
       matches
-        .map((m) => m.replace(/\s*:$/, "").trim())
-        // Filter out non-env-var patterns (Zod schema method names, etc.)
+        .map((m) => m.replace(/\s*:\s*z\.$/, "").trim())
         .filter(
           (name) =>
-            !["NODE", "APP", "URL", "API", "KEY", "TOKEN"].includes(name) &&
-            name.length > 3,
+            name.includes("_") && // env vars always have underscores
+            name.length >= 4, // skip short false matches
         ),
     ),
   ];
@@ -149,12 +151,13 @@ function extractEnvVarNames(fileContent: string): string[] {
  * Strategy:
  * 1. Find all validator files in packages/validators/src/
  * 2. Read their content from the already-fetched key files
- * 3. Extract env var names using the T3 Env pattern
- * 4. Check each var name against the OPERATIONS.md content
- * 5. Flag vars that are undocumented
+ * 3. Extract env var names using the T3 Env schema pattern (`: z.` suffix)
+ * 4. Check each specific var name against OPERATIONS.md content
+ * 5. Flag only vars that are genuinely undocumented
  *
- * This is fully dynamic — new validators with new vars are caught automatically.
- * Existing validators whose vars are already in the docs are not flagged.
+ * Fully dynamic — new validators with new vars are caught automatically.
+ * Existing vars already in the docs are not flagged.
+ * Falls back to a filename check if content wasn't fetched.
  */
 function detectNewEnvValidators(
   repo: RepoStructure,
@@ -174,21 +177,28 @@ function detectNewEnvValidators(
       (f) => f.path === validatorPath,
     )?.content;
 
-    // If we didn't fetch the content, fall back to filename check
     if (!fileContent) {
-      const name = validatorPath.split("/").pop()?.replace(".ts", "") ?? "";
-      if (!opsDoc.includes(name) && name.length > 0) {
-        items.push({
-          category: "new_env_var" as const,
+      // File wasn't fetched — this shouldn't happen after the repo.ts fix,
+      // but if it does, flag the validator itself rather than silently skipping
+      console.warn(
+        JSON.stringify({
+          level: "warn",
+          agent: "docs",
+          event: "validator_content_missing",
           path: validatorPath,
-          description: `Env validator \`${name}\` content not available — verify its vars are documented in OPERATIONS.md`,
-          affectedDocs: ["docs/OPERATIONS.md"],
-        });
-      }
-      continue;
+          message: "Validator file not in key files — cannot extract env vars",
+        }),
+      );
+      continue; // Skip rather than produce unreliable output
     }
 
     const envVarNames = extractEnvVarNames(fileContent);
+
+    if (envVarNames.length === 0) {
+      // File was fetched but no env vars found — likely not a standard validator
+      continue;
+    }
+
     const undocumentedVars = envVarNames.filter(
       (varName) => !opsDoc.includes(varName),
     );
