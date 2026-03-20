@@ -307,75 +307,28 @@ The production database uses Supabase's PgBouncer transaction pooler on `DATABAS
 - The `onRequestError` hook (`Sentry.captureRequestError`) is exported from `instrumentation.ts` for automatic request error capture
 
 **Accessing Sentry:**
-- Preview errors: Sentry project `dw-portfolio-preview`
-- Production errors: Sentry project `dw-portfolio-production`
-- Organization: `imperial-coal`
 
-### Platform Dashboard
 
-The admin dashboard at `/platform` (requires Clerk admin auth) shows:
-- `/platform` — System health overview, recent incidents, deploy status
-- `/platform/incidents` — Full incident list with status, severity, resolution
-- `/platform/deployments` — Vercel deployment history
-- `/platform/insights` — Platform insights
-
-### Log Format
-
-All AI agents and processors emit structured JSON logs. Example:
-```json
-{
-  "level": "info",
-  "agent": "ci",
-  "event": "complete",
-  "runId": "12345",
-  "commitSha": "abc1234",
-  "issueUrl": "https://github.com/...",
-  "incidentDocPath": "docs/incidents/2026-03-19-..."
-}
-```
-
-Logs are visible in Vercel Functions logs for each serverless invocation.
-
-### Incident Lifecycle
-
-```
-1. Webhook received → QStash job enqueued
-2. Agent runs       → status: "investigating"
-3. Agent completes  → status: "open"
-4. GitHub issue closed OR Sentry resolved OR security alert dismissed → status: "resolved"
-5. Manual override  → POST /api/platform/incidents/:id/resolve (admin only)
-```
+... [truncated — 3349 chars omitted]
 
 ---
 
-## Secrets Management
+## Documentation Drift — 2026-03-20
 
-All secrets are stored in **Doppler** under project `dw-portfolio-platform`.
+> Auto-detected by platform-agent · Review and update the sections above · Remove this block when resolved
 
-| Config | Used for |
-|---|---|
-| `dev` | Local development (pulled via `doppler run --`) |
-| `preview` | Vercel preview deployments (auto-synced) |
-| `production` | Vercel production deployments (auto-synced) |
-
-**Rotating a secret:**
-1. Generate the new secret in the relevant service dashboard
-2. Update the value in Doppler under the appropriate config
-3. Vercel will pick up the new value on the next deployment (or trigger a redeploy)
-4. For GitHub Actions secrets, update in the repository Settings → Secrets
-
-**Terraform provider credentials** are stored separately in Doppler or a local `.env` file used only during `pnpm dw infra` commands. They are never committed to the repository.
-
----
-
-## Scaling Considerations
-
-- **Supabase free tier**: The DB client sets `max: 3` connections in production (`max: 5` in local dev) to stay within Supabase's free tier connection limits. If upgrading to a paid tier, increase `max` in `packages/db/src/client.ts`.
-
-- **Redis incident storage**: The incident index is capped at 100 entries (`MAX_INCIDENTS = 100`) with a 30-day TTL. Individual incidents expire after 30 days. This is sufficient for the portfolio's traffic volume. If volume increases, consider archiving resolved incidents to Postgres instead.
-
-- **QStash throughput**: Each CI failure, Sentry error, and security alert enqueues one job. At portfolio scale this is negligible. QStash free tier supports 500 requests/day — monitor in the Upstash dashboard if webhook volume grows.
-
-- **Anthropic API costs**: All agents use `claude-sonnet-4-20250514` with a `max_tokens: 1024` cap. Each incident analysis consumes approximately 2–5K tokens total. Add up-front cost tracking if incident volume grows significantly.
-
-- **Edge vs. Node runtime routing**: All stateless webhook receivers and tRPC handlers that don't touch Postgres can move to Edge for better cold start times. The runtime guard in `platform/runtime` will throw immediately if the wrong runtime is used, so the boundary is enforced at development time rather than production.
+• New cron job `/api/cron/docs-agent` added → Add to **Local Development Setup** section → Document cron endpoint and any required scheduling setup
+• New incident resolution API `/api/platform/incidents/[id]/resolve` added → Add to **Infrastructure Overview** section → Document incident management endpoint functionality
+• New Sentry example route `/api/sentry-example-api` added → Add to **Monitoring and Alerting > Sentry** section → Document testing endpoint for Sentry integration
+• New tRPC API route `/api/trpc/[trpc]` added → Add to **Infrastructure Overview** section → Document tRPC endpoint configuration and usage
+• Environment validator `api-env` introduced → Review **Environment Variables > Core Application** section → Add any new required API environment variables from validator schema
+• Environment validator `auth-env` introduced → Review **Environment Variables > Authentication (Clerk)** section → Add any new required auth environment variables from validator schema
+• Environment validator `clerk-env` introduced → Review **Environment Variables > Authentication (Clerk)** section → Add any new required Clerk environment variables from validator schema
+• Environment validator `cron-env` introduced → Add new subsection under **Environment Variables** → Document cron-specific environment variables from validator schema
+• Environment validator `db-env` introduced → Review **Environment Variables > Database (Supabase / PostgreSQL)** section → Add any new required database environment variables from validator schema
+• Environment validator `devops-env` introduced → Review **Environment Variables > AI / DevOps Platform** section → Add any new required DevOps environment variables from validator schema
+• Environment validator `messaging-env` introduced → Review **Environment Variables > Email (Resend)** section → Add any new required messaging environment variables from validator schema
+• Environment validator `observability-env` introduced → Review **Environment Variables > Observability (Sentry + Vercel API)** section → Add any new required observability environment variables from validator schema
+• Environment validator `qstash-env` introduced → Review **Environment Variables > Cache & Queues (Upstash)** section → Add any new required QStash environment variables from validator schema
+• Environment validator `redis-env` introduced → Review **Environment Variables > Cache & Queues (Upstash)** section → Add any new required Redis environment variables from validator schema
+• Environment validator `supabase-env` introduced → Review **Environment Variables > Database (Supabase / PostgreSQL)** section → Add any new required Supabase environment variables from validator schema
