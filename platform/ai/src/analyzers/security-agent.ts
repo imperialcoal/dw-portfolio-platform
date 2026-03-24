@@ -2,7 +2,7 @@
 // Triggered by GitHub repository_vulnerability_alert webhook events.
 // Auto-resolves when GitHub fires dismissed/auto_dismissed/fixed actions.
 
-import { normalizeSecurityAlert } from "@dw/contracts";
+import { normalizeSecurityAlert, safeId } from "@dw/contracts";
 import { analyzeEvent } from "@dw/llm";
 import { sendIncidentEmail } from "@dw/messaging";
 
@@ -16,13 +16,6 @@ import {
   markIncidentOpen,
   updateIncidentStatus,
 } from "../memory/redis";
-
-function safeId(v: unknown): string {
-  if (typeof v === "string") return v;
-  if (typeof v === "number") return String(v);
-  if (typeof v === "bigint") return String(v);
-  return "";
-}
 
 /**
  * Analyzes a Dependabot security alert and fans out outputs:
@@ -105,7 +98,7 @@ export async function runSecurityAgent(
     return;
   }
 
-  // ── Dedup by alert number (7d TTL, reuses sentry_error bucket) ────────────
+  // ── Dedup by alert number (7d TTL) ────────────────────────────────────────
   if (await isDuplicate("sentry_error", `security:${alertId}`)) {
     console.log(
       JSON.stringify({

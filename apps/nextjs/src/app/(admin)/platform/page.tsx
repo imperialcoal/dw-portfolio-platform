@@ -113,13 +113,13 @@ function StatusDot({
 
 function StatCard({
   label,
-  value,
   sub,
+  value,
   severity,
 }: {
   label: string;
-  value: string | number;
   sub?: string;
+  value: string | number;
   severity?: IncidentRecord["severity"] | "healthy";
 }) {
   const c = severity !== undefined ? severityColor(severity) : null;
@@ -146,7 +146,6 @@ function ActiveIncidentRow({ incident }: { incident: IncidentRecord }) {
   const isSecurityAlert = incident.type === "security_alert";
   const typeLabel = getTypeLabel(incident.type);
 
-  // Security alerts get a purple type badge; CI/Sentry use severity color
   const typeBadgeClass = isSecurityAlert
     ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
     : `${sev.bg} ${sev.text} ${sev.border}`;
@@ -185,7 +184,6 @@ function ActiveIncidentRow({ incident }: { incident: IncidentRecord }) {
         <p className="mt-0.5 line-clamp-1 text-xs text-zinc-500">
           {incident.rootCause}
         </p>
-        {/* Correlation badges */}
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {!isSecurityAlert && incident.commitSha !== undefined && (
             <span className="font-mono text-[10px] text-zinc-600">
@@ -242,8 +240,8 @@ function DeployCard({ deploy }: { deploy: VercelDeployment }) {
           <p className="text-xs text-zinc-500">commit</p>
         </div>
         <div className="h-8 w-px bg-white/10" />
-        <div>
-          <p className="text-sm text-zinc-300">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm text-zinc-300">
             {commitMessage !== null ? commitMessage.slice(0, 60) : "—"}
           </p>
           <p className="text-xs text-zinc-500">message</p>
@@ -277,6 +275,7 @@ export default async function PlatformPage() {
     getLastProductionDeploy(),
   ]);
 
+  // Status buckets — mutually exclusive
   const activeIncidents = incidents.filter(
     (i) => i.status === "open" || i.status === "investigating",
   );
@@ -323,35 +322,41 @@ export default async function PlatformPage() {
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <StatCard
-            label="Active"
-            value={activeIncidents.length}
-            sub="open + investigating"
-            severity={
-              activeIncidents.length === 0 ? "healthy" : health.recentSeverity
-            }
-          />
-          <StatCard
-            label="Monitoring"
-            value={monitoringIncidents.length}
-            sub="Sentry resolved"
-            severity={monitoringIncidents.length > 0 ? "medium" : "healthy"}
-          />
-          <StatCard
-            label="Resolved (30d)"
-            value={resolvedIncidents.length}
-            severity="healthy"
-          />
-          <StatCard
-            label="Last Deploy"
-            value={lastDeployTime}
-            sub={lastDeployBranch}
-          />
+        {/* Stats — incident status overview */}
+        <div>
+          <p className="mb-3 text-[10px] font-semibold tracking-widest text-zinc-600 uppercase">
+            Incident Status
+          </p>
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <StatCard
+              label="Active"
+              value={activeIncidents.length}
+              sub="open + investigating"
+              severity={
+                activeIncidents.length === 0 ? "healthy" : health.recentSeverity
+              }
+            />
+            <StatCard
+              label="Monitoring"
+              value={monitoringIncidents.length}
+              sub="watching for recurrence"
+              severity={monitoringIncidents.length > 0 ? "medium" : "healthy"}
+            />
+            <StatCard
+              label="Resolved (30d)"
+              value={resolvedIncidents.length}
+              sub="resolved + closed"
+              severity="healthy"
+            />
+            <StatCard
+              label="Last Deploy"
+              value={lastDeployTime}
+              sub={lastDeployBranch}
+            />
+          </div>
         </div>
 
-        {/* Security alert banner — only shown when active security alerts exist */}
+        {/* Security alert banner */}
         {activeSecurityAlerts.length > 0 && (
           <div className="flex items-center gap-3 rounded-xl border border-purple-500/20 bg-purple-500/5 px-4 py-3">
             <span className="relative flex h-2.5 w-2.5 shrink-0">
@@ -359,10 +364,10 @@ export default async function PlatformPage() {
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-purple-400" />
             </span>
             <p className="text-sm font-medium text-purple-300">
-              {activeSecurityAlerts.length} active{" "}
+              {activeSecurityAlerts.length} active security{" "}
               {activeSecurityAlerts.length === 1
-                ? "security vulnerability"
-                : "security vulnerabilities"}{" "}
+                ? "vulnerability"
+                : "vulnerabilities"}{" "}
               detected by Dependabot
             </p>
             <Link
@@ -462,7 +467,7 @@ export default async function PlatformPage() {
             <Link
               key={item.href}
               href={item.href}
-              className="group hover:bg-white/0.08 rounded-xl border border-white/10 bg-white/5 p-5 transition-all hover:border-white/20"
+              className="group rounded-xl border border-white/10 bg-white/5 p-5 transition-all hover:border-white/20"
             >
               <p className="text-sm font-semibold text-zinc-200 transition-colors group-hover:text-white">
                 {item.label}

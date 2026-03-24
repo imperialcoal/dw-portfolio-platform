@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-import { runDocsAgent } from "@dw/ai/analyzers";
+import { runDocsAgent } from "@dw/ai/agent";
 import { config } from "@dw/config";
 
 export const runtime = "nodejs";
@@ -10,12 +10,11 @@ export const maxDuration = 300;
 /**
  * GET /api/cron/docs-agent
  *
- * Triggered by Vercel cron (see vercel.json).
- * Protected by CRON_SECRET — Vercel injects this automatically for cron
- * jobs, sending Authorization: Bearer <CRON_SECRET>.
+ * Triggered nightly by GitHub Actions (.github/workflows/cron-docs-agent.yml)
+ * pointing at the preview deployment, or by Vercel cron (vercel.json) on production.
  *
- * Also accepts a ?branch= query param for manual triggering against a
- * specific branch (still requires valid secret).
+ * Protected by CRON_SECRET — Vercel injects this automatically for cron jobs.
+ * Accepts a ?branch= query param for manual triggering.
  */
 export async function GET(req: NextRequest): Promise<NextResponse> {
   const authHeader = req.headers.get("authorization");

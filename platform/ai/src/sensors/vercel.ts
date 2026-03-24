@@ -13,21 +13,14 @@ function getDeploymentTarget(): "production" | "preview" {
   return config.app.APP_ENV === "production" ? "production" : "preview";
 }
 
-/**
- * Fetches recent deployments from Vercel API, filtered to the current
- * environment. The preview dashboard at dev.dw-portfolio.dev only sees
- * preview deployments; the production dashboard only sees production ones.
- *
- * Returns empty array if VERCEL_API_TOKEN is not configured.
- */
-export async function fetchRecentDeployments(
-  limit = 20,
+async function fetchDeployments(
+  target: "production" | "preview",
+  limit: number,
 ): Promise<VercelDeployment[]> {
   if (!isVercelApiConfigured()) return [];
 
   const projectId =
     config.observability.VERCEL_PROJECT_ID ?? "dw-portfolio-platform";
-  const target = getDeploymentTarget();
 
   const res = await fetch(
     `https://api.vercel.com/v6/deployments?projectId=${projectId}&target=${target}&limit=${limit}`,
@@ -45,34 +38,28 @@ export async function fetchRecentDeployments(
 }
 
 /**
- * Returns the most recent deployment for the current environment.
+ * Fetches recent deployments filtered to the current environment.
+ * The preview dashboard only sees preview deployments; production sees production.
  */
-export async function getLastProductionDeploy(): Promise<VercelDeployment | null> {
-  if (!isVercelApiConfigured()) return null;
-
-  const projectId =
-    config.observability.VERCEL_PROJECT_ID ?? "dw-portfolio-platform";
-
-  // Always fetch the true production deployment for the stat card —
-  // used on the platform overview page regardless of current env.
-  const res = await fetch(
-    `https://api.vercel.com/v6/deployments?projectId=${projectId}&target=production&limit=5`,
-    {
-      headers: {
-        Authorization: `Bearer ${String(config.observability.VERCEL_API_TOKEN)}`,
-      },
-    },
-  );
-
-  if (!res.ok) return null;
-
-  const data = (await res.json()) as { deployments: VercelDeployment[] };
-  return data.deployments.find((d) => d.state === "READY") ?? null;
+export async function fetchRecentDeployments(
+  limit = 20,
+): Promise<VercelDeployment[]> {
+  return fetchDeployments(getDeploymentTarget(), limit);
 }
 
 /**
- * Returns the most recent deployment for the current environment.
- * Used on the deployments page header stat.
+ * Returns the most recent successful production deployment.
+ * Always fetches production regardless of current environment —
+ * used for the "Last Production Deploy" stat card on the platform overview.
+ */
+export async function getLastProductionDeploy(): Promise<VercelDeployment | null> {
+  const deploys = await fetchDeployments("production", 5);
+  return deploys.find((d) => d.state === "READY") ?? null;
+}
+
+/**
+ * Returns the most recent successful deployment for the current environment.
+ * Used for the deployments page header stat.
  */
 export async function getLastDeploy(): Promise<VercelDeployment | null> {
   const deploys = await fetchRecentDeployments(5);

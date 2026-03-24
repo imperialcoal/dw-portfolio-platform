@@ -1,4 +1,4 @@
-import { normalizeGitHubWorkflowRun } from "@dw/contracts";
+import { normalizeGitHubWorkflowRun, safeId } from "@dw/contracts";
 import { analyzeEvent } from "@dw/llm";
 import { sendIncidentEmail } from "@dw/messaging";
 
@@ -11,13 +11,6 @@ import {
   markIncidentOpen,
 } from "../memory/redis";
 import { fetchCiJobDetails } from "../sensors/github-ci";
-
-function safeId(v: unknown): string {
-  if (typeof v === "string") return v;
-  if (typeof v === "number") return String(v);
-  if (typeof v === "bigint") return String(v);
-  return "";
-}
 
 /**
  * Returns true if this branch should get a GitHub Issue created on failure.
@@ -83,7 +76,9 @@ export async function runCiAgent(
     return;
   }
 
-  // ── Layer 2: Dedup by commit SHA + workflow ───────────────────────────────
+  // ── Layer 2: Dedup by commit SHA + workflow + branch ──────────────────────
+  // Prevents the same broken commit from being analyzed multiple times
+  // even if it triggers multiple CI runs (e.g. incident doc commits).
   if (commitSha) {
     const commitDedupKey = `ci:commit:${commitSha.slice(0, 12)}:${workflowName}:${branch}`;
     if (await isDuplicate("ci_failure", commitDedupKey)) {
@@ -135,11 +130,11 @@ export async function runCiAgent(
     generateAndCommitIncidentDoc(event, analysis),
   ]);
 
-  const issueResult_ =
+  const issueValue =
     issueResult.status === "fulfilled" && issueResult.value !== null
       ? issueResult.value
       : null;
-  const issueUrl = issueResult_?.url;
+  const issueUrl = issueValue?.url;
   const githubIssueNumber = issueUrl
     ? parseInt(issueUrl.split("/").pop() ?? "", 10) || undefined
     : undefined;

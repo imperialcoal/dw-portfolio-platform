@@ -34,14 +34,57 @@ function assertQStash(): void {
   }
 }
 
+// ─────────────────────────────────────────────
+// CI dedup key
+//
+// Dedup on commit SHA + workflow + branch rather than run ID.
+//
+// Run ID is unique per CI execution — so if the same broken commit
+// triggers multiple CI runs (e.g. your push + an agent incident doc
+// commit), QStash sees different dedup IDs and processes all of them,
+// creating duplicate incidents.
+//
+// Commit SHA + workflow + branch represents the code state being tested.
+// If the same commit fails CI more than once, it's the same failure —
+// only the first run should be analyzed.
+//
+// Falls back to run ID if commit info is unavailable.
+// ─────────────────────────────────────────────
+
+function buildCiDedupId(payload: CiJobPayload): string {
+  const workflowRun =
+    payload.githubPayload.workflow_run !== null &&
+    typeof payload.githubPayload.workflow_run === "object"
+      ? (payload.githubPayload.workflow_run as Record<string, unknown>)
+      : null;
+
+  const commitSha =
+    typeof workflowRun?.head_sha === "string"
+      ? workflowRun.head_sha.slice(0, 7)
+      : payload.runId;
+
+  const workflow =
+    typeof workflowRun?.name === "string"
+      ? workflowRun.name.replace(/\s+/g, "-").toLowerCase()
+      : "ci";
+
+  const branch =
+    typeof workflowRun?.head_branch === "string"
+      ? workflowRun.head_branch
+      : "unknown";
+
+  return `ci-${commitSha}-${workflow}-${branch}`;
+}
+
 export async function publishCiJob(payload: CiJobPayload): Promise<string> {
   assertQStash();
   const client = getQStash();
+  const dedupId = buildCiDedupId(payload);
   const result = await client.publishJSON({
     url: getProcessorUrl("/api/process/ci"),
     body: payload,
     headers: {
-      "Upstash-Deduplication-Id": `ci-${payload.runId}`,
+      "Upstash-Deduplication-Id": dedupId,
       "Upstash-Retries": "3",
     },
   });
@@ -51,6 +94,7 @@ export async function publishCiJob(payload: CiJobPayload): Promise<string> {
       qstash: "publish",
       job: "ci",
       runId: payload.runId,
+      dedupId,
       messageId: result.messageId,
     }),
   );

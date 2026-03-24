@@ -32,18 +32,22 @@ const SEVERITY_STYLES = {
   critical: {
     badge: "bg-red-500/10 text-red-400 border-red-500/20",
     card: "border-red-500/20 bg-red-500/5",
+    text: "text-red-400",
   },
   high: {
     badge: "bg-orange-500/10 text-orange-400 border-orange-500/20",
     card: "border-orange-500/20 bg-orange-500/5",
+    text: "text-orange-400",
   },
   medium: {
     badge: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
     card: "border-yellow-500/20 bg-yellow-500/5",
+    text: "text-yellow-400",
   },
   low: {
     badge: "bg-green-500/10 text-green-400 border-green-500/20",
     card: "border-green-500/20 bg-green-500/5",
+    text: "text-green-400",
   },
 } as const;
 
@@ -71,10 +75,9 @@ const STATUS_STYLES: Record<IncidentStatus, { badge: string; label: string }> =
     },
   };
 
-// Type badge styles — security alerts get a distinct purple treatment
 const TYPE_BADGE: Record<IncidentRecord["type"], string> = {
-  ci_failure: "", // uses severity color (existing behavior)
-  sentry_error: "", // uses severity color (existing behavior)
+  ci_failure: "",
+  sentry_error: "",
   security_alert: "bg-purple-500/10 text-purple-400 border-purple-500/20",
 };
 
@@ -94,7 +97,56 @@ const RESOLVED_BY_LABELS: Record<
 };
 
 // ─────────────────────────────────────────────
-// Components
+// Stat group component — labelled container for a row of chips
+// ─────────────────────────────────────────────
+
+function StatGroup({
+  label,
+  tooltip,
+  children,
+}: {
+  label: string;
+  tooltip?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <p className="text-[10px] font-semibold tracking-widest text-zinc-600 uppercase">
+          {label}
+        </p>
+        {tooltip && (
+          <p className="text-[10px] text-zinc-700 italic">{tooltip}</p>
+        )}
+      </div>
+      <div className="flex flex-wrap gap-2">{children}</div>
+    </div>
+  );
+}
+
+function StatChip({
+  label,
+  count,
+  style,
+}: {
+  label: string;
+  count: number;
+  style: string;
+}) {
+  return (
+    <div
+      className={`flex min-w-18 flex-col items-center rounded-lg border px-3 py-2.5 ${style}`}
+    >
+      <p className="text-lg leading-none font-bold tabular-nums">{count}</p>
+      <p className="mt-1 text-[10px] tracking-wide text-zinc-500 uppercase">
+        {label}
+      </p>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// Incident card
 // ─────────────────────────────────────────────
 
 function IncidentCard({ incident }: { incident: IncidentRecord }) {
@@ -152,11 +204,9 @@ function IncidentCard({ incident }: { incident: IncidentRecord }) {
         </div>
       </div>
 
-      {/* Correlation row — CI/Sentry show commit+branch, security shows package+CVE */}
+      {/* Correlation row */}
       {isSecurityAlert
-        ? // Security alert correlation: package name, ecosystem, CVE/GHSA
-          // Labels carry this info since we don't have a separate context field here
-          incident.labels.length > 0 && (
+        ? incident.labels.length > 0 && (
             <div className="flex flex-wrap items-center gap-3 rounded-lg border border-purple-500/10 bg-purple-500/5 px-3 py-2">
               <span className="text-[10px] font-semibold tracking-widest text-purple-700 uppercase">
                 Vulnerability
@@ -171,8 +221,7 @@ function IncidentCard({ incident }: { incident: IncidentRecord }) {
               ))}
             </div>
           )
-        : // CI/Sentry correlation: commit SHA + branch
-          (incident.commitSha !== undefined ||
+        : (incident.commitSha !== undefined ||
             incident.branch !== undefined) && (
             <div className="flex flex-wrap items-center gap-3 rounded-lg border border-white/5 bg-black/20 px-3 py-2">
               <span className="text-[10px] font-semibold tracking-widest text-zinc-600 uppercase">
@@ -269,19 +318,16 @@ function IncidentCard({ incident }: { incident: IncidentRecord }) {
             → Incident Doc
           </a>
         )}
-        {/* For security alerts, sentryIssueId stores the alert number — show alert link */}
         {isSecurityAlert && incident.sentryIssueId !== undefined && (
           <span className="text-xs text-zinc-600">
             Alert #{incident.sentryIssueId}
           </span>
         )}
-        {/* For Sentry incidents, show Sentry issue ID */}
         {!isSecurityAlert && incident.sentryIssueId !== undefined && (
           <span className="text-xs text-zinc-600">
             Sentry #{incident.sentryIssueId}
           </span>
         )}
-        {/* Manual resolution — only for non-resolved/closed incidents */}
         <div className="ml-auto">
           <ResolveButtonWithRefresh
             incidentId={incident.id}
@@ -323,20 +369,39 @@ function SectionHeader({
 export default async function IncidentsPage() {
   const incidents = await getIncidents(100);
 
+  // ── Status buckets ────────────────────────────────────────────────────────
+  // Each incident belongs to exactly one status at any given time.
+  // "active" = open + investigating (needs attention)
+  // "resolved" and "closed" are distinct:
+  //   resolved = confirmed fixed, may still have monitoring period
+  //   closed   = fully historical, no further action
   const active = incidents.filter(
     (i) => i.status === "open" || i.status === "investigating",
   );
   const monitoring = incidents.filter((i) => i.status === "monitoring");
-  const resolved = incidents.filter(
+  const resolved = incidents.filter((i) => i.status === "resolved");
+  const closed = incidents.filter((i) => i.status === "closed");
+  const resolvedOrClosed = incidents.filter(
     (i) => i.status === "resolved" || i.status === "closed",
   );
 
+  // ── Severity counts ───────────────────────────────────────────────────────
+  // These count ALL incidents regardless of status — total historical counts.
+  // An incident can be both critical AND resolved (counts in both).
   const bySeverity = (s: IncidentRecord["severity"]) =>
     incidents.filter((i) => i.severity === s);
 
+  // ── Type counts ───────────────────────────────────────────────────────────
+  const ciCount = incidents.filter((i) => i.type === "ci_failure").length;
+  const sentryCount = incidents.filter((i) => i.type === "sentry_error").length;
   const securityCount = incidents.filter(
     (i) => i.type === "security_alert",
   ).length;
+
+  // ── Active severity (for context) ─────────────────────────────────────────
+  // Subset showing only active incidents by severity — more actionable view
+  const activeBySeverity = (s: IncidentRecord["severity"]) =>
+    active.filter((i) => i.severity === s);
 
   return (
     <div className="min-h-screen bg-zinc-950 p-6 text-zinc-100 lg:p-10">
@@ -355,11 +420,10 @@ export default async function IncidentsPage() {
             </h1>
             <p className="mt-0.5 text-sm text-zinc-500">
               {incidents.length} total · {active.length} active ·{" "}
-              {resolved.length} resolved
+              {resolvedOrClosed.length} resolved
               {securityCount > 0 && (
                 <>
-                  {" "}
-                  ·{" "}
+                  {" · "}
                   <span className="text-purple-400">
                     {securityCount} security
                   </span>
@@ -369,74 +433,110 @@ export default async function IncidentsPage() {
           </div>
         </div>
 
-        {/* Status summary */}
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-          {[
-            {
-              label: "Open",
-              count: incidents.filter((i) => i.status === "open").length,
-              style: "border-red-500/20 bg-red-500/5 text-red-400",
-            },
-            {
-              label: "Investigating",
-              count: incidents.filter((i) => i.status === "investigating")
-                .length,
-              style: "border-orange-500/20 bg-orange-500/5 text-orange-400",
-            },
-            {
-              label: "Monitoring",
-              count: monitoring.length,
-              style: "border-blue-500/20 bg-blue-500/5 text-blue-400",
-            },
-            {
-              label: "Resolved",
-              count: incidents.filter((i) => i.status === "resolved").length,
-              style: "border-green-500/20 bg-green-500/5 text-green-400",
-            },
-            {
-              label: "Closed",
-              count: incidents.filter((i) => i.status === "closed").length,
-              style: "border-zinc-500/20 bg-zinc-500/5 text-zinc-400",
-            },
-          ].map((item) => (
-            <div
-              key={item.label}
-              className={`rounded-lg border p-3 text-center ${item.style}`}
-            >
-              <p className="text-xl font-bold tabular-nums">{item.count}</p>
-              <p className="mt-0.5 text-[10px] tracking-widest text-zinc-600 uppercase">
-                {item.label}
-              </p>
-            </div>
-          ))}
-        </div>
+        {/* Stats — three labelled groups, each with a clear semantic */}
+        <div className="space-y-5 rounded-xl border border-white/10 bg-white/5 p-5">
+          {/* Status — mutually exclusive, each incident has exactly one status */}
+          <StatGroup
+            label="Status"
+            tooltip="Each incident has exactly one status at a time"
+          >
+            <StatChip
+              label="Open"
+              count={incidents.filter((i) => i.status === "open").length}
+              style="border-red-500/20 bg-red-500/5 text-red-400"
+            />
+            <StatChip
+              label="Investigating"
+              count={
+                incidents.filter((i) => i.status === "investigating").length
+              }
+              style="border-orange-500/20 bg-orange-500/5 text-orange-400"
+            />
+            <StatChip
+              label="Monitoring"
+              count={monitoring.length}
+              style="border-blue-500/20 bg-blue-500/5 text-blue-400"
+            />
+            <StatChip
+              label="Resolved"
+              count={resolved.length}
+              style="border-green-500/20 bg-green-500/5 text-green-400"
+            />
+            <StatChip
+              label="Closed"
+              count={closed.length}
+              style="border-zinc-500/20 bg-zinc-500/5 text-zinc-400"
+            />
+          </StatGroup>
 
-        {/* Severity + type breakdown */}
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-          {(["critical", "high", "medium", "low"] as const).map((s) => (
-            <div
-              key={s}
-              className={`rounded-lg border p-3 text-center ${SEVERITY_STYLES[s].card}`}
-            >
-              <p
-                className={`text-xl font-bold tabular-nums ${SEVERITY_STYLES[s].badge.split(" ")[1] ?? ""}`}
-              >
-                {bySeverity(s).length}
-              </p>
-              <p className="mt-0.5 text-[10px] tracking-widest text-zinc-600 uppercase">
-                {s}
-              </p>
-            </div>
-          ))}
-          {/* Security alert count chip */}
-          <div className="rounded-lg border border-purple-500/20 bg-purple-500/5 p-3 text-center">
-            <p className="text-xl font-bold text-purple-400 tabular-nums">
-              {securityCount}
-            </p>
-            <p className="mt-0.5 text-[10px] tracking-widest text-zinc-600 uppercase">
-              security
-            </p>
-          </div>
+          <div className="border-t border-white/5" />
+
+          {/* Severity — total historical counts, not mutually exclusive with status */}
+          <StatGroup
+            label="Severity (all time)"
+            tooltip="Total across all statuses — a resolved critical incident counts here"
+          >
+            <StatChip
+              label="Critical"
+              count={bySeverity("critical").length}
+              style="border-red-500/20 bg-red-500/5 text-red-400"
+            />
+            <StatChip
+              label="High"
+              count={bySeverity("high").length}
+              style="border-orange-500/20 bg-orange-500/5 text-orange-400"
+            />
+            <StatChip
+              label="Medium"
+              count={bySeverity("medium").length}
+              style="border-yellow-500/20 bg-yellow-500/5 text-yellow-400"
+            />
+            <StatChip
+              label="Low"
+              count={bySeverity("low").length}
+              style="border-green-500/20 bg-green-500/5 text-green-400"
+            />
+            {/* Active severity breakdown — more actionable */}
+            {active.length > 0 && (
+              <div className="ml-4 flex items-center gap-2 border-l border-white/10 pl-4">
+                <p className="text-[10px] text-zinc-600 italic">active only:</p>
+                {(["critical", "high", "medium", "low"] as const)
+                  .filter((s) => activeBySeverity(s).length > 0)
+                  .map((s) => (
+                    <span
+                      key={s}
+                      className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold ${SEVERITY_STYLES[s].badge}`}
+                    >
+                      {activeBySeverity(s).length} {s}
+                    </span>
+                  ))}
+              </div>
+            )}
+          </StatGroup>
+
+          <div className="border-t border-white/5" />
+
+          {/* By Type — each incident has exactly one type */}
+          <StatGroup
+            label="By Type (all time)"
+            tooltip="Each incident has exactly one type — security alerts may also appear in severity counts above"
+          >
+            <StatChip
+              label="CI Failures"
+              count={ciCount}
+              style="border-blue-500/20 bg-blue-500/5 text-blue-400"
+            />
+            <StatChip
+              label="Runtime Errors"
+              count={sentryCount}
+              style="border-amber-500/20 bg-amber-500/5 text-amber-400"
+            />
+            <StatChip
+              label="Security Alerts"
+              count={securityCount}
+              style="border-purple-500/20 bg-purple-500/5 text-purple-400"
+            />
+          </StatGroup>
         </div>
 
         {incidents.length === 0 ? (
@@ -449,7 +549,6 @@ export default async function IncidentsPage() {
           </div>
         ) : (
           <div className="space-y-10">
-            {/* Active */}
             {active.length > 0 && (
               <div className="space-y-4">
                 <SectionHeader
@@ -466,7 +565,6 @@ export default async function IncidentsPage() {
               </div>
             )}
 
-            {/* Monitoring */}
             {monitoring.length > 0 && (
               <div className="space-y-4">
                 <SectionHeader
@@ -483,15 +581,14 @@ export default async function IncidentsPage() {
               </div>
             )}
 
-            {/* History */}
-            {resolved.length > 0 && (
+            {resolvedOrClosed.length > 0 && (
               <div className="space-y-4">
                 <SectionHeader
                   title="Resolved History"
-                  count={resolved.length}
+                  count={resolvedOrClosed.length}
                   countStyle="bg-zinc-500/10 text-zinc-400"
                 />
-                {resolved.map((incident) => (
+                {resolvedOrClosed.map((incident) => (
                   <IncidentCard
                     key={`${incident.type}-${incident.id}`}
                     incident={incident}

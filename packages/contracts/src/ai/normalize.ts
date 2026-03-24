@@ -24,7 +24,12 @@ function obj(v: unknown): Record<string, unknown> {
     : {};
 }
 
-function safeId(v: unknown): string {
+/**
+ * Safely converts an unknown value to a string ID.
+ * Used throughout the AI DevOps system to extract IDs from untyped
+ * webhook payloads without throwing on unexpected types.
+ */
+export function safeId(v: unknown): string {
   if (typeof v === "string") return v;
   if (typeof v === "number") return String(v);
   if (typeof v === "bigint") return String(v);

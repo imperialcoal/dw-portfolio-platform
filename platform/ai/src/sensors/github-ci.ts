@@ -1,5 +1,7 @@
 // Sensors only gather raw signals — no analysis logic here.
 
+import { config } from "@dw/config";
+
 interface GitHubJob {
   name: string;
   conclusion: string | null;
@@ -15,7 +17,7 @@ export async function fetchCiJobDetails(
   repo: string,
   runId: string,
 ): Promise<string> {
-  const token = process.env.GITHUB_TOKEN;
+  const token = config.devops.GITHUB_TOKEN;
   if (!token) return "[GITHUB_TOKEN not set — cannot fetch job details]";
 
   const res = await fetch(

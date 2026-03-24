@@ -28,6 +28,7 @@ export {
   normalizeGitHubWorkflowRun,
   normalizeSentryWebhook,
   normalizeSecurityAlert,
+  safeId,
 } from "./ai/normalize";
 
 // ─────────────────────────────────────────────

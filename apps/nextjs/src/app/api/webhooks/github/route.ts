@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { verifyGitHubSignature } from "@dw/ai/actions";
+import { safeId } from "@dw/contracts";
 import {
   publishCiJob,
   publishGithubResolution,
@@ -13,13 +14,6 @@ import { env } from "~/env";
 
 export const runtime = "edge";
 
-function safeId(v: unknown): string {
-  if (typeof v === "string") return v;
-  if (typeof v === "number") return String(v);
-  if (typeof v === "bigint") return String(v);
-  return "unknown";
-}
-
 // ─────────────────────────────────────────────
 // Environment gate
 //
@@ -29,7 +23,7 @@ function safeId(v: unknown): string {
 //   - Preview CI failures appearing in the production dashboard
 //
 // Rules:
-//   preview → process all branches except main
+//   preview/local/test → process all branches except main
 //   production → process main only
 //
 // Unknown branch (null) is allowed through — the agent will handle it.
@@ -74,10 +68,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ ok: true, skipped: "not_a_failure" });
     }
 
-    // Agent commit filter — platform-agent commits incident docs and drift
-    // reports back to the repo, which trigger new CI runs. Those runs must
-    // never feed back into the incident pipeline or they create an infinite
-    // loop: failure → incident doc commit → CI run → failure → ...
+    // Agent commit filter — breaks the incident doc commit → CI run → incident loop.
+    // The agent tags all its commits with [platform-agent] in the message.
+    // QStash dedup (commit SHA key) provides a second layer of protection.
     const headCommit =
       workflowRun.head_commit !== null &&
       typeof workflowRun.head_commit === "object"
@@ -98,7 +91,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ ok: true, skipped: "agent_commit" });
     }
 
-    // Environment gate — check branch before doing any further work
+    // Environment gate
     const branch =
       typeof workflowRun.head_branch === "string"
         ? workflowRun.head_branch

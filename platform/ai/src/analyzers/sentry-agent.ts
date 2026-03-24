@@ -2,7 +2,7 @@
 // Called by the QStash processing endpoint after webhook enqueue.
 // Never called directly from Edge routes.
 
-import { normalizeSentryWebhook } from "@dw/contracts";
+import { normalizeSentryWebhook, safeId } from "@dw/contracts";
 import { analyzeEvent } from "@dw/llm";
 import { sendIncidentEmail } from "@dw/messaging";
 
@@ -14,13 +14,6 @@ import {
   logIncident,
   markIncidentOpen,
 } from "../memory/redis";
-
-function safeId(v: unknown): string {
-  if (typeof v === "string") return v;
-  if (typeof v === "number") return String(v);
-  if (typeof v === "bigint") return String(v);
-  return "";
-}
 
 export async function runSentryAgent(
   payload: Record<string, unknown>,
@@ -103,7 +96,6 @@ export async function runSentryAgent(
   const githubIssueNumber = issueUrl
     ? parseInt(issueUrl.split("/").pop() ?? "", 10) || undefined
     : undefined;
-
   const incidentDocPath =
     docResult.status === "fulfilled" ? docResult.value.filePath : undefined;
 
@@ -156,7 +148,6 @@ export async function runSentryAgent(
     issueUrl,
     githubIssueNumber,
     incidentDocPath,
-    // Store Sentry issue ID for resolution webhook matching
     sentryIssueId: issueId,
   });
 
