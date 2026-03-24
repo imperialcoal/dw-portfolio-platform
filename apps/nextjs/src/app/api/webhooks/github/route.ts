@@ -9,6 +9,8 @@ import {
 } from "@dw/qstash";
 import { isQStashConfigured } from "@dw/validators/qstash-env";
 
+import { env } from "~/env";
+
 export const runtime = "edge";
 
 function safeId(v: unknown): string {
@@ -16,6 +18,28 @@ function safeId(v: unknown): string {
   if (typeof v === "number") return String(v);
   if (typeof v === "bigint") return String(v);
   return "unknown";
+}
+
+// ─────────────────────────────────────────────
+// Environment gate
+//
+// GitHub webhooks are repo-scoped — they fire for all branches regardless
+// of which environment receives them. This gate prevents:
+//   - Production CI failures appearing in the preview dashboard
+//   - Preview CI failures appearing in the production dashboard
+//
+// Rules:
+//   preview → process all branches except main
+//   production → process main only
+//
+// Unknown branch (null) is allowed through — the agent will handle it.
+// Dependabot branches (dependabot/*) are treated as non-main.
+// ─────────────────────────────────────────────
+
+function isBranchAllowedInCurrentEnv(branch: string | null): boolean {
+  if (branch === null) return true;
+  const isMain = branch === "main";
+  return env.NEXT_PUBLIC_APP_ENV === "production" ? isMain : !isMain;
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
@@ -47,7 +71,31 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const action = typeof payload.action === "string" ? payload.action : null;
 
     if (action !== "completed" || workflowRun?.conclusion !== "failure") {
-      return NextResponse.json({ ok: true, skipped: "not a failure" });
+      return NextResponse.json({ ok: true, skipped: "not_a_failure" });
+    }
+
+    // Environment gate — check branch before doing any further work
+    const branch =
+      typeof workflowRun.head_branch === "string"
+        ? workflowRun.head_branch
+        : null;
+
+    if (!isBranchAllowedInCurrentEnv(branch)) {
+      console.log(
+        JSON.stringify({
+          level: "info",
+          webhook: "github",
+          event: "env_gate_skip",
+          branch,
+          appEnv: env.NEXT_PUBLIC_APP_ENV,
+        }),
+      );
+      return NextResponse.json({
+        ok: true,
+        skipped: "env_gate",
+        branch,
+        appEnv: env.NEXT_PUBLIC_APP_ENV,
+      });
     }
 
     if (!isQStashConfigured()) {
@@ -119,7 +167,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ ok: true, queued: true, messageId });
   }
 
-  // ── repository_vulnerability_alert: Dependabot security → enqueue security agent
+  // ── repository_vulnerability_alert: Dependabot → enqueue security agent ──
   if (event === "repository_vulnerability_alert") {
     const action = typeof payload.action === "string" ? payload.action : "";
 

@@ -5,6 +5,8 @@ import { verifySentrySignature } from "@dw/ai/actions";
 import { publishSentryJob, publishSentryResolution } from "@dw/qstash";
 import { isQStashConfigured } from "@dw/validators/qstash-env";
 
+import { env } from "~/env";
+
 export const runtime = "edge";
 
 function safeId(v: unknown): string {
@@ -12,6 +14,28 @@ function safeId(v: unknown): string {
   if (typeof v === "number") return String(v);
   if (typeof v === "bigint") return String(v);
   return "unknown";
+}
+
+// ─────────────────────────────────────────────
+// Environment gate
+//
+// Even with separate Sentry integrations per environment, this provides
+// a programmatic second layer of defense against misconfigured alerts.
+//
+// Rules:
+//   preview → skip events tagged as production Sentry environment
+//   production → skip events not tagged as production Sentry environment
+//
+// Unknown environment (null) is allowed through — better to process a
+// potentially wrong event than to silently drop a real incident.
+// ─────────────────────────────────────────────
+
+function isSentryEnvironmentAllowed(sentryEnv: string | null): boolean {
+  if (sentryEnv === null) return true;
+  const isProduction = sentryEnv === "production";
+  return env.NEXT_PUBLIC_APP_ENV === "production"
+    ? isProduction
+    : !isProduction;
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
@@ -35,10 +59,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const resource = req.headers.get("sentry-hook-resource");
   const action = typeof payload.action === "string" ? payload.action : "";
 
-  // ── New issue: enqueue Sentry agent ───────────────────────────────────────
+  // ── New issue or event alert → enqueue Sentry agent ───────────────────────
   if (resource === "issue" || resource === "event_alert") {
     if (action !== "created" && action !== "triggered") {
-      // ── Resolved issue: enqueue for monitoring status update ───────────────
+      // ── Resolved issue → enqueue for monitoring status update ─────────────
       if (action === "resolved") {
         const data =
           payload.data !== null && typeof payload.data === "object"
@@ -76,6 +100,38 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       issueRaw !== null && typeof issueRaw === "object"
         ? (issueRaw as Record<string, unknown>)
         : {};
+
+    // Extract Sentry environment — lives in data.event.environment
+    // Fall back to top-level payload.environment for older webhook formats
+    const eventData =
+      data.event !== null && typeof data.event === "object"
+        ? (data.event as Record<string, unknown>)
+        : {};
+    const sentryEnv =
+      typeof eventData.environment === "string"
+        ? eventData.environment
+        : typeof payload.environment === "string"
+          ? payload.environment
+          : null;
+
+    // Environment gate — applied after extracting sentryEnv from the payload
+    if (!isSentryEnvironmentAllowed(sentryEnv)) {
+      console.log(
+        JSON.stringify({
+          level: "info",
+          webhook: "sentry",
+          event: "env_gate_skip",
+          sentryEnv,
+          appEnv: env.NEXT_PUBLIC_APP_ENV,
+        }),
+      );
+      return NextResponse.json({
+        ok: true,
+        skipped: "env_gate",
+        sentryEnv,
+        appEnv: env.NEXT_PUBLIC_APP_ENV,
+      });
+    }
 
     const issueId = safeId(issue.id);
     const projectSlug =

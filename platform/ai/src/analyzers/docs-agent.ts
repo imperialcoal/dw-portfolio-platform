@@ -57,6 +57,9 @@ interface DriftItem {
 // ─────────────────────────────────────────────
 // Structural detectors — pure functions, no I/O
 // ─────────────────────────────────────────────
+const ROUTE_EXCLUSIONS = [
+  "/api/sentry-example-api", // Sentry SDK test route — not a real endpoint
+];
 
 function detectNewApiRoutes(
   repo: RepoStructure,
@@ -69,7 +72,11 @@ function detectNewApiRoutes(
       const match = /app(\/api\/[^/]+(?:\/[^/]+)*)\/route\.ts$/.exec(p);
       if (!match?.[1]) return false;
       const route = match[1];
-      return !archDoc.includes(route) && !opsDoc.includes(route);
+      return (
+        !ROUTE_EXCLUSIONS.includes(route) &&
+        !archDoc.includes(route) &&
+        !opsDoc.includes(route)
+      );
     })
     .map((p) => {
       const match = /app(\/api\/[^/]+(?:\/[^/]+)*)\/route\.ts$/.exec(p);
@@ -113,6 +120,34 @@ function detectNewPackages(repo: RepoStructure, archDoc: string): DriftItem[] {
         path: p,
         description: `Package \`${dir}\` (${name}) is not mentioned in ARCHITECTURE.md`,
         affectedDocs: ["docs/ARCHITECTURE.md"],
+      };
+    });
+}
+
+function detectNewIncidentTypes(
+  repo: RepoStructure,
+  playbooksDoc: string,
+): DriftItem[] {
+  // Analyzer files represent new incident types that may need playbooks
+  const analyzerPaths = repo.allPaths.filter(
+    (p) =>
+      p.includes("platform/ai/src/analyzers/") &&
+      p.endsWith("-agent.ts") &&
+      !p.endsWith("index.ts"),
+  );
+
+  return analyzerPaths
+    .filter((p) => {
+      const name = p.split("/").pop()?.replace("-agent.ts", "") ?? "";
+      return !playbooksDoc.includes(name) && name.length > 0;
+    })
+    .map((p) => {
+      const name = p.split("/").pop()?.replace("-agent.ts", "") ?? p;
+      return {
+        category: "new_api_route" as const, // reuse category for reporting
+        path: p,
+        description: `Agent \`${name}\` has no corresponding response playbook in PLAYBOOKS.md`,
+        affectedDocs: ["docs/PLAYBOOKS.md"],
       };
     });
 }
@@ -577,11 +612,13 @@ export async function runDocsAgent(branch = "dev"): Promise<DocsAgentResult> {
   // Step 2: Read existing docs (synchronous lookup from already-fetched key files)
   const archDoc = getExistingDoc("docs/ARCHITECTURE.md", repo);
   const opsDoc = getExistingDoc("docs/OPERATIONS.md", repo);
+  const playbooksDoc = getExistingDoc("docs/PLAYBOOKS.md", repo);
 
   // Step 3: Run all structural detectors — pure functions, zero cost
   const allItems: DriftItem[] = [
     ...detectNewApiRoutes(repo, archDoc, opsDoc),
     ...detectNewPackages(repo, archDoc),
+    ...detectNewIncidentTypes(repo, playbooksDoc),
     ...detectNewEnvValidators(repo, opsDoc),
     ...detectNewCronJobs(repo, opsDoc),
     ...detectNewWebhookHandlers(repo, opsDoc),

@@ -1,0 +1,74 @@
+name: Nightly Docs Agent
+
+on:
+  schedule:
+    # 3am UTC nightly — matches the vercel.json schedule for when this moves to production
+    - cron: "0 3 * * *"
+  # Allow manual trigger from GitHub Actions UI for testing
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to scan (default: dev)"
+        required: false
+        default: "dev"
+
+jobs:
+  docs-agent:
+    name: Run Documentation Drift Agent
+    runs-on: ubuntu-latest
+    # Only run on the dev branch — this workflow is for preview environment only.
+    # When the AI DevOps system is promoted to production, disable this workflow
+    # and let vercel.json crons take over.
+    if: github.ref == 'refs/heads/dev' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Trigger docs-agent cron
+        id: cron
+        run: |
+          BRANCH="${{ github.event.inputs.branch || 'dev' }}"
+
+          echo "Calling docs-agent on preview deployment (branch: $BRANCH)"
+
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X GET \
+            "https://dev.dw-portfolio.dev/api/cron/docs-agent?branch=${BRANCH}&x-vercel-protection-bypass=${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --max-time 300)
+
+          HTTP_STATUS=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+
+          echo "HTTP status: $HTTP_STATUS"
+          echo "Response: $BODY"
+
+          # Surface key fields from the JSON response
+          FILES_UPDATED=$(echo "$BODY" | jq -r '.filesUpdated // [] | length' 2>/dev/null || echo "unknown")
+          FILES_SKIPPED=$(echo "$BODY" | jq -r '.filesSkipped // [] | length' 2>/dev/null || echo "unknown")
+          ERRORS=$(echo "$BODY" | jq -r '.errors // [] | join(", ")' 2>/dev/null || echo "none")
+          DURATION=$(echo "$BODY" | jq -r '.durationMs // "unknown"' 2>/dev/null)
+
+          echo "files_updated=$FILES_UPDATED" >> $GITHUB_OUTPUT
+          echo "files_skipped=$FILES_SKIPPED" >> $GITHUB_OUTPUT
+          echo "errors=$ERRORS" >> $GITHUB_OUTPUT
+          echo "duration_ms=$DURATION" >> $GITHUB_OUTPUT
+
+          if [ "$HTTP_STATUS" != "200" ]; then
+            echo "::error::Docs agent returned HTTP $HTTP_STATUS"
+            exit 1
+          fi
+
+          if [ "$ERRORS" != "" ] && [ "$ERRORS" != "null" ] && [ "$ERRORS" != "none" ]; then
+            echo "::warning::Docs agent completed with errors: $ERRORS"
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Docs Agent Run Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| Files updated | ${{ steps.cron.outputs.files_updated }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Files skipped | ${{ steps.cron.outputs.files_skipped }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Duration | ${{ steps.cron.outputs.duration_ms }}ms |" >> $GITHUB_STEP_SUMMARY
+          echo "| Errors | ${{ steps.cron.outputs.errors || 'none' }} |" >> $GITHUB_STEP_SUMMARY
