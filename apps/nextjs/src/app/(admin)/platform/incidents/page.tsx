@@ -516,9 +516,9 @@ export default async function IncidentsPage() {
 
           <div className="border-t border-white/5" />
 
-          {/* By Type — each incident has exactly one type */}
+          {/*Type — each incident has exactly one type */}
           <StatGroup
-            label="By Type (all time)"
+            label="Type (all time)"
             tooltip="Each incident has exactly one type — security alerts may also appear in severity counts above"
           >
             <StatChip
