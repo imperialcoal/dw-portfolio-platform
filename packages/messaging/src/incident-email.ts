@@ -1,5 +1,6 @@
 import type { PlatformEvent } from "@dw/contracts";
 import type { AnalysisResult } from "@dw/llm";
+import { config } from "@dw/config";
 import {
   isAgentEmailConfigured,
   messagingEnv,
@@ -83,7 +84,7 @@ function buildEmail(opts: IncidentEmailOptions): {
   const emoji = SEVERITY_EMOJI[analysis.severity];
   const color = SEVERITY_COLOR[analysis.severity];
   const label = event.type === "ci_failure" ? "CI Failure" : "Runtime Error";
-  const ghRepo = process.env.GITHUB_REPO ?? "";
+  const ghRepo = config.devops.GITHUB_REPO ?? "";
 
   const subject = `${emoji} [${analysis.severity.toUpperCase()}] ${label}: ${analysis.summary.slice(0, 60)}`;
 

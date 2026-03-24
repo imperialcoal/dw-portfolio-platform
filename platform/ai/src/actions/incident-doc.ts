@@ -13,10 +13,13 @@ export async function generateAndCommitIncidentDoc(
   const slug = buildSlug(analysis.summary);
   const filePath = `docs/incidents/${date}-${slug}.md`;
 
+  // [platform-agent] tag is required — the GitHub webhook handler uses it
+  // to filter out agent-originated CI runs and prevent the feedback loop:
+  //   CI failure → incident doc commit → CI run → incident doc commit → ...
   await commitFile(
     filePath,
     buildIncidentDoc(event, analysis, date, issueUrl),
-    `docs(incident): ${date} — ${analysis.summary.slice(0, 72)}`,
+    `docs(incident): ${date} — ${analysis.summary.slice(0, 72)} [platform-agent]`,
   );
 
   return { filePath, slug };

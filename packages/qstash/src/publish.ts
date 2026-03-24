@@ -18,7 +18,7 @@ function getProcessorUrl(path: string): string {
 
   const bypassToken =
     config.app.APP_ENV !== "production"
-      ? process.env.VERCEL_AUTOMATION_BYPASS_SECRET
+      ? config.observability.VERCEL_AUTOMATION_BYPASS_SECRET
       : undefined;
 
   const query = bypassToken ? `?x-vercel-protection-bypass=${bypassToken}` : "";
@@ -37,18 +37,20 @@ function assertQStash(): void {
 // ─────────────────────────────────────────────
 // CI dedup key
 //
-// Dedup on commit SHA + workflow + branch rather than run ID.
+// Dedup on the ORIGINAL failing commit SHA + workflow + branch.
 //
-// Run ID is unique per CI execution — so if the same broken commit
-// triggers multiple CI runs (e.g. your push + an agent incident doc
-// commit), QStash sees different dedup IDs and processes all of them,
-// creating duplicate incidents.
+// This is critical for breaking the incident loop. When the agent commits
+// an incident doc, that commit has a NEW SHA. Without proper dedup, the
+// CI failure on that new commit would also get processed, creating another
+// incident doc, creating another CI run, ad infinitum.
 //
-// Commit SHA + workflow + branch represents the code state being tested.
-// If the same commit fails CI more than once, it's the same failure —
-// only the first run should be analyzed.
+// The webhook handler extracts the original commit SHA from the workflow_run
+// payload's head_sha field BEFORE calling publishCiJob. This means the
+// dedup key is always based on the code state that actually failed, not on
+// any subsequent agent commits.
 //
-// Falls back to run ID if commit info is unavailable.
+// Combined with the [platform-agent] commit message filter in the webhook
+// handler, this provides two independent layers of loop prevention.
 // ─────────────────────────────────────────────
 
 function buildCiDedupId(payload: CiJobPayload): string {
@@ -135,7 +137,6 @@ export async function publishSecurityAlert(
     url: getProcessorUrl("/api/process/security"),
     body: payload,
     headers: {
-      // Include action in dedup ID — dismissed events must still process
       "Upstash-Deduplication-Id": `security-${payload.alertId}-${payload.action}`,
       "Upstash-Retries": "3",
     },

@@ -33,6 +33,7 @@ export function observabilityEnv() {
       // Vercel API — runtime sensor (platform/ai/sensors/vercel.ts)
       VERCEL_API_TOKEN: z.string().min(1).optional(),
       VERCEL_PROJECT_ID: z.string().min(1).optional(),
+      VERCEL_AUTOMATION_BYPASS_SECRET: z.string().optional(),
       NODE_ENV: z
         .enum(["development", "test", "production"])
         .default("development"),

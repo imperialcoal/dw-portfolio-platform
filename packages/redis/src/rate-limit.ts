@@ -1,6 +1,8 @@
 import type { Redis } from "@upstash/redis";
 import { TRPCError } from "@trpc/server";
 
+import { config } from "@dw/config";
+
 export interface RateLimitOptions {
   windowSeconds: number;
   maxRequests: number;
@@ -35,7 +37,7 @@ export async function rateLimit(
     if (error instanceof TRPCError) throw error;
 
     // Redis connection failure — fail open in local, fail closed in cloud
-    if (process.env.APP_ENV === "local") {
+    if (config.app.APP_ENV === "local") {
       console.warn(
         "Rate limiting unavailable — Redis connection failed:",
         error,

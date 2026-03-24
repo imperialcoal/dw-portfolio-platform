@@ -663,6 +663,9 @@ importers:
 
   packages/messaging:
     dependencies:
+      '@dw/config':
+        specifier: workspace:*
+        version: link:../config
       '@dw/contracts':
         specifier: workspace:*
         version: link:../contracts
@@ -743,6 +746,9 @@ importers:
 
   packages/redis:
     dependencies:
+      '@dw/config':
+        specifier: workspace:*
+        version: link:../config
       '@dw/validators':
         specifier: workspace:*
         version: link:../validators

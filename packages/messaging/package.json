@@ -18,6 +18,7 @@
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {
+    "@dw/config": "workspace:*",
     "@dw/contracts": "workspace:*",
     "@dw/env": "workspace:*",
     "@dw/llm": "workspace:*",

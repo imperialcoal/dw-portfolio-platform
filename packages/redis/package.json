@@ -18,6 +18,7 @@
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {
+    "@dw/config": "workspace:*",
     "@dw/validators": "workspace:*",
     "@t3-oss/env-core": "catalog:",
     "@trpc/server": "catalog:",
