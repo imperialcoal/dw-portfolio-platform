@@ -74,6 +74,30 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ ok: true, skipped: "not_a_failure" });
     }
 
+    // Agent commit filter — platform-agent commits incident docs and drift
+    // reports back to the repo, which trigger new CI runs. Those runs must
+    // never feed back into the incident pipeline or they create an infinite
+    // loop: failure → incident doc commit → CI run → failure → ...
+    const headCommit =
+      workflowRun.head_commit !== null &&
+      typeof workflowRun.head_commit === "object"
+        ? (workflowRun.head_commit as Record<string, unknown>)
+        : null;
+    const commitMessage =
+      typeof headCommit?.message === "string" ? headCommit.message : "";
+
+    if (commitMessage.includes("[platform-agent]")) {
+      console.log(
+        JSON.stringify({
+          level: "info",
+          webhook: "github",
+          event: "agent_commit_skip",
+          commitMessage: commitMessage.slice(0, 100),
+        }),
+      );
+      return NextResponse.json({ ok: true, skipped: "agent_commit" });
+    }
+
     // Environment gate — check branch before doing any further work
     const branch =
       typeof workflowRun.head_branch === "string"
