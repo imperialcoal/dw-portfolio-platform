@@ -309,20 +309,26 @@ The production database uses Supabase's PgBouncer transaction pooler on `DATABAS
 **Accessing Sentry:**
 
 
-... [truncated — 3016 chars omitted]
+... [truncated — 1640 chars omitted]
 
 ---
 
-## Documentation Drift — 2026-03-20
+## Documentation Drift — 2026-03-25
 
 > Auto-detected by platform-agent · Review and update the sections above · Remove this block when resolved
 
-• New cron endpoint `/api/cron/docs-agent` discovered → add to **Local Development Setup** section → document cron job schedule and purpose
-• New incident resolution endpoint `/api/platform/incidents/[id]/resolve` discovered → add to **Infrastructure Overview** section → document incident management API endpoints
-• New Sentry example endpoint `/api/sentry-example-api` discovered → add to **Monitoring and Alerting** section → document testing/debugging endpoint for Sentry integration
-• New tRPC handler `/api/trpc/[trpc]` discovered → add to **Infrastructure Overview** section → document tRPC API gateway configuration
-• Environment variable `CRON_SECRET` missing from documentation → add to **Environment Variables > Core Application** section → add CRON_SECRET configuration requirement
-• Cron job `/api/cron/docs-agent` missing operational details → add to **Build and Deployment Pipeline** section → document automated cron job deployment and scheduling
-• Webhook handler `/api/webhooks/clerk` missing → add to **Environment Variables > Authentication (Clerk)** section → document Clerk webhook endpoint configuration
-• Webhook handler `/api/webhooks/github` missing → add to **Build and Deployment Pipeline** section → document GitHub webhook integration for CI/CD triggers
-• Webhook handler `/api/webhooks/sentry` missing → add to **Monitoring and Alerting > Sentry** section → document Sentry webhook configuration for incident reporting
+• New cron job route `/api/cron/docs-agent` added → Add to **Build and Deployment Pipeline** section → Document cron endpoint and scheduling requirements
+
+• New incident resolution route `/api/platform/incidents/[id]/resolve` added → Add to **Infrastructure Overview** section → Document incident management API endpoint
+
+• New tRPC route `/api/trpc/[trpc]` added → Add to **Infrastructure Overview** section → Document tRPC API gateway endpoint
+
+• Environment variable `CRON_SECRET` required by cron validator → Add to **Environment Variables > Core Application** section → Add `CRON_SECRET` with description for cron job authentication
+
+• Cron endpoint `/api/cron/docs-agent` needs operational documentation → Add to **Build and Deployment Pipeline** section → Document cron job execution and monitoring
+
+• Webhook handler `/api/webhooks/clerk` added → Add to **Environment Variables > Authentication (Clerk)** section → Document Clerk webhook endpoint and required secrets
+
+• Webhook handler `/api/webhooks/github` added → Add to **Build and Deployment Pipeline** section → Document GitHub webhook integration for CI/CD events
+
+• Webhook handler `/api/webhooks/sentry` added → Add to **Monitoring and Alerting > Sentry** section → Document Sentry webhook configuration and endpoint
