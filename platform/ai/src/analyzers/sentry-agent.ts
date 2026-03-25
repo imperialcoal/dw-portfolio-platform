@@ -9,11 +9,27 @@ import { sendIncidentEmail } from "@dw/messaging";
 import { createIssue } from "../actions/github";
 import { generateAndCommitIncidentDoc } from "../actions/incident-doc";
 import {
+  findIncidentBySentryIssue,
   isDuplicate,
   logEvent,
   logIncident,
   markIncidentOpen,
+  updateIncidentStatus,
 } from "../memory/redis";
+
+// ─────────────────────────────────────────────
+// Action semantics
+//
+// created   → brand new issue, never seen before
+// triggered → alert rule fired on existing issue
+// regressed → issue was resolved but reoccurred
+//
+// For dedup purposes:
+//   created/triggered → dedup by issue ID (skip if already processed)
+//   regressed         → always process, even if we've seen this issue before,
+//                       because a regression means the previous fix didn't hold.
+//                       We reopen the existing incident rather than create a new one.
+// ─────────────────────────────────────────────
 
 export async function runSentryAgent(
   payload: Record<string, unknown>,
@@ -41,7 +57,11 @@ export async function runSentryAgent(
     }),
   );
 
-  if (action !== "created" && action !== "triggered") {
+  if (
+    action !== "created" &&
+    action !== "triggered" &&
+    action !== "regressed"
+  ) {
     console.log(
       JSON.stringify({
         level: "info",
@@ -54,7 +74,66 @@ export async function runSentryAgent(
     return;
   }
 
-  if (await isDuplicate("sentry_error", issueId)) {
+  // ── Regression handling ───────────────────────────────────────────────────
+  // A regressed issue has been seen before. Instead of creating a duplicate,
+  // reopen the existing incident and update its status back to "open".
+  // This preserves the full history while correctly signalling the recurrence.
+  if (action === "regressed") {
+    const existing = await findIncidentBySentryIssue(issueId);
+    if (existing) {
+      await updateIncidentStatus(existing.id, "open", {
+        resolutionNote: `Regressed — issue reoccurred after being resolved`,
+      });
+      console.log(
+        JSON.stringify({
+          level: "info",
+          agent: "sentry",
+          event: "regression_reopened",
+          issueId,
+          incidentId: existing.id,
+          previousStatus: existing.status,
+        }),
+      );
+
+      // Still send an email — the developer needs to know the fix didn't hold
+      const event = normalizeSentryWebhook(payload);
+      const analysis = await analyzeEvent(event);
+      await sendIncidentEmail({
+        event,
+        analysis,
+        incidentDocPath: existing.incidentDocPath,
+        issueUrl: existing.issueUrl,
+      }).catch((e: unknown) => {
+        console.error(
+          JSON.stringify({
+            level: "error",
+            agent: "sentry",
+            step: "email",
+            issueId,
+            error: String(e),
+          }),
+        );
+      });
+
+      return;
+    }
+
+    // No existing incident found for this regression — fall through and
+    // treat it as a new incident (the original may have expired from Redis)
+    console.log(
+      JSON.stringify({
+        level: "info",
+        agent: "sentry",
+        event: "regression_no_existing_incident",
+        issueId,
+        message:
+          "No prior incident found — treating regression as new incident",
+      }),
+    );
+  }
+
+  // ── Dedup for created/triggered ───────────────────────────────────────────
+  if (action !== "regressed" && (await isDuplicate("sentry_error", issueId))) {
     console.log(
       JSON.stringify({
         level: "info",
@@ -77,6 +156,7 @@ export async function runSentryAgent(
       agent: "sentry",
       event: "analyzed",
       issueId,
+      action,
       severity: analysis.severity,
       summary: analysis.summary,
     }),
@@ -159,6 +239,7 @@ export async function runSentryAgent(
       agent: "sentry",
       event: "complete",
       issueId,
+      action,
       issueUrl,
       incidentDocPath,
       githubIssueNumber,
