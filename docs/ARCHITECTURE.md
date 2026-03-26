@@ -8,28 +8,28 @@
 
 ## Tech Stack
 
-| Technology | Role | Version |
-|---|---|---|
-| **Next.js** | Primary web application (App Router) | 15.x |
-| **Expo / React Native** | Mobile application | SDK 54 |
-| **tRPC** | Type-safe API layer | 11.x |
-| **Drizzle ORM** | Database ORM with Zod schema integration | latest |
-| **PostgreSQL** (Supabase) | Primary relational database | 16 |
-| **Upstash Redis** | Incident memory store, rate limiting, dedup cache | 7.x (local), REST API (cloud) |
-| **Upstash QStash** | Durable job queue with retries for AI agents | v2 |
-| **Anthropic Claude** | AI analysis of CI failures, Sentry errors, security alerts | `claude-sonnet-4-20250514` |
-| **Clerk** | Authentication and user management | 6.x |
-| **Resend** | Transactional email (contact form + incident alerts) | 6.x |
-| **Sentry** | Error tracking and performance monitoring | @sentry/nextjs |
-| **Terraform** | Infrastructure-as-code (cloud resource provisioning) | ~1.14.6 |
-| **Doppler** | Secrets management for all environments | — |
-| **Cloudflare** | DNS, tunnel for local dev | provider ~5.18 |
-| **Vercel** | Hosting and deployment for Next.js | — |
-| **Turborepo** | Monorepo build orchestration with remote caching | 2.x |
-| **pnpm** | Package manager with workspace support | 10.x |
-| **TypeScript** | Language | ~5.9.x |
-| **Tailwind CSS** | Utility-first styling | 4.x |
-| **Vitest** | Unit and integration testing | 4.x |
+| Technology                | Role                                                       | Version                       |
+| ------------------------- | ---------------------------------------------------------- | ----------------------------- |
+| **Next.js**               | Primary web application (App Router)                       | 15.x                          |
+| **Expo / React Native**   | Mobile application                                         | SDK 54                        |
+| **tRPC**                  | Type-safe API layer                                        | 11.x                          |
+| **Drizzle ORM**           | Database ORM with Zod schema integration                   | latest                        |
+| **PostgreSQL** (Supabase) | Primary relational database                                | 16                            |
+| **Upstash Redis**         | Incident memory store, rate limiting, dedup cache          | 7.x (local), REST API (cloud) |
+| **Upstash QStash**        | Durable job queue with retries for AI agents               | v2                            |
+| **Anthropic Claude**      | AI analysis of CI failures, Sentry errors, security alerts | `claude-sonnet-4-20250514`    |
+| **Clerk**                 | Authentication and user management                         | 6.x                           |
+| **Resend**                | Transactional email (contact form + incident alerts)       | 6.x                           |
+| **Sentry**                | Error tracking and performance monitoring                  | @sentry/nextjs                |
+| **Terraform**             | Infrastructure-as-code (cloud resource provisioning)       | ~1.14.6                       |
+| **Doppler**               | Secrets management for all environments                    | —                             |
+| **Cloudflare**            | DNS, tunnel for local dev                                  | provider ~5.18                |
+| **Vercel**                | Hosting and deployment for Next.js                         | —                             |
+| **Turborepo**             | Monorepo build orchestration with remote caching           | 2.x                           |
+| **pnpm**                  | Package manager with workspace support                     | 10.x                          |
+| **TypeScript**            | Language                                                   | ~5.9.x                        |
+| **Tailwind CSS**          | Utility-first styling                                      | 4.x                           |
+| **Vitest**                | Unit and integration testing                               | 4.x                           |
 
 ---
 
@@ -180,9 +180,9 @@ graph TD
     end
 
     subgraph Edge["Edge Runtime (Vercel Edge)"]
-        WHG[/api/webhooks/github]
-        WHS[/api/webhooks/sentry]
-        TRPC[/api/trpc]
+        WHG["/api/webhooks/github"]
+        WHS["/api/webhooks/sentry"]
+        TRPC["/api/trpc"]
     end
 
     subgraph Queue["Upstash QStash"]
@@ -193,11 +193,11 @@ graph TD
     end
 
     subgraph Node["Node.js Runtime (Vercel Serverless, maxDuration 300s)"]
-        PCI[/api/process/ci]
-        PSN[/api/process/sentry]
-        PSEC[/api/process/security]
-        PRES[/api/process/resolve]
-        MRES[/api/platform/incidents/id/resolve]
+        PCI["/api/process/ci"]
+        PSN["/api/process/sentry"]
+        PSEC["/api/process/security"]
+        PRES["/api/process/resolve"]
+        MRES["/api/platform/incidents/id/resolve"]
     end
 
     subgraph Agents["AI Agents (platform/ai)"]
@@ -207,9 +207,9 @@ graph TD
     end
 
     subgraph Memory["Upstash Redis Memory"]
-        INC[platform:incident:*]
-        IDX[platform:incidents:index]
-        EVT[platform:events]
+        INC["platform:incident:*"]
+        IDX["platform:incidents:index"]
+        EVT["platform:events"]
         DDP[dedup keys]
     end
 
@@ -342,28 +342,50 @@ sequenceDiagram
 
 ## External Integrations
 
-| Service | Purpose | Configuration | Key Variables |
-|---|---|---|---|
-| **Anthropic** | LLM analysis of all platform events | `packages/llm/src/client.ts` | `ANTHROPIC_API_KEY` |
-| **GitHub** | Webhook source, issue/PR creation, file commits | `platform/ai/src/actions/github.ts` | `GITHUB_TOKEN`, `GITHUB_WEBHOOK_SECRET`, `GITHUB_REPO` |
-| **Sentry** | Error tracking (Next.js instrumentation) + REST API sensor | `sentry.server.config.ts`, `platform/ai/src/sensors/sentry.ts` | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_TOKEN`, `SENTRY_WEBHOOK_SECRET` |
-| **Clerk** | User authentication, webhook for user sync | `packages/auth/src/clerk.ts`, `/api/webhooks/clerk/` | `CLERK_SECRET_KEY`, `CLERK_WEBHOOK_SECRET`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` |
-| **Supabase** | PostgreSQL database hosting + storage | `packages/db/src/client.ts` | `DATABASE_URL`, `DIRECT_URL`, `SUPABASE_PROJECT_REF`, `SUPABASE_SECRET_DEFAULT_KEY` |
-| **Upstash Redis** | Incident memory, rate limiting, dedup TTLs | `packages/redis/src/client.ts` | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` |
-| **Upstash QStash** | Durable job queue with retries + deduplication | `packages/qstash/src/client.ts` | `QSTASH_TOKEN`, `QSTASH_URL`, `QSTASH_CURRENT_SIGNING_KEY`, `QSTASH_NEXT_SIGNING_KEY` |
-| **Resend** | Transactional email for contact form + incident alerts | `packages/messaging/src/resend-client.ts` | `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `RESEND_AGENT_FROM_EMAIL`, `RESEND_TO_EMAIL` |
-| **Vercel** | App hosting + deployment (Next.js) | Vercel dashboard | `VERCEL_API_TOKEN`, `VERCEL_PROJECT_ID` |
-| **Cloudflare** | DNS, R2 state storage, dev tunnel | `platform/infra/terraform/modules/cloudflare` | `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ZONE_ID` |
-| 
-
-... [truncated — 683 chars omitted]
+| Service            | Purpose                                                    | Configuration                                                  | Key Variables                                                                                |
+| ------------------ | ---------------------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| **Anthropic**      | LLM analysis of all platform events                        | `packages/llm/src/client.ts`                                   | `ANTHROPIC_API_KEY`                                                                          |
+| **GitHub**         | Webhook source, issue/PR creation, file commits            | `platform/ai/src/actions/github.ts`                            | `GITHUB_TOKEN`, `GITHUB_WEBHOOK_SECRET`, `GITHUB_REPO`                                       |
+| **Sentry**         | Error tracking (Next.js instrumentation) + REST API sensor | `sentry.server.config.ts`, `platform/ai/src/sensors/sentry.ts` | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_TOKEN`, `SENTRY_WEBHOOK_SECRET` |
+| **Clerk**          | User authentication, webhook for user sync                 | `packages/auth/src/clerk.ts`, `/api/webhooks/clerk/`           | `CLERK_SECRET_KEY`, `CLERK_WEBHOOK_SECRET`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`              |
+| **Supabase**       | PostgreSQL database hosting + storage                      | `packages/db/src/client.ts`                                    | `DATABASE_URL`, `DIRECT_URL`, `SUPABASE_PROJECT_REF`, `SUPABASE_SECRET_DEFAULT_KEY`          |
+| **Upstash Redis**  | Incident memory, rate limiting, dedup TTLs                 | `packages/redis/src/client.ts`                                 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`                                         |
+| **Upstash QStash** | Durable job queue with retries + deduplication             | `packages/qstash/src/client.ts`                                | `QSTASH_TOKEN`, `QSTASH_URL`, `QSTASH_CURRENT_SIGNING_KEY`, `QSTASH_NEXT_SIGNING_KEY`        |
+| **Resend**         | Transactional email for contact form + incident alerts     | `packages/messaging/src/resend-client.ts`                      | `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `RESEND_AGENT_FROM_EMAIL`, `RESEND_TO_EMAIL`          |
+| **Vercel**         | App hosting + deployment (Next.js)                         | Vercel dashboard                                               | `VERCEL_API_TOKEN`, `VERCEL_PROJECT_ID`                                                      |
+| **Cloudflare**     | DNS, R2 state storage, dev tunnel                          | `platform/infra/terraform/modules/cloudflare`                  | `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ZONE_ID`                                                 |
+| **Doppler**        | Secrets management (all environments)                      | `doppler.yaml`                                                 | `DOPPLER_TOKEN`, `DOPPLER_PROJECT`, `DOPPLER_ENVIRONMENT`                                    |
+| **Terraform**      | Infrastructure provisioning (IaC)                          | `platform/infra/terraform/`                                    | All provider credentials                                                                     |
 
 ---
 
-## Documentation Drift — 2026-03-25
+## Key Architectural Decisions
 
-> Auto-detected by platform-agent · Review and update the sections above · Remove this block when resolved
+- **Edge/Node runtime split**: Webhook receivers (`/api/webhooks/*`) run on Edge for minimal cold-start latency and immediate HMAC verification. AI agent processors (`/api/process/*`) run on Node.js with `maxDuration: 300` because LLM API calls, Postgres connections, and filesystem access require TCP sockets unavailable in Edge. This split is enforced by `platform/runtime/src/capabilities.ts` runtime guards that throw at call time if code accidentally runs in the wrong runtime.
 
-• Route `/api/cron/docs-agent` added → Update **External Integrations** section → Add documentation agent cron endpoint details
-• Route `/api/platform/incidents/[id]/resolve` added → Update **Primary Data Flow** section → Add incident resolution API endpoint flow
-• Route `/api/trpc/[trpc]` added → Update **Tech Stack** section → Add tRPC API routing configuration details
+- **QStash as reliability layer**: Instead of calling AI agents synchronously from webhook handlers (which would block for 10–30s and risk timeout), webhooks enqueue a typed job to QStash and immediately return `200`. QStash delivers the job to the processor with automatic retry on 5xx (up to 3 times) and deduplication via `Upstash-Deduplication-Id` headers — preventing double-processing if GitHub retries the webhook.
+
+- **Redis as incident memory**: Incidents are stored in Upstash Redis (not Postgres) because they are transient operational data with a 30-day TTL, require sub-millisecond read latency for the dashboard, and benefit from Redis's built-in list operations (`LPUSH`, `LTRIM`) for maintaining an ordered index without migration risk.
+
+- **XML-structured LLM responses**: The Anthropic prompt instructs Claude to respond in XML tags (`<summary>`, `<root_cause>`, `<severity>`, etc.) rather than JSON. This is more robust to model "thinking aloud" prefixes and avoids JSON escape issues in error messages that contain special characters. `parseAnalysisXml()` in `packages/llm/src/analyze.ts` extracts each field via regex.
+
+- **Layered deduplication for CI**: CI events have two dedup layers — run ID (24h TTL) and commit SHA + workflow + branch (24h TTL). This prevents the same workflow failure from being processed twice if GitHub delivers the webhook multiple times, while still correctly processing a retry of a previously failed workflow on the same commit.
+
+- **Graceful degradation pattern**: Every external service client has a corresponding `is*Configured()` guard (e.g., `isQStashConfigured()`, `isDevopsConfigured()`, `isMessagingConfigured()`). Webhook routes check these guards and return `{ ok: true, skipped: "reason" }` rather than crashing when services are not configured in local development.
+
+- **Terraform state in Cloudflare R2**: Terraform remote state uses an S3-compatible backend pointed at Cloudflare R2 instead of AWS S3. R2 has no egress fees and is managed by the same Cloudflare provider already in use for DNS.
+
+- **Security alerts reuse the `sentryIssueId` field**: `IncidentRecord.sentryIssueId` stores the Dependabot alert number for `security_alert` type incidents. This field reuse is intentional to avoid a schema migration on Redis — the type discriminant (`incident.type === "security_alert"`) disambiguates lookup semantics in `findIncidentBySecurityAlert()`.
+
+---
+
+## Developer Notes
+
+> **Developer Note**
+> The `db` export from `@dw/db` is a lazy Proxy object, not a real Drizzle instance. This allows the singleton to be imported at module load time without immediately calling `getDb()` (which validates environment variables). The proxy intercepts property access and calls `getDb()` on first actual database operation. This prevents startup crashes in Edge routes that import the package without ever using the database.
+
+> **Developer Note**
+> `platform/runtime/src/singletons.ts` exports `runtimeDb()` and `runtimeRedis()`, which wrap `getDb()`/`getRedis()` with an `assertNodeRuntime()` call. The tRPC context factory (`packages/api/src/trpc.ts`) uses `createRuntimeContext()` which calls these singletons. This means tRPC routes implicitly require Node.js runtime — annotate any tRPC route handler with `export const runtime = "nodejs"` if you're unsure.
+
+> **Developer Note**
+> The `ContentBlock` type narrowing in `packages/llm/src/analyze.ts` (lines 47–53) assigns the SDK's response `message.content` to an explicitly typed `const blocks: ContentBlock[]` before calling `.filter()`. This is required because the Anthropic SDK's union type is complex enough that TypeScript needs an explicit intermediate type annotation to correctly narrow the callback parameter type in the filter predicate. Chaining `.filter()` directly on `message.content` without the intermediate variable causes a type error.
