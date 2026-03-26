@@ -402,3 +402,36 @@ All secrets are stored in **Doppler** under project `dw-portfolio-platform`.
 - **Anthropic API costs**: All agents use `claude-sonnet-4-20250514` with a `max_tokens: 1024` cap. Each incident analysis consumes approximately 2–5K tokens total. Add up-front cost tracking if incident volume grows significantly.
 
 - **Edge vs. Node runtime routing**: All stateless webhook receivers and tRPC handlers that don't touch Postgres can move to Edge for better cold start times. The runtime guard in `platform/runtime` will throw immediately if the wrong runtime is used, so the boundary is enforced at development time rather than production.
+
+
+---
+
+## Documentation Drift — 2026-03-26
+
+> Auto-detected by platform-agent · Review and update the sections above · Remove this block when resolved
+
+• Route `/api/cron/docs-agent` added for automated documentation updates → Update **Build and Deployment Pipeline** section → Add cron job details and scheduling information
+
+• Environment variable `CRON_SECRET` now required for cron authentication → Update **Environment Variables > Core Application** section → Add CRON_SECRET with description for securing cron endpoints
+
+• Route `/api/platform/deps/analyze` added for dependency analysis → Update **Infrastructure Overview** section → Add platform dependency management endpoints
+
+• Route `/api/platform/deps/merge` added for dependency merging operations → Update **Infrastructure Overview** section → Add to dependency management endpoint list
+
+• Route `/api/platform/deps` added as main dependency management endpoint → Update **Infrastructure Overview** section → Document as primary deps API endpoint
+
+• Route `/api/platform/docs/trigger` added for manual documentation generation → Update **Build and Deployment Pipeline** section → Add manual documentation trigger process
+
+• Route `/api/platform/incidents/[id]/resolve` added for incident resolution → Update **Infrastructure Overview** section → Add incident management API endpoints
+
+• Route `/api/platform/rollback/execute` added for deployment rollbacks → Update **Build and Deployment Pipeline** section → Add rollback execution procedures
+
+• Route `/api/platform/rollback/preflight` added for rollback validation → Update **Build and Deployment Pipeline** section → Add rollback preflight check process
+
+• Route `/api/trpc/[trpc]` added as tRPC API handler → Update **Infrastructure Overview** section → Add tRPC endpoint configuration
+
+• Webhook `/api/webhooks/clerk` added for Clerk authentication events → Update **Environment Variables > Authentication (Clerk)** section → Add webhook endpoint and required secrets
+
+• Webhook `/api/webhooks/github` added for GitHub repository events → Update **Build and Deployment Pipeline** section → Add GitHub webhook configuration and payload handling
+
+• Webhook `/api/webhooks/sentry` added for error tracking integration → Update **Environment Variables > Observability (Sentry + Vercel API)** section → Add Sentry webhook endpoint and processing
