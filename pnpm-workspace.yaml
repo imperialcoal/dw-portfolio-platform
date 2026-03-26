@@ -9,7 +9,7 @@ packages:
   - platform/testing
 
 catalog:
-  '@clerk/backend': ^3.2.1
+  '@clerk/backend': ^2.33.1
   '@clerk/nextjs': ^6.37.1
   '@eslint/js': ^9.39.2
   '@supabase/supabase-js': ^2.97.0
