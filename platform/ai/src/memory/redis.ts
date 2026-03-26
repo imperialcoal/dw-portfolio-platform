@@ -1,10 +1,16 @@
 // Agent memory layer — Redis-backed incident and event storage.
 // All functions call runtimeRedis() which asserts Node.js runtime.
 
+// ─────────────────────────────────────────────
+// Dependency analysis cache
+// deps:analysis:{prNumber} → BreakingChangeAnalysis (24h TTL)
+// ─────────────────────────────────────────────
 import type {
+  BreakingChangeAnalysis,
   IncidentRecord,
   IncidentStatus,
   PlatformEvent,
+  RollbackRecord,
   SystemHealth,
 } from "@dw/contracts";
 import { runtimeRedis } from "@dw/runtime/singletons";
@@ -18,6 +24,8 @@ import { runtimeRedis } from "@dw/runtime/singletons";
 // ci:failure:{runId}            → dedup key (24h TTL)
 // ci:commit:{sha}:{workflow}    → commit-level dedup (24h TTL)
 // sentry:error:{issueId}        → dedup key (7d TTL)
+// deps:analysis:{prNumber}      → BreakingChangeAnalysis (24h TTL)
+// rollback:record:{deploymentId}→ RollbackRecord (7d TTL)
 // ─────────────────────────────────────────────
 
 const INCIDENT_KEY = (id: string) => `platform:incident:${id}`;
@@ -281,4 +289,96 @@ export async function getSystemHealth(): Promise<SystemHealth> {
     criticalCount: critical.length,
     recentSeverity,
   };
+}
+
+// ─────────────────────────────────────────────
+// Dependency analysis cache
+// deps:analysis:{prNumber} → BreakingChangeAnalysis (24h TTL)
+// ─────────────────────────────────────────────
+
+const DEPS_ANALYSIS_KEY = (prNumber: number) => `deps:analysis:${prNumber}`;
+const DEPS_ANALYSIS_TTL = 60 * 60 * 24; // 24h
+
+export async function getDepAnalysis(
+  prNumber: number,
+): Promise<BreakingChangeAnalysis | null> {
+  const redis = runtimeRedis();
+  try {
+    const raw = await redis.get<string>(DEPS_ANALYSIS_KEY(prNumber));
+    if (!raw) return null;
+    return typeof raw === "string"
+      ? (JSON.parse(raw) as BreakingChangeAnalysis)
+      : (raw as BreakingChangeAnalysis);
+  } catch {
+    return null;
+  }
+}
+
+export async function storeDepAnalysis(
+  analysis: BreakingChangeAnalysis,
+): Promise<void> {
+  const redis = runtimeRedis();
+  await redis.set(
+    DEPS_ANALYSIS_KEY(analysis.prNumber),
+    JSON.stringify(analysis),
+    { ex: DEPS_ANALYSIS_TTL },
+  );
+}
+
+// ─────────────────────────────────────────────
+// Rollback audit log
+// rollback:record:{deploymentId} → RollbackRecord (7d TTL)
+//
+// Written by the rollback execute route before + after the Vercel API call.
+// Read by the deployments page to show rollback history alongside deploys.
+// ─────────────────────────────────────────────
+
+const ROLLBACK_KEY = (deploymentId: string) =>
+  `rollback:record:${deploymentId}`;
+const ROLLBACK_TTL = 60 * 60 * 24 * 7; // 7d
+
+export async function createRollbackRecord(
+  record: RollbackRecord,
+): Promise<void> {
+  const redis = runtimeRedis();
+  await redis.set(ROLLBACK_KEY(record.deploymentId), JSON.stringify(record), {
+    ex: ROLLBACK_TTL,
+  });
+}
+
+export async function updateRollbackRecord(
+  deploymentId: string,
+  patch: Partial<
+    Pick<RollbackRecord, "status" | "completedAt" | "error" | "newDeploymentId">
+  >,
+): Promise<void> {
+  const redis = runtimeRedis();
+  const raw = await redis.get<string>(ROLLBACK_KEY(deploymentId));
+  if (!raw) return;
+
+  const existing: RollbackRecord =
+    typeof raw === "string"
+      ? (JSON.parse(raw) as RollbackRecord)
+      : (raw as RollbackRecord);
+
+  const updated: RollbackRecord = { ...existing, ...patch };
+
+  await redis.set(ROLLBACK_KEY(deploymentId), JSON.stringify(updated), {
+    ex: ROLLBACK_TTL,
+  });
+}
+
+export async function getRollbackRecord(
+  deploymentId: string,
+): Promise<RollbackRecord | null> {
+  const redis = runtimeRedis();
+  try {
+    const raw = await redis.get<string>(ROLLBACK_KEY(deploymentId));
+    if (!raw) return null;
+    return typeof raw === "string"
+      ? (JSON.parse(raw) as RollbackRecord)
+      : (raw as RollbackRecord);
+  } catch {
+    return null;
+  }
 }

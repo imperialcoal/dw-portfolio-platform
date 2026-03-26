@@ -5,6 +5,9 @@ import type { IncidentRecord, VercelDeployment } from "@dw/contracts";
 import { getIncidents, getSystemHealth } from "@dw/ai/memory";
 import { getLastProductionDeploy } from "@dw/ai/sensors";
 
+import { env } from "~/env";
+import { RunDocsAgentButton } from "./docs/_components/run-docs-agent-button";
+
 // ─────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────
@@ -299,6 +302,10 @@ export default async function PlatformPage() {
       ? (lastDeploy.meta.githubBranch ?? "unknown")
       : "no deploy found";
 
+  // Branch for the docs agent trigger — match the current environment
+  const currentEnv = env.NEXT_PUBLIC_APP_ENV;
+  const docsBranch = currentEnv === "production" ? "main" : "dev";
+
   return (
     <div className="min-h-screen bg-zinc-950 p-6 text-zinc-100 lg:p-10">
       <div className="mx-auto max-w-5xl space-y-8">
@@ -462,6 +469,11 @@ export default async function PlatformPage() {
                 label: "AI Insights",
                 desc: "Pattern analysis and recommendations",
               },
+              {
+                href: "/platform/dependencies",
+                label: "Dependencies",
+                desc: "Manage Dependabot PRs and security vulnerabilities",
+              },
             ] as const
           ).map((item) => (
             <Link
@@ -475,6 +487,16 @@ export default async function PlatformPage() {
               <p className="mt-1 text-xs text-zinc-600">{item.desc}</p>
             </Link>
           ))}
+
+          {/* Documentation — with manual trigger */}
+          <div className="rounded-xl border border-white/10 bg-white/5 p-5">
+            <p className="text-sm font-semibold text-zinc-200">Documentation</p>
+            <p className="mt-1 text-xs text-zinc-600">
+              Detect drift and append changelogs to ARCHITECTURE, OPERATIONS,
+              and PLAYBOOKS
+            </p>
+            <RunDocsAgentButton branch={docsBranch} />
+          </div>
         </div>
       </div>
     </div>

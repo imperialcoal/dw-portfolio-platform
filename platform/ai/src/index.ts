@@ -2,7 +2,12 @@
 // Actions
 // ─────────────────────────────────────────────
 export { verifyGitHubSignature, verifySentrySignature } from "./actions/crypto";
-export { createIssue, commitFile, postPrComment } from "./actions/github";
+export {
+  commitFile,
+  appendToFile,
+  createIssue,
+  postPrComment,
+} from "./actions/github";
 export { generateAndCommitIncidentDoc } from "./actions/incident-doc";
 
 // ─────────────────────────────────────────────
@@ -16,6 +21,7 @@ export { runDocsAgent } from "./agent/docs-agent";
 export { runCiAgent } from "./analyzers/ci-agent";
 export { runSentryAgent } from "./analyzers/sentry-agent";
 export { runSecurityAgent } from "./analyzers/security-agent";
+export { runDepsAgent } from "./analyzers/deps-agent";
 
 // ─────────────────────────────────────────────
 // Memory
@@ -33,6 +39,11 @@ export {
   logEvent,
   getEvents,
   getSystemHealth,
+  getDepAnalysis,
+  storeDepAnalysis,
+  createRollbackRecord,
+  updateRollbackRecord,
+  getRollbackRecord,
 } from "./memory/redis";
 
 // ─────────────────────────────────────────────
@@ -50,3 +61,5 @@ export {
   getLastDeploy,
 } from "./sensors/vercel";
 export { scanRepo } from "./sensors/repo";
+export { analyzeDeploymentMigrations } from "./sensors/migrations";
+export { fetchDependabotPRs, mergeDependabotPR } from "./sensors/github-deps";

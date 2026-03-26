@@ -1,5 +1,6 @@
 // Documentation drift agent — structural diff + targeted Claude changelog.
-// Triggered nightly via Vercel cron → GET /api/cron/docs-agent.
+// Triggered nightly via Vercel cron → GET /api/cron/docs-agent,
+// or manually via POST /api/platform/docs/trigger from the platform dashboard.
 //
 // Flow:
 //   1. Scan repo via GitHub API (tree + key files)
@@ -7,7 +8,7 @@
 //   3. If zero drift → exit cleanly, no commits
 //   4. If drift found:
 //      a. One focused Claude call per affected doc to write changelog bullets
-//      b. Append dated changelog block to bottom of each affected doc
+//      b. appendToFile: fetch full doc → strip previous block → append new block → commit
 //      c. Commit a standalone drift report to docs/drift-reports/
 //
 // Cost profile:
@@ -15,10 +16,12 @@
 //   - Drift night: GitHub API + 1-3 small Claude calls (~30s, ~1-3K tokens each)
 //
 // Principles:
-//   - Never overwrites existing documentation
+//   - Never overwrites existing documentation — appendToFile guarantees this
 //   - Claude's scope is strictly "explain what the detectors found"
 //   - Docs without existing content are skipped (first version must be human-written)
 //   - Drift report committed regardless, giving a searchable history
+//   - appendToFile uses the Git Blobs API fallback for docs > 1MB, eliminating
+//     the truncation bug that previously wrote only the changelog block
 
 import type { DocsAgentResult, RepoStructure } from "@dw/contracts";
 import type { ContentBlock } from "@dw/llm";
@@ -33,7 +36,7 @@ import {
   PLAYBOOKS_CHANGELOG_SYSTEM_PROMPT,
 } from "@dw/llm";
 
-import { commitFile } from "../actions/github";
+import { appendToFile, commitFile } from "../actions/github";
 import { scanRepo } from "../sensors/repo";
 
 // ─────────────────────────────────────────────
@@ -57,6 +60,7 @@ interface DriftItem {
 // ─────────────────────────────────────────────
 // Structural detectors — pure functions, no I/O
 // ─────────────────────────────────────────────
+
 const ROUTE_EXCLUSIONS = [
   "/api/sentry-example-api", // Sentry SDK test route — not a real endpoint
 ];
@@ -90,8 +94,6 @@ function detectNewApiRoutes(
     });
 }
 
-// Packages that are intentionally grouped under a parent directory
-// and documented at that level rather than individually.
 const PACKAGE_EXCLUSION_PREFIXES = [
   "platform/standards/", // documented as platform/standards/ collectively
 ];
@@ -104,7 +106,6 @@ function detectNewPackages(repo: RepoStructure, archDoc: string): DriftItem[] {
         (p.startsWith("packages/") ||
           p.startsWith("apps/") ||
           p.startsWith("platform/")) &&
-        // Exclude packages grouped under a documented parent directory
         !PACKAGE_EXCLUSION_PREFIXES.some((prefix) => p.startsWith(prefix)),
     )
     .filter((p) => {
@@ -128,7 +129,6 @@ function detectNewIncidentTypes(
   repo: RepoStructure,
   playbooksDoc: string,
 ): DriftItem[] {
-  // Analyzer files represent new incident types that may need playbooks
   const analyzerPaths = repo.allPaths.filter(
     (p) =>
       p.includes("platform/ai/src/analyzers/") &&
@@ -144,7 +144,7 @@ function detectNewIncidentTypes(
     .map((p) => {
       const name = p.split("/").pop()?.replace("-agent.ts", "") ?? p;
       return {
-        category: "new_api_route" as const, // reuse category for reporting
+        category: "new_api_route" as const,
         path: p,
         description: `Agent \`${name}\` has no corresponding response playbook in PLAYBOOKS.md`,
         affectedDocs: ["docs/PLAYBOOKS.md"],
@@ -152,48 +152,18 @@ function detectNewIncidentTypes(
     });
 }
 
-/**
- * Extracts env var names from a T3 Env validator file's content.
- *
- * Matches the exact T3 Env schema pattern:
- *   SOME_VAR: z.string()
- *   NEXT_PUBLIC_SOMETHING: z.url()
- *
- * Requires the `: z.` suffix so only schema entries are matched,
- * not TypeScript constants, type names, or other uppercase identifiers.
- * Also requires at least one underscore — all real env vars have one.
- */
 function extractEnvVarNames(fileContent: string): string[] {
-  // Match UPPERCASE_NAME: z. — the `: z.` suffix anchors to schema entries only
   const matches = fileContent.match(/\b([A-Z][A-Z0-9_]{2,})\s*:\s*z\./g) ?? [];
 
   return [
     ...new Set(
       matches
         .map((m) => m.replace(/\s*:\s*z\.$/, "").trim())
-        .filter(
-          (name) =>
-            name.includes("_") && // env vars always have underscores
-            name.length >= 4, // skip short false matches
-        ),
+        .filter((name) => name.includes("_") && name.length >= 4),
     ),
   ];
 }
 
-/**
- * Detects env vars in validator files that aren't mentioned in OPERATIONS.md.
- *
- * Strategy:
- * 1. Find all validator files in packages/validators/src/
- * 2. Read their content from the already-fetched key files
- * 3. Extract env var names using the T3 Env schema pattern (`: z.` suffix)
- * 4. Check each specific var name against OPERATIONS.md content
- * 5. Flag only vars that are genuinely undocumented
- *
- * Fully dynamic — new validators with new vars are caught automatically.
- * Existing vars already in the docs are not flagged.
- * Falls back to a filename check if content wasn't fetched.
- */
 function detectNewEnvValidators(
   repo: RepoStructure,
   opsDoc: string,
@@ -213,8 +183,6 @@ function detectNewEnvValidators(
     )?.content;
 
     if (!fileContent) {
-      // File wasn't fetched — this shouldn't happen after the repo.ts fix,
-      // but if it does, flag the validator itself rather than silently skipping
       console.warn(
         JSON.stringify({
           level: "warn",
@@ -224,15 +192,11 @@ function detectNewEnvValidators(
           message: "Validator file not in key files — cannot extract env vars",
         }),
       );
-      continue; // Skip rather than produce unreliable output
+      continue;
     }
 
     const envVarNames = extractEnvVarNames(fileContent);
-
-    if (envVarNames.length === 0) {
-      // File was fetched but no env vars found — likely not a standard validator
-      continue;
-    }
+    if (envVarNames.length === 0) continue;
 
     const undocumentedVars = envVarNames.filter(
       (varName) => !opsDoc.includes(varName),
@@ -325,9 +289,6 @@ function detectReadmeIssues(repo: RepoStructure): DriftItem[] {
   ];
 
   for (const dir of docTargetDirs) {
-    // Skip if the second path segment is a file (e.g. apps/README.md)
-    // rather than a directory. A path segment ending in .md is a file,
-    // not a directory that could contain a README.
     const secondSegment = dir.split("/")[1] ?? "";
     if (secondSegment.includes(".")) continue;
 
@@ -356,7 +317,8 @@ function detectReadmeIssues(repo: RepoStructure): DriftItem[] {
 }
 
 // ─────────────────────────────────────────────
-// Existing doc lookup — synchronous
+// Existing doc lookup — for drift detection only
+// Not used for the actual commit (appendToFile fetches fresh content)
 // ─────────────────────────────────────────────
 
 function getExistingDoc(path: string, repo: RepoStructure): string {
@@ -365,7 +327,6 @@ function getExistingDoc(path: string, repo: RepoStructure): string {
 
 // ─────────────────────────────────────────────
 // Claude changelog generation
-// Called only when drift is detected for a specific doc
 // ─────────────────────────────────────────────
 
 type TextBlock = Extract<ContentBlock, { type: "text" }>;
@@ -405,7 +366,6 @@ async function generateChangelogBullets(
   repo: RepoStructure,
 ): Promise<string> {
   const client = getAnthropicClient();
-
   const userPrompt = spec.buildPrompt(driftItems, existingDoc, repo);
 
   console.log(
@@ -435,28 +395,22 @@ async function generateChangelogBullets(
 }
 
 // ─────────────────────────────────────────────
-// Changelog appender
+// Changelog block builder
+//
+// Produces the content block that gets appended to the doc.
+// appendToFile handles stripping the previous block via dedupeMarker.
 // ─────────────────────────────────────────────
 
-function appendChangelog(
-  existingDoc: string,
-  changelogBullets: string,
-  date: string,
-): string {
-  // Remove any previous platform-agent changelog section before appending
-  const clean = existingDoc
-    .replace(/\n---\n\n## Documentation Drift — \d{4}-\d{2}-\d{2}[\s\S]*$/, "")
-    .trimEnd();
+const DRIFT_BLOCK_MARKER = "## Documentation Drift —";
 
-  return `${clean}
-
----
+function buildChangelogBlock(bullets: string, date: string): string {
+  return `---
 
 ## Documentation Drift — ${date}
 
 > Auto-detected by platform-agent · Review and update the sections above · Remove this block when resolved
 
-${changelogBullets}
+${bullets}
 `;
 }
 
@@ -609,7 +563,9 @@ export async function runDocsAgent(branch = "dev"): Promise<DocsAgentResult> {
     };
   }
 
-  // Step 2: Read existing docs (synchronous lookup from already-fetched key files)
+  // Step 2: Read existing docs from keyFiles — used ONLY for drift detection
+  // and as context for the Claude prompt. The actual commit uses appendToFile
+  // which independently fetches the current content via the Blobs API.
   const archDoc = getExistingDoc("docs/ARCHITECTURE.md", repo);
   const opsDoc = getExistingDoc("docs/OPERATIONS.md", repo);
   const playbooksDoc = getExistingDoc("docs/PLAYBOOKS.md", repo);
@@ -664,7 +620,15 @@ export async function runDocsAgent(branch = "dev"): Promise<DocsAgentResult> {
     };
   }
 
-  // Step 5: Drift found — call Claude once per affected doc to write changelog
+  // Step 5: Drift found — call Claude once per affected doc, then appendToFile.
+  //
+  // appendToFile:
+  //   1. Fetches current content via GitHub Contents API (with Blobs fallback)
+  //   2. Strips any previous "## Documentation Drift —" block (dedupeMarker)
+  //   3. Appends the new changelog block
+  //   4. Commits with the existing file SHA
+  //
+  // This is safe for docs of any size — no 1MB truncation risk.
   for (const spec of DOC_CHANGELOG_SPECS) {
     const docItems = allItems.filter((item) =>
       item.affectedDocs.includes(spec.docPath),
@@ -675,9 +639,10 @@ export async function runDocsAgent(branch = "dev"): Promise<DocsAgentResult> {
       continue;
     }
 
-    const existingDoc = getExistingDoc(spec.docPath, repo);
+    // Use scanRepo's cached content for the Claude prompt only
+    const existingDocForPrompt = getExistingDoc(spec.docPath, repo);
 
-    if (!existingDoc) {
+    if (!existingDocForPrompt) {
       console.log(
         JSON.stringify({
           level: "info",
@@ -695,16 +660,17 @@ export async function runDocsAgent(branch = "dev"): Promise<DocsAgentResult> {
       const changelogBullets = await generateChangelogBullets(
         spec,
         docItems,
-        existingDoc,
+        existingDocForPrompt,
         repo,
       );
 
-      const updatedDoc = appendChangelog(existingDoc, changelogBullets, date);
-
-      await commitFile(
+      // appendToFile fetches the actual current content independently,
+      // handling large files correctly via the Git Blobs API fallback.
+      await appendToFile(
         spec.docPath,
-        updatedDoc,
+        buildChangelogBlock(changelogBullets, date),
         `docs(drift): ${spec.docPath.split("/").pop()} — ${docItems.length} change(s) ${date} [platform-agent]`,
+        DRIFT_BLOCK_MARKER,
       );
 
       filesUpdated.push(spec.docPath);
@@ -733,7 +699,7 @@ export async function runDocsAgent(branch = "dev"): Promise<DocsAgentResult> {
     }
   }
 
-  // Step 6: Commit drift report
+  // Step 6: Commit drift report (new file each time — no append needed)
   try {
     const reportPath = `docs/drift-reports/${date}-drift-report.md`;
     await commitFile(

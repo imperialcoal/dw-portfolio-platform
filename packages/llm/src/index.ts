@@ -34,3 +34,8 @@ export {
   PLAYBOOKS_CHANGELOG_SYSTEM_PROMPT,
   buildPlaybooksChangelogPrompt,
 } from "./prompts/docs-playbooks";
+
+export {
+  DEPS_ANALYSIS_SYSTEM_PROMPT,
+  buildDepsAnalysisPrompt,
+} from "./prompts/deps-analysis";

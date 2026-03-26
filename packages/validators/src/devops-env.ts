@@ -26,6 +26,7 @@ export function devopsEnv() {
         .string()
         .regex(/^[^/]+\/[^/]+$/)
         .optional(),
+      GITHUB_BRANCH: z.string().min(1).optional(),
       NODE_ENV: z
         .enum(["development", "test", "production"])
         .default("development"),

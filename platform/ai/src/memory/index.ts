@@ -11,4 +11,9 @@ export {
   logEvent,
   getEvents,
   getSystemHealth,
+  getDepAnalysis,
+  storeDepAnalysis,
+  createRollbackRecord,
+  updateRollbackRecord,
+  getRollbackRecord,
 } from "./redis";

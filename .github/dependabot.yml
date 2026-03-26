@@ -5,46 +5,139 @@
 
 version: 2
 updates:
-  # Monorepo JS dependencies (pnpm)
+  # ─── Monorepo JS/TS dependencies (pnpm) ──────────────────────────────────
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 10
+      day: "monday"
+      time: "04:00"
+      timezone: "America/New_York"
 
+    open-pull-requests-limit: 10
     versioning-strategy: increase-if-necessary
 
-    groups:
-      eslint:
-        patterns:
-          - "eslint*"
-          - "@typescript-eslint*"
+    # Commit message prefix helps the AI DevOps agent correctly identify
+    # Dependabot PRs in the dependency dashboard and security pipeline
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+      include: "scope"
 
+    labels:
+      - "dependencies"
+      - "dependabot"
+
+    groups:
+      # AI / Anthropic SDK — keep together since model changes affect the
+      # CI agent, Sentry agent, security agent, and docs agent in lockstep
+      anthropic:
+        patterns:
+          - "@anthropic-ai/*"
+
+      # Upstash — Redis + QStash share the same release cadence and breaking
+      # changes often span both packages
+      upstash:
+        patterns:
+          - "@upstash/*"
+
+      # Vercel tooling
+      vercel:
+        patterns:
+          - "vercel"
+          - "@vercel/*"
+
+      # Next.js core — keep React, React-DOM, and Next together since they
+      # must be version-compatible
+      nextjs:
+        patterns:
+          - "next"
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+
+      # tRPC — client/server/adapters must stay in sync
       trpc:
         patterns:
           - "@trpc/*"
 
+      # Clerk auth
+      clerk:
+        patterns:
+          - "@clerk/*"
+
+      # Drizzle ORM
+      drizzle:
+        patterns:
+          - "drizzle-orm"
+          - "drizzle-kit"
+          - "drizzle-zod"
+
+      # Sentry — instrumentation package updates should be applied together
+      sentry:
+        patterns:
+          - "@sentry/*"
+
+      # TanStack — query, table, etc
       tanstack:
         patterns:
           - "@tanstack/*"
 
+      # ESLint ecosystem
+      eslint:
+        patterns:
+          - "eslint*"
+          - "@typescript-eslint*"
+          - "@eslint/*"
+
+      # Testing
+      vitest:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
+
+      # Build tooling
       build:
         patterns:
           - "vite"
           - "esbuild"
+          - "turbo"
+          - "typescript"
 
+      # Zod — schema validation used across the entire platform
+      zod:
+        patterns:
+          - "zod"
+          - "zod-*"
+
+    ignore:
+      # Major version bumps require manual review — they often have breaking
+      # changes that the AI breaking-change analyzer should assess first
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # ─── Terraform infrastructure ─────────────────────────────────────────────
+  - package-ecosystem: "terraform"
+    directory: "/platform/infra/terraform"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "terraform"
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
 
-  # Terraform infra
-  - package-ecosystem: "terraform"
-    directory: "/infra"
-    schedule:
-      interval: "weekly"
-
-  # GitHub Actions versions
+  # ─── GitHub Actions ───────────────────────────────────────────────────────
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "chore(actions)"
+    labels:
+      - "dependencies"
+      - "github-actions"

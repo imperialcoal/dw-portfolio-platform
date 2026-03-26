@@ -77,6 +77,31 @@ export type { RepoFile, RepoStructure } from "./ai/repo";
 export type { DocsAgentResult } from "./ai/docs";
 
 // ─────────────────────────────────────────────
+// Rollback
+// ─────────────────────────────────────────────
+export type {
+  MigrationOperationType,
+  MigrationOperation,
+  MigrationFile,
+  RollbackPreflight,
+  RollbackResult,
+  RollbackRecord,
+} from "./ai/rollback";
+
+// ─────────────────────────────────────────────
+// Dependencies
+// ─────────────────────────────────────────────
+export type {
+  DependencyUpdateType,
+  DependencyEcosystem,
+  DependabotPR,
+  BreakingChangeAnalysis,
+  SecurityAlertWithPR,
+  DependencyDashboardData,
+  MergeResult,
+} from "./ai/deps";
+
+// ─────────────────────────────────────────────
 // Event bus
 // ─────────────────────────────────────────────
 

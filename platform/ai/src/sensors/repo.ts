@@ -27,17 +27,71 @@ function getRepo(): string {
   return repo;
 }
 
+/**
+ * Fetches a single file's content from GitHub.
+ *
+ * Uses the Contents API for files < 1MB (inline base64).
+ * Falls back to the Git Blobs API (raw) for larger files — this avoids
+ * the silent truncation bug where content: null causes empty string returns
+ * and the docs agent then overwrites docs with only the changelog block.
+ */
 async function fetchFileContent(path: string): Promise<string> {
   const res = await fetch(`${GITHUB_API}/repos/${getRepo()}/contents/${path}`, {
     headers: getHeaders(),
   });
   if (!res.ok) return "";
 
-  const data = (await res.json()) as { content?: string; encoding?: string };
-  if (!data.content || data.encoding !== "base64") return "";
+  const data = (await res.json()) as {
+    content?: string | null;
+    encoding?: string;
+    sha?: string;
+  };
 
-  const clean = data.content.replace(/\n/g, "");
-  return Buffer.from(clean, "base64").toString("utf-8");
+  // Happy path — file fits in Contents API response (< 1MB)
+  if (data.content && data.encoding === "base64") {
+    const clean = data.content.replace(/\n/g, "");
+    return Buffer.from(clean, "base64").toString("utf-8");
+  }
+
+  // Large-file fallback — GitHub returns content: null for files > 1MB.
+  // Use the Git Blobs API with raw Accept header, which has no size limit.
+  if (data.sha) {
+    console.log(
+      JSON.stringify({
+        level: "info",
+        sensor: "repo",
+        event: "large_file_fallback",
+        path,
+        sha: data.sha,
+      }),
+    );
+
+    const blobRes = await fetch(
+      `${GITHUB_API}/repos/${getRepo()}/git/blobs/${data.sha}`,
+      {
+        headers: {
+          ...getHeaders(),
+          Accept: "application/vnd.github.v3.raw",
+        },
+      },
+    );
+
+    if (blobRes.ok) {
+      return await blobRes.text();
+    }
+
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        sensor: "repo",
+        event: "blob_fallback_failed",
+        path,
+        status: blobRes.status,
+      }),
+    );
+  }
+
+  return "";
 }
 
 async function fetchRepoTree(branch: string): Promise<string[]> {
