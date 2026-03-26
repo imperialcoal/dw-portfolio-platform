@@ -389,3 +389,30 @@ sequenceDiagram
 
 > **Developer Note**
 > The `ContentBlock` type narrowing in `packages/llm/src/analyze.ts` (lines 47–53) assigns the SDK's response `message.content` to an explicitly typed `const blocks: ContentBlock[]` before calling `.filter()`. This is required because the Anthropic SDK's union type is complex enough that TypeScript needs an explicit intermediate type annotation to correctly narrow the callback parameter type in the filter predicate. Chaining `.filter()` directly on `message.content` without the intermediate variable causes a type error.
+
+
+---
+
+## Documentation Drift — 2026-03-26
+
+> Auto-detected by platform-agent · Review and update the sections above · Remove this block when resolved
+
+• New cron endpoint `/api/cron/docs-agent` added → Update **External Integrations** section → Add automated documentation generation cron job details
+
+• New dependency analysis endpoint `/api/platform/deps/analyze` added → Update **System Architecture Diagram** section → Add dependency analysis service component
+
+• New dependency merge endpoint `/api/platform/deps/merge` added → Update **System Architecture Diagram** section → Add dependency merge operation to platform services
+
+• New dependency management endpoint `/api/platform/deps` added → Update **System Architecture Diagram** section → Add dependency management API to platform layer
+
+• New documentation trigger endpoint `/api/platform/docs/trigger` added → Update **Primary Data Flow** section → Add documentation generation trigger workflow
+
+• New incident resolution endpoint `/api/platform/incidents/[id]/resolve` added → Update **System Architecture Diagram** section → Add incident management system to platform services
+
+• New rollback execution endpoint `/api/platform/rollback/execute` added → Update **System Architecture Diagram** section → Add rollback execution service to platform layer
+
+• New rollback preflight endpoint `/api/platform/rollback/preflight` added → Update **System Architecture Diagram** section → Add rollback validation service to platform layer
+
+• New tRPC API endpoint `/api/trpc/[trpc]` added → Update **Tech Stack** section → Add tRPC as API layer technology
+
+• New Clerk webhook endpoint `/api/webhooks/clerk` added → Update **External Integrations** section → Add Clerk authentication webhook integration
