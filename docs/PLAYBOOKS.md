@@ -325,3 +325,12 @@ If a third-party service is down, the platform degrades gracefully:
 - **QStash down**: Webhooks return `skipped: "qstash_not_configured"` — no incidents captured during outage.
 - **Anthropic down**: Agent fails, QStash retries up to 3 times. Incident may remain in `"investigating"` state until manually resolved.
 - **Supabase down**: tRPC mutations fail. Auth still works via Clerk (stateless tokens).
+
+
+---
+
+## Documentation Drift — 2026-03-26
+
+> Auto-detected by platform-agent · Review and update the sections above · Remove this block when resolved
+
+• New `deps` agent detected in `platform/ai/src/analyzers/deps-agent.ts` → Add new failure scenario section "AI Deps Agent Not Processing Dependency Issues" → Include steps to check `/api/process/deps` logs, verify dependency-related webhook triggers, and troubleshoot deps agent-specific error patterns
