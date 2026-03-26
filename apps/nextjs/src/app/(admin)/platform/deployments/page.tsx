@@ -49,23 +49,11 @@ function findCorrelatedIncidents(
 // Styles
 // ─────────────────────────────────────────────
 
-const STATE_STYLES: Record<string, { badge: string; dot: string }> = {
-  READY: {
-    badge: "bg-green-500/10 text-green-400 border-green-500/20",
-    dot: "bg-green-400",
-  },
-  ERROR: {
-    badge: "bg-red-500/10 text-red-400 border-red-500/20",
-    dot: "bg-red-400",
-  },
-  BUILDING: {
-    badge: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-    dot: "bg-blue-400",
-  },
-  CANCELED: {
-    badge: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
-    dot: "bg-zinc-400",
-  },
+const STATE_STYLES: Record<string, { badge: string }> = {
+  READY: { badge: "bg-green-500/10 text-green-400 border-green-500/20" },
+  ERROR: { badge: "bg-red-500/10 text-red-400 border-red-500/20" },
+  BUILDING: { badge: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  CANCELED: { badge: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20" },
 };
 
 const SEVERITY_COLOR: Record<IncidentRecord["severity"], string> = {
@@ -169,16 +157,17 @@ function DeployRow({
   correlated,
   currentEnv,
   rollbackRecord,
+  isCurrentLive,
 }: {
   deploy: VercelDeployment;
   correlated: IncidentRecord[];
   currentEnv: string;
   rollbackRecord: RollbackRecord | null;
+  isCurrentLive: boolean;
 }) {
   const style = STATE_STYLES[deploy.state] ??
     STATE_STYLES.CANCELED ?? {
       badge: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
-      dot: "bg-zinc-400",
     };
   const commitSha = deploy.meta.githubCommitSha ?? null;
   const commitMessage = deploy.meta.githubCommitMessage ?? null;
@@ -191,8 +180,20 @@ function DeployRow({
     (i) => i.status === "resolved" || i.status === "closed",
   );
 
+  // Rollback is available on READY deployments that are not the current live one.
+  // Rolling back to the currently-live deployment is a no-op — Vercel would
+  // just create a new deployment identical to what's already running.
+  const canRollback =
+    deploy.state === "READY" && commitSha !== null && !isCurrentLive;
+
   return (
-    <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-5">
+    <div
+      className={`space-y-3 rounded-xl border p-5 ${
+        isCurrentLive
+          ? "border-emerald-500/20 bg-emerald-500/5"
+          : "border-white/10 bg-white/5"
+      }`}
+    >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex flex-wrap items-center gap-2">
           <span
@@ -200,6 +201,11 @@ function DeployRow({
           >
             {deploy.state}
           </span>
+          {isCurrentLive && (
+            <span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-400">
+              LIVE
+            </span>
+          )}
           <span className="rounded border border-white/10 bg-white/5 px-1.5 py-0.5 text-[11px] text-zinc-500">
             {currentEnv}
           </span>
@@ -222,8 +228,7 @@ function DeployRow({
           <p className="truncate text-sm text-zinc-300">{commitMessage}</p>
         )}
         <div className="ml-auto flex shrink-0 items-center gap-2">
-          {/* Rollback — only available for READY deployments with a commit SHA */}
-          {deploy.state === "READY" && commitSha !== null && (
+          {canRollback && (
             <RollbackButton
               deploymentId={deploy.id}
               commitSha={commitSha}
@@ -241,7 +246,6 @@ function DeployRow({
         </div>
       </div>
 
-      {/* Rollback audit trail — shown if this deployment was used as a rollback target */}
       {rollbackRecord !== null && (
         <div className="border-t border-white/10 pt-3">
           <RollbackAuditRow record={rollbackRecord} />
@@ -314,12 +318,16 @@ export default async function DeploymentsPage() {
     getIncidents(100),
   ]);
 
-  // Load rollback records for all deployments in parallel
   const rollbackRecords = await Promise.all(
     deploys.map((d) => getRollbackRecord(d.id).catch(() => null)),
   );
 
   const currentEnv = env.NEXT_PUBLIC_APP_ENV;
+
+  // The most recently READY deployment is the currently-live one.
+  // All others show the rollback button so you can promote any prior snapshot.
+  const currentLiveId = deploys.find((d) => d.state === "READY")?.id ?? null;
+
   const deploysWithActiveIncidents = deploys.filter((d) =>
     findCorrelatedIncidents(d, incidents).some(
       (i) => i.status === "open" || i.status === "investigating",
@@ -430,6 +438,7 @@ export default async function DeploymentsPage() {
                 correlated={findCorrelatedIncidents(deploy, incidents)}
                 currentEnv={currentEnv}
                 rollbackRecord={rollbackRecords[i] ?? null}
+                isCurrentLive={deploy.id === currentLiveId}
               />
             ))}
           </div>

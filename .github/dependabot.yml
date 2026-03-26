@@ -111,6 +111,10 @@ updates:
           - "zod"
           - "zod-*"
 
+      patch-updates:
+        update-types:
+          - "patch"
+
     ignore:
       # Major version bumps require manual review — they often have breaking
       # changes that the AI breaking-change analyzer should assess first

@@ -29,9 +29,12 @@ function getRepo(): string {
 // ─────────────────────────────────────────────
 // Dependabot PR parser
 //
-// Dependabot PR titles follow a consistent format:
-//   "Bump <package> from <version> to <version> in <path>"
-//   "Bump @scope/package from 1.2.3 to 2.0.0 in /packages/foo"
+// Supports both the legacy Dependabot title format and the
+// chore(deps) convention configured in dependabot.yml:
+//
+//   Legacy:  "Bump @trpc/client from 11.13.4 to 11.15.0"
+//   Current: "chore(deps): bump @trpc/client from 11.13.4 to 11.15.0"
+//   Grouped: "chore(deps): bump the trpc group with 2 updates"
 // ─────────────────────────────────────────────
 
 function parseDependabotTitle(title: string): {
@@ -41,12 +44,55 @@ function parseDependabotTitle(title: string): {
   updateType: DependencyUpdateType;
   isMajor: boolean;
 } {
-  const match =
-    /^[Bb]ump\s+(.+?)\s+from\s+([\d.]+\S*)\s+to\s+([\d.]+\S*)/i.exec(title);
+  // Match both "Bump X from Y to Z" and "chore(deps): bump X from Y to Z ..."
+  // The trailing portion ("in the GROUP group", "in /path") is intentionally ignored.
+  const singleMatch =
+    /^(?:chore\(deps(?:-dev)?\):\s+)?[Bb]ump\s+(.+?)\s+from\s+([\w.+-]+)\s+to\s+([\w.+-]+)/i.exec(
+      title,
+    );
 
-  if (!match) {
+  if (singleMatch?.[1] && singleMatch[2] && singleMatch[3]) {
+    const packageName = singleMatch[1].trim();
+    const fromVersion = singleMatch[2];
+    const toVersion = singleMatch[3];
+
+    // Strip pre-release suffixes before comparing (e.g. "5.0.0-preview.3" → "5.0.0")
+    const clean = (v: string) => v.replace(/[-+].*$/, "");
+    const fromParts = clean(fromVersion).split(".").map(Number);
+    const toParts = clean(toVersion).split(".").map(Number);
+
+    const fromMajor = fromParts[0] ?? 0;
+    const toMajor = toParts[0] ?? 0;
+    const fromMinor = fromParts[1] ?? 0;
+    const toMinor = toParts[1] ?? 0;
+
+    let updateType: DependencyUpdateType;
+    if (toMajor > fromMajor) {
+      updateType = "major";
+    } else if (toMinor > fromMinor) {
+      updateType = "minor";
+    } else {
+      updateType = "patch";
+    }
+
     return {
-      packageName: title.replace(/^[Bb]ump\s+/, "").split(" ")[0] ?? title,
+      packageName,
+      fromVersion,
+      toVersion,
+      updateType,
+      isMajor: updateType === "major",
+    };
+  }
+
+  // Grouped bump: "chore(deps): bump the eslint group with 2 updates"
+  const groupMatch =
+    /^chore\(deps(?:-dev)?\):\s+bump\s+the\s+(.+?)\s+group\s+with\s+\d+\s+updates?/i.exec(
+      title,
+    );
+
+  if (groupMatch?.[1]) {
+    return {
+      packageName: `${groupMatch[1].trim()} group`,
       fromVersion: null,
       toVersion: null,
       updateType: "unknown",
@@ -54,30 +100,16 @@ function parseDependabotTitle(title: string): {
     };
   }
 
-  const packageName = match[1] ?? "";
-  const fromVersion = match[2] ?? "";
-  const toVersion = match[3] ?? "";
-
-  const fromMajor = parseInt(fromVersion.split(".")[0] ?? "0", 10);
-  const toMajor = parseInt(toVersion.split(".")[0] ?? "0", 10);
-  const fromMinor = parseInt(fromVersion.split(".")[1] ?? "0", 10);
-  const toMinor = parseInt(toVersion.split(".")[1] ?? "0", 10);
-
-  let updateType: DependencyUpdateType;
-  if (toMajor > fromMajor) {
-    updateType = "major";
-  } else if (toMinor > fromMinor) {
-    updateType = "minor";
-  } else {
-    updateType = "patch";
-  }
-
+  // Fallback — couldn't parse, use first word after "bump" as package name
   return {
-    packageName,
-    fromVersion,
-    toVersion,
-    updateType,
-    isMajor: updateType === "major",
+    packageName:
+      title
+        .replace(/^(?:chore\(deps(?:-dev)?\):\s+)?[Bb]ump\s+/, "")
+        .split(" ")[0] ?? title,
+    fromVersion: null,
+    toVersion: null,
+    updateType: "unknown",
+    isMajor: false,
   };
 }
 
@@ -145,7 +177,7 @@ export async function fetchDependabotPRs(): Promise<DependabotPR[]> {
       pr.head.ref.startsWith("dependabot/"),
   );
 
-  return dependabotPRs.map((pr) => {
+  return dependabotPRs.map((pr): DependabotPR => {
     const labelNames = pr.labels.map((l) => l.name);
     const parsed = parseDependabotTitle(pr.title);
     const ecosystem = detectEcosystem(labelNames, pr.head.ref);
@@ -169,7 +201,7 @@ export async function fetchDependabotPRs(): Promise<DependabotPR[]> {
 
 /**
  * Merges a Dependabot PR using squash merge.
- * Returns success/failure per PR.
+ * Returns success/failure and the merge commit SHA on success.
  */
 export async function mergeDependabotPR(
   prNumber: number,

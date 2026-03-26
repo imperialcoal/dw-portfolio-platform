@@ -299,7 +299,7 @@ export default async function PlatformPage() {
       : "—";
   const lastDeployBranch =
     lastDeploy !== null
-      ? (lastDeploy.meta.githubBranch ?? "unknown")
+      ? (lastDeploy.meta.githubBranch ?? lastDeploy.target ?? "main")
       : "no deploy found";
 
   // Branch for the docs agent trigger — match the current environment
