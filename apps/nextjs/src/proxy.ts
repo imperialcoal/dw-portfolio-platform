@@ -1,59 +1,36 @@
 import { clerkMiddleware, createRouteMatcher } from "~/auth/server";
 
-// NOTE: this proxy is setup for only Admins to see login for now
+/**
+ * Routes that require Clerk authentication (pages only).
+ * API routes handle their own auth via requireAdmin().
+ */
+const isProtectedPage = createRouteMatcher(["/admin(.*)", "/platform(.*)"]);
 
 /**
- * Routes that require authentication
+ * API routes — always bypass Clerk middleware entirely.
+ * Each API route handles its own authentication:
+ *   - Webhook routes: HMAC / Svix / QStash signature verification
+ *   - Platform API routes: requireAdmin() with Clerk session cookie
+ *   - Cron routes: CRON_SECRET header
+ *   - tRPC: Clerk session via context
  */
-const isProtectedRoute = createRouteMatcher(["/admin(.*)", "/platform(.*)"]);
-
-/**
- * Routes that must ALWAYS bypass Clerk middleware.
- *
- * Two categories:
- *
- * 1. Webhook + processor routes — must never be blocked by auth.
- *    These verify their own signatures (HMAC / QStash / Svix).
- *
- * 2. Platform API routes — these run on Node.js runtime and call
- *    requireAdmin() themselves using the Clerk session cookie.
- *    If Clerk middleware intercepts them first, it returns 400
- *    before the route handler ever runs, because middleware runs
- *    in the Edge runtime and can't correctly forward the session
- *    to a Node.js route handler in all cases.
- *
- * 3. Cron routes — authenticated via CRON_SECRET header, not Clerk.
- */
-const isWebhookRoute = createRouteMatcher([
-  // ── Inbound webhooks (signature-verified) ───────────────────────
-  "/api/webhooks/clerk",
-  "/api/webhooks/github",
-  "/api/webhooks/sentry",
-
-  // ── QStash processor routes (QStash signature-verified) ─────────
-  "/api/process/ci",
-  "/api/process/sentry",
-  "/api/process/resolve",
-  "/api/process/security",
-
-  // ── Platform API routes (requireAdmin() handles auth internally) ─
-  "/api/platform/(.*)",
-
-  // ── Cron routes (CRON_SECRET header auth) ───────────────────────
-  "/api/cron/(.*)",
-]);
+const isApiRoute = createRouteMatcher(["/api/(.*)"]);
 
 export default clerkMiddleware(async (auth, request) => {
-  if (isWebhookRoute(request)) {
+  // All API routes bypass middleware — they authenticate themselves.
+  // This prevents Clerk's Edge middleware from intercepting POST bodies
+  // before they reach Node.js route handlers.
+  if (isApiRoute(request)) {
     return;
   }
 
-  // Entire site = public.
-  // Only /admin and /platform pages require Clerk authentication.
-  if (isProtectedRoute(request)) {
+  // Protected pages require Clerk authentication.
+  if (isProtectedPage(request)) {
     await auth.protect();
     return;
   }
+
+  // Everything else (public pages) passes through.
 });
 
 export const config = {
