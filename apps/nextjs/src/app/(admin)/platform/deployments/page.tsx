@@ -326,7 +326,10 @@ export default async function DeploymentsPage() {
 
   // The most recently READY deployment is the currently-live one.
   // All others show the rollback button so you can promote any prior snapshot.
-  const currentLiveId = deploys.find((d) => d.state === "READY")?.id ?? null;
+  const currentLiveId =
+    deploys
+      .filter((d) => d.state === "READY")
+      .sort((a, b) => b.createdAt - a.createdAt)[0]?.id ?? null;
 
   const deploysWithActiveIncidents = deploys.filter((d) =>
     findCorrelatedIncidents(d, incidents).some(
