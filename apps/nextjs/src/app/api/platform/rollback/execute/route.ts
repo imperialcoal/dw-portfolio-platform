@@ -11,25 +11,19 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const ExecuteBody = z.object({
-  /** The Vercel deployment ID to roll back to */
-  deploymentId: z.string(),
-  /** The commit SHA of the deployment being rolled back to */
-  commitSha: z.string(),
-  /** Required when overallRisk === "destructive" — must equal "ROLLBACK" */
-  confirmText: z.string().optional(),
-  /** The assessed risk level — destructive requires confirmText */
+  deploymentId: z.string().min(1),
+  commitSha: z.string().min(1),
+  confirmText: z.string().optional().default(""),
   overallRisk: z.enum(["safe", "risky", "destructive"]),
-  /** Human-readable descriptions of non-safe SQL operations */
-  changes: z.array(z.string()).optional(),
+  changes: z.array(z.string()).optional().default([]),
 });
 
 /**
  * POST /api/platform/rollback/execute
  *
- * Executes a rollback by re-deploying a previous Vercel deployment.
- * Uses Vercel's instantRedeployment API to promote a prior deployment.
- * Writes a RollbackRecord to Redis before and after — provides a full
- * audit trail visible on the deployments page.
+ * Executes a rollback by promoting a previous Vercel deployment to live.
+ * Uses Vercel's promote API which instantly swaps the live deployment
+ * without rebuilding — the fastest and most reliable rollback mechanism.
  * Admin-only.
  */
 export async function POST(req: NextRequest): Promise<NextResponse> {
@@ -46,23 +40,36 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
+  // Log body for debugging during development
+  console.log(
+    JSON.stringify({
+      level: "info",
+      route: "rollback/execute",
+      event: "body_received",
+      body,
+    }),
+  );
+
   const parsed = ExecuteBody.safeParse(body);
   if (!parsed.success) {
+    console.error(
+      JSON.stringify({
+        level: "error",
+        route: "rollback/execute",
+        event: "schema_validation_failed",
+        issues: parsed.error.flatten(),
+        body,
+      }),
+    );
     return NextResponse.json(
       { error: "Invalid body", issues: parsed.error.flatten() },
       { status: 400 },
     );
   }
 
-  const {
-    deploymentId,
-    commitSha,
-    confirmText,
-    overallRisk,
-    changes = [],
-  } = parsed.data;
+  const { deploymentId, commitSha, confirmText, overallRisk, changes } =
+    parsed.data;
 
-  // Hard guard: destructive migrations require explicit confirmation
   if (overallRisk === "destructive" && confirmText !== "ROLLBACK") {
     return NextResponse.json(
       { error: "Destructive rollback requires confirmText === 'ROLLBACK'" },
@@ -80,8 +87,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
   }
 
-  // Write the audit record before calling Vercel — status: executing
-  // This ensures the record exists even if the request times out or errors.
+  // Write audit record before calling Vercel
   await createRollbackRecord({
     deploymentId,
     rollbackToSha: commitSha,
@@ -90,7 +96,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     status: "executing",
     initiatedAt: new Date().toISOString(),
   }).catch((e: unknown) => {
-    // Non-fatal — log but don't block the rollback
     console.error(
       JSON.stringify({
         level: "error",
@@ -101,88 +106,85 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
   });
 
-  // Vercel instant rollback: create a new deployment from a previous one
+  // Vercel promote API — instantly swaps the live deployment without rebuild.
+  // This is the correct endpoint for rollback: it promotes an existing
+  // deployment to production/preview alias without creating a new build.
+  // Endpoint: POST /v10/projects/{projectId}/promote/{deploymentId}
   const res = await fetch(
-    `https://api.vercel.com/v13/deployments?projectId=${projectId}`,
+    `https://api.vercel.com/v10/projects/${projectId}/promote/${deploymentId}`,
     {
       method: "POST",
       headers: {
         Authorization: `Bearer ${vercelToken}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        deploymentId,
-        name: projectId,
-        target: config.app.APP_ENV === "production" ? "production" : "preview",
-        meta: {
-          rollbackFrom: deploymentId,
-          rollbackRisk: overallRisk,
-          rollbackInitiatedAt: new Date().toISOString(),
-        },
-      }),
+      // No body needed — the deployment ID in the URL identifies the target
     },
   );
 
   if (!res.ok) {
-    const error = (await res.json()) as { error?: { message?: string } };
-    const errorMessage = error.error?.message ?? `HTTP ${res.status}`;
+    let errorMessage = `HTTP ${res.status}`;
+    try {
+      const error = (await res.json()) as {
+        error?: { message?: string };
+        message?: string;
+      };
+      errorMessage = error.error?.message ?? error.message ?? errorMessage;
+    } catch {
+      // Response wasn't JSON
+    }
 
     console.error(
       JSON.stringify({
         level: "error",
         route: "rollback/execute",
         status: res.status,
-        vercelError: error,
+        error: errorMessage,
+        deploymentId,
       }),
     );
 
-    // Update the audit record to failed
     await updateRollbackRecord(deploymentId, {
       status: "failed",
       completedAt: new Date().toISOString(),
       error: errorMessage,
-    }).catch(() => {
-      // Non-fatal
-    });
+    }).catch(() => undefined);
 
     return NextResponse.json(
-      {
-        error: "Vercel rollback failed",
-        details: errorMessage,
-      },
+      { error: "Vercel rollback failed", details: errorMessage },
       { status: 502 },
     );
   }
 
+  // The promote API returns the updated deployment
   const deployment = (await res.json()) as {
     id?: string;
+    uid?: string;
     url?: string;
-    readyState?: string;
   };
 
-  // Update the audit record to success
+  const newDeploymentId = deployment.id ?? deployment.uid;
+
   await updateRollbackRecord(deploymentId, {
     status: "success",
     completedAt: new Date().toISOString(),
-    newDeploymentId: deployment.id,
-  }).catch(() => {
-    // Non-fatal
-  });
+    newDeploymentId,
+  }).catch(() => undefined);
 
   console.log(
     JSON.stringify({
       level: "info",
       route: "rollback/execute",
-      event: "rollback_initiated",
+      event: "rollback_complete",
       fromDeploymentId: deploymentId,
-      newDeploymentId: deployment.id,
+      newDeploymentId,
       overallRisk,
     }),
   );
 
   return NextResponse.json({
     ok: true,
-    newDeploymentId: deployment.id,
+    newDeploymentId,
     deploymentUrl: deployment.url ? `https://${deployment.url}` : undefined,
   });
 }

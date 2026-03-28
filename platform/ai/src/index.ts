@@ -62,4 +62,8 @@ export {
 } from "./sensors/vercel";
 export { scanRepo } from "./sensors/repo";
 export { analyzeDeploymentMigrations } from "./sensors/migrations";
-export { fetchDependabotPRs, mergeDependabotPR } from "./sensors/github-deps";
+export {
+  fetchDependabotPRs,
+  fetchSecurityAlerts,
+  mergeDependabotPR,
+} from "./sensors/github-deps";

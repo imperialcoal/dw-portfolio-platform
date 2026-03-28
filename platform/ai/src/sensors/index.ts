@@ -8,8 +8,16 @@ export {
   fetchSentryIssues,
 } from "./sentry";
 
-export { fetchRecentDeployments, getLastProductionDeploy } from "./vercel";
+export {
+  fetchRecentDeployments,
+  getLastProductionDeploy,
+  getLastDeploy,
+} from "./vercel";
 
 export { analyzeDeploymentMigrations } from "./migrations";
 
-export { fetchDependabotPRs, mergeDependabotPR } from "./github-deps";
+export {
+  fetchDependabotPRs,
+  fetchSecurityAlerts,
+  mergeDependabotPR,
+} from "./github-deps";

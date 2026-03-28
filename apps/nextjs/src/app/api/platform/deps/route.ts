@@ -1,12 +1,7 @@
-import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-import type {
-  DependencyDashboardData,
-  SecurityAlertWithPR,
-} from "@dw/contracts";
-import { getDepAnalysis, getIncidents } from "@dw/ai/memory";
-import { fetchDependabotPRs } from "@dw/ai/sensors";
+import { getDepAnalysis } from "@dw/ai/memory";
+import { fetchDependabotPRs, fetchSecurityAlerts } from "@dw/ai/sensors";
 
 import { requireAdmin } from "~/auth/require-admin";
 
@@ -16,99 +11,61 @@ export const maxDuration = 30;
 /**
  * GET /api/platform/deps
  *
- * Returns all dependency management data:
- * - Open Dependabot PRs with parsed metadata
- * - Security alert incidents with correlation to fix PRs
- * - Cached breaking change analyses
+ * Returns all open Dependabot PRs and security vulnerability alerts,
+ * with cached breaking-change analyses hydrated from Redis.
+ * Admin-only.
  */
-export async function GET(_req: NextRequest): Promise<NextResponse> {
+export async function GET(): Promise<NextResponse> {
   try {
     await requireAdmin();
   } catch {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const [prs, incidents] = await Promise.all([
-    fetchDependabotPRs(),
-    getIncidents(100),
-  ]);
+  try {
+    // Fetch PRs first — security alert correlation needs the PR list
+    const prs = await fetchDependabotPRs();
 
-  // Load cached analyses for all PRs
-  const analyses: DependencyDashboardData["analyses"] = {};
-  await Promise.all(
-    prs.map(async (pr) => {
-      const analysis = await getDepAnalysis(pr.number);
-      if (analysis) {
-        analyses[pr.number] = analysis;
-      }
-    }),
-  );
+    // Fetch security vulnerability alerts, correlating with open PRs
+    const securityAlerts = await fetchSecurityAlerts(prs);
 
-  // Mark PRs that have analyses
-  const prsWithAnalysis = prs.map((pr) => ({
-    ...pr,
-    hasAnalysis: pr.number in analyses,
-  }));
+    // Hydrate breaking-change analyses from Redis cache
+    const analyses = await Promise.all(
+      prs.map(async (pr) => {
+        const analysis = await getDepAnalysis(pr.number).catch(() => null);
+        return { prNumber: pr.number, analysis };
+      }),
+    );
 
-  // Build security alert list from Redis incidents
-  const securityIncidents = incidents.filter(
-    (i) => i.type === "security_alert",
-  );
+    const analysisMap = Object.fromEntries(
+      analyses
+        .filter((a) => a.analysis !== null)
+        .map((a) => [a.prNumber, a.analysis]),
+    );
 
-  const securityAlerts: SecurityAlertWithPR[] = securityIncidents.map(
-    (incident) => {
-      const fixPR =
-        prsWithAnalysis.find((pr) =>
-          incident.labels.some(
-            (l) =>
-              l.toLowerCase() === pr.packageName.toLowerCase() ||
-              pr.packageName.toLowerCase().includes(l.toLowerCase()),
-          ),
-        ) ?? null;
+    // Mark PRs that have cached analyses
+    const hydratedPrs = prs.map((pr) => ({
+      ...pr,
+      hasAnalysis: analysisMap[pr.number] !== undefined,
+    }));
 
-      const cveLabel = incident.labels.find(
-        (l) => l.startsWith("CVE-") || l.startsWith("GHSA-"),
-      );
-      const ecosystemLabel = incident.labels.find((l) =>
-        ["npm", "pip", "cargo", "maven", "nuget"].includes(l.toLowerCase()),
-      );
-      const severityLabel = incident.labels.find((l) =>
-        ["critical", "high", "medium", "low"].includes(l.toLowerCase()),
-      );
-
-      return {
-        alertId: incident.sentryIssueId ?? incident.id,
-        packageName:
-          incident.labels.find(
-            (l) =>
-              !l.startsWith("severity:") &&
-              l !== "security" &&
-              l !== "dependabot",
-          ) ?? "unknown",
-        ecosystem: ecosystemLabel ?? "npm",
-        severity: (severityLabel ?? incident.severity) as
-          | "low"
-          | "medium"
-          | "high"
-          | "critical",
-        identifier: cveLabel ?? incident.id,
-        summary: incident.summary,
-        vulnerableRange: "",
-        fixedVersion: null,
-        fixPR,
-        noFixAvailable: fixPR === null,
-        alertUrl: incident.issueUrl ?? "",
-        incidentId: incident.id,
-      };
-    },
-  );
-
-  const data: DependencyDashboardData = {
-    prs: prsWithAnalysis,
-    securityAlerts,
-    analyses,
-    fetchedAt: new Date().toISOString(),
-  };
-
-  return NextResponse.json(data);
+    return NextResponse.json({
+      prs: hydratedPrs,
+      securityAlerts,
+      analyses: analysisMap,
+      fetchedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error(
+      JSON.stringify({
+        level: "error",
+        route: "platform/deps",
+        error: String(err),
+      }),
+    );
+    return NextResponse.json(
+      { error: "Failed to fetch dependency data" },
+      { status: 500 },
+    );
+  }
 }
