@@ -1,19 +1,13 @@
 import Link from "next/link";
 
-import type {
-  DependencyDashboardData,
-  SecurityAlertWithPR,
-} from "@dw/contracts";
-import { getDepAnalysis, getIncidents } from "@dw/ai/memory";
-import { fetchDependabotPRs } from "@dw/ai/sensors";
+import type { DependencyDashboardData } from "@dw/contracts";
+import { getDepAnalysis } from "@dw/ai/memory";
+import { fetchDependabotPRs, fetchSecurityAlerts } from "@dw/ai/sensors";
 
 import { DependencyManagerClient } from "./_components/dependency-manager-client";
 
 async function getDepsData(): Promise<DependencyDashboardData> {
-  const [prs, incidents] = await Promise.all([
-    fetchDependabotPRs(),
-    getIncidents(100),
-  ]);
+  const prs = await fetchDependabotPRs();
 
   // Load cached analyses
   const analyses: DependencyDashboardData["analyses"] = {};
@@ -31,57 +25,7 @@ async function getDepsData(): Promise<DependencyDashboardData> {
     hasAnalysis: pr.number in analyses,
   }));
 
-  const securityIncidents = incidents.filter(
-    (i) => i.type === "security_alert",
-  );
-
-  const securityAlerts: SecurityAlertWithPR[] = securityIncidents.map(
-    (incident) => {
-      const fixPR =
-        prsWithAnalysis.find((pr) =>
-          incident.labels.some(
-            (l) =>
-              l.toLowerCase() === pr.packageName.toLowerCase() ||
-              pr.packageName.toLowerCase().includes(l.toLowerCase()),
-          ),
-        ) ?? null;
-
-      const cveLabel = incident.labels.find(
-        (l) => l.startsWith("CVE-") || l.startsWith("GHSA-"),
-      );
-      const ecosystemLabel = incident.labels.find((l) =>
-        ["npm", "pip", "cargo", "maven", "nuget"].includes(l.toLowerCase()),
-      );
-      const severityLabel = incident.labels.find((l) =>
-        ["critical", "high", "medium", "low"].includes(l.toLowerCase()),
-      );
-
-      return {
-        alertId: incident.sentryIssueId ?? incident.id,
-        packageName:
-          incident.labels.find(
-            (l) =>
-              !l.startsWith("severity:") &&
-              l !== "security" &&
-              l !== "dependabot",
-          ) ?? "unknown",
-        ecosystem: ecosystemLabel ?? "npm",
-        severity: (severityLabel ?? incident.severity) as
-          | "low"
-          | "medium"
-          | "high"
-          | "critical",
-        identifier: cveLabel ?? incident.id,
-        summary: incident.summary,
-        vulnerableRange: "",
-        fixedVersion: null,
-        fixPR,
-        noFixAvailable: fixPR === null,
-        alertUrl: incident.issueUrl ?? "",
-        incidentId: incident.id,
-      };
-    },
-  );
+  const securityAlerts = await fetchSecurityAlerts(prsWithAnalysis);
 
   return {
     prs: prsWithAnalysis,

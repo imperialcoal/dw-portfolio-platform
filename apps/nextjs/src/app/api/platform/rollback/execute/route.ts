@@ -110,17 +110,20 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // This is the correct endpoint for rollback: it promotes an existing
   // deployment to production/preview alias without creating a new build.
   // Endpoint: POST /v10/projects/{projectId}/promote/{deploymentId}
-  const res = await fetch(
+  const teamId = config.observability.VERCEL_TEAM_ID;
+
+  const url = new URL(
     `https://api.vercel.com/v10/projects/${projectId}/promote/${deploymentId}`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${vercelToken}`,
-        "Content-Type": "application/json",
-      },
-      // No body needed — the deployment ID in the URL identifies the target
-    },
   );
+  if (teamId) url.searchParams.set("teamId", teamId);
+
+  const res = await fetch(url.toString(), {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${vercelToken}`,
+      "Content-Type": "application/json",
+    },
+  });
 
   if (!res.ok) {
     let errorMessage = `HTTP ${res.status}`;

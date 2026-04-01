@@ -176,6 +176,7 @@
     "VERCEL_API_TOKEN",
     "VERCEL_ENV",
     "VERCEL_PROJECT_ID",
+    "VERCEL_TEAM_ID",
     "VERCEL_URL"
   ]
 }
