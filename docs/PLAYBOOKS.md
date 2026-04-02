@@ -329,8 +329,10 @@ If a third-party service is down, the platform degrades gracefully:
 
 ---
 
-## Documentation Drift — 2026-03-26
+---
+
+## Documentation Drift — 2026-04-02
 
 > Auto-detected by platform-agent · Review and update the sections above · Remove this block when resolved
 
-• New `deps` agent detected in `platform/ai/src/analyzers/deps-agent.ts` → Add new failure scenario section "AI Deps Agent Not Processing Dependency Issues" → Include steps to check `/api/process/deps` logs, verify dependency-related webhook triggers, and troubleshoot deps agent-specific error patterns
+• New AI agent `deps` detected in `platform/ai/src/analyzers/deps-agent.ts` → Add "Agent `deps` Not Running" section to **Common Failure Scenarios** → Include webhook delivery checks, QStash configuration verification, and Vercel Functions logs analysis for `/api/process/deps`
