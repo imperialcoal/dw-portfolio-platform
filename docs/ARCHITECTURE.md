@@ -395,17 +395,28 @@ sequenceDiagram
 
 ---
 
-## Documentation Drift — 2026-04-02
+---
+
+## Documentation Drift — 2026-04-03
 
 > Auto-detected by platform-agent · Review and update the sections above · Remove this block when resolved
 
-• New cron endpoint `/api/cron/docs-agent` added → Update **External Integrations** section → Add documentation agent automation endpoint
-• New dependency analysis endpoint `/api/platform/deps/analyze` added → Update **System Architecture Diagram** section → Add dependency management API endpoints
-• New dependency merge endpoint `/api/platform/deps/merge` added → Update **System Architecture Diagram** section → Add dependency merge functionality
-• New dependency listing endpoint `/api/platform/deps` added → Update **System Architecture Diagram** section → Add base dependency management endpoint
-• New docs trigger endpoint `/api/platform/docs/trigger` added → Update **External Integrations** section → Add manual documentation generation trigger
+• New cron job endpoint `/api/cron/docs-agent` added → Update **External Integrations** section → Add documentation agent automation endpoint details
+
+• New dependency analysis endpoint `/api/platform/deps/analyze` added → Update **System Architecture Diagram** section → Add dependency analysis service endpoint
+
+• New dependency merge endpoint `/api/platform/deps/merge` added → Update **System Architecture Diagram** section → Add dependency merge service endpoint
+
+• New dependency management endpoint `/api/platform/deps` added → Update **System Architecture Diagram** section → Add main dependency management endpoint
+
+• New documentation trigger endpoint `/api/platform/docs/trigger` added → Update **External Integrations** section → Add documentation generation trigger endpoint
+
 • New incident resolution endpoint `/api/platform/incidents/[id]/resolve` added → Update **Primary Data Flow** section → Add incident management resolution flow
+
 • New rollback execution endpoint `/api/platform/rollback/execute` added → Update **System Architecture Diagram** section → Add deployment rollback execution endpoint
+
 • New rollback preflight endpoint `/api/platform/rollback/preflight` added → Update **System Architecture Diagram** section → Add rollback validation endpoint
-• New tRPC API handler `/api/trpc/[trpc]` added → Update **Tech Stack** section → Add tRPC as API layer technology
+
+• New tRPC handler endpoint `/api/trpc/[trpc]` added → Update **Tech Stack** section → Add tRPC API layer configuration
+
 • New Clerk webhook endpoint `/api/webhooks/clerk` added → Update **External Integrations** section → Add Clerk authentication webhook handler
