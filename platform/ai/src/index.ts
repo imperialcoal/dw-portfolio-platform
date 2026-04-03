@@ -57,6 +57,7 @@ export {
 } from "./sensors/sentry";
 export {
   fetchRecentDeployments,
+  fetchLiveDeploymentId,
   getLastProductionDeploy,
   getLastDeploy,
 } from "./sensors/vercel";

@@ -6,7 +6,7 @@ import type {
   VercelDeployment,
 } from "@dw/contracts";
 import { getIncidents, getRollbackRecord } from "@dw/ai/memory";
-import { fetchRecentDeployments } from "@dw/ai/sensors";
+import { fetchLiveDeploymentId, fetchRecentDeployments } from "@dw/ai/sensors";
 
 import { env } from "~/env";
 import { RollbackButton } from "./_components/rollback-button";
@@ -314,9 +314,10 @@ function DeployRow({
 // ─────────────────────────────────────────────
 
 export default async function DeploymentsPage() {
-  const [deploys, incidents] = await Promise.all([
+  const [deploys, incidents, liveDeploymentId] = await Promise.all([
     fetchRecentDeployments(20),
     getIncidents(100),
+    fetchLiveDeploymentId(),
   ]);
 
   const rollbackRecords = await Promise.all(
@@ -325,12 +326,16 @@ export default async function DeploymentsPage() {
 
   const currentEnv = env.NEXT_PUBLIC_APP_ENV;
 
-  // The most recently READY deployment is the currently-live one.
-  // All others show the rollback button so you can promote any prior snapshot.
+  // Use the alias-resolved deployment as the live one.
+  // After a rollback the alias points at an older deployment, so we cannot
+  // rely on createdAt ordering — we ask Vercel which deployment the alias
+  // currently resolves to. Falls back to newest READY if the alias lookup fails.
   const currentLiveId =
+    liveDeploymentId ??
     deploys
       .filter((d) => d.state === "READY")
-      .sort((a, b) => b.createdAt - a.createdAt)[0]?.id ?? null;
+      .sort((a, b) => b.createdAt - a.createdAt)[0]?.id ??
+    null;
 
   const deploysWithActiveIncidents = deploys.filter((d) =>
     findCorrelatedIncidents(d, incidents).some(

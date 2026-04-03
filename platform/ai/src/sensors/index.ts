@@ -10,6 +10,7 @@ export {
 
 export {
   fetchRecentDeployments,
+  fetchLiveDeploymentId,
   getLastProductionDeploy,
   getLastDeploy,
 } from "./vercel";

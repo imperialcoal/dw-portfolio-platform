@@ -69,6 +69,50 @@ export async function fetchRecentDeployments(
   return fetchDeployments(getDeploymentTarget(), limit);
 }
 
+/**
+ * Returns the deployment uid that the branch alias currently points at.
+ *
+ * After a rollback the alias points at an older deployment, so the most
+ * recently-created READY deployment is no longer "live". This function
+ * asks the Vercel Aliases API for the ground truth.
+ *
+ * Falls back to null on any error — callers should degrade gracefully.
+ */
+export async function fetchLiveDeploymentId(): Promise<string | null> {
+  if (!isVercelApiConfigured()) return null;
+
+  const alias =
+    config.observability.VERCEL_DOMAIN ??
+    (config.app.APP_ENV === "production"
+      ? "dw-portfolio.dev"
+      : "dev.dw-portfolio.dev");
+
+  const teamId = config.observability.VERCEL_TEAM_ID;
+  const url = new URL(
+    `https://api.vercel.com/v4/aliases/${encodeURIComponent(alias)}`,
+  );
+  if (teamId) url.searchParams.set("teamId", teamId);
+
+  try {
+    const res = await fetch(url.toString(), {
+      headers: {
+        Authorization: `Bearer ${String(config.observability.VERCEL_API_TOKEN)}`,
+      },
+    });
+
+    if (!res.ok) return null;
+
+    const data = (await res.json()) as {
+      deploymentId?: string;
+      deployment?: { id?: string };
+    };
+    // Vercel returns either deploymentId directly or nested under deployment.id
+    return data.deploymentId ?? data.deployment?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getLastProductionDeploy(): Promise<VercelDeployment | null> {
   const deploys = await fetchDeployments("production", 5);
   return deploys.find((d) => d.state === "READY") ?? null;
