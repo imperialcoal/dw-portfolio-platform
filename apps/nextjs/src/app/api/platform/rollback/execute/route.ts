@@ -12,6 +12,7 @@ export const maxDuration = 60;
 
 const ExecuteBody = z.object({
   deploymentId: z.string().min(1),
+  deploymentUrl: z.string().min(1),
   commitSha: z.string().min(1),
   confirmText: z.string().optional().default(""),
   overallRisk: z.enum(["safe", "risky", "destructive"]),
@@ -67,8 +68,25 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const { deploymentId, commitSha, confirmText, overallRisk, changes } =
-    parsed.data;
+  const {
+    deploymentId,
+    deploymentUrl,
+    commitSha: rollbackToSha,
+    confirmText,
+    overallRisk,
+    changes,
+  } = parsed.data;
+
+  console.log(
+    JSON.stringify({
+      level: "info",
+      route: "rollback/execute",
+      event: "executing",
+      deploymentId,
+      deploymentUrl,
+      overallRisk,
+    }),
+  );
 
   if (overallRisk === "destructive" && confirmText !== "ROLLBACK") {
     return NextResponse.json(
@@ -90,7 +108,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // Write audit record before calling Vercel
   await createRollbackRecord({
     deploymentId,
-    rollbackToSha: commitSha,
+    rollbackToSha,
     riskLevel: overallRisk,
     changes,
     status: "executing",
@@ -106,70 +124,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
   });
 
-  // ── Step 1: Fetch the target deployment to get its URL ───────────────────
-  // We need the deployment's URL to use as the alias target.
-  // The deploymentId here is the uid from the Vercel API (e.g. dpl_xxx).
+  // ── Step 1: Use the deployment URL passed from the client ────────────────
+  // The deployments page already has the URL from the Vercel API list response.
+  // Passing it directly avoids a redundant GET /v13/deployments/{id} call
+  // which requires team-scoped token permissions we don't have.
   const teamId = config.observability.VERCEL_TEAM_ID;
-
-  const getDeployUrl = new URL(
-    `https://api.vercel.com/v13/deployments/${deploymentId}`,
-  );
-  if (teamId) getDeployUrl.searchParams.set("teamId", teamId);
-
-  const getRes = await fetch(getDeployUrl.toString(), {
-    headers: { Authorization: `Bearer ${vercelToken}` },
-  });
-
-  if (!getRes.ok) {
-    let errorMessage = `Failed to fetch deployment: HTTP ${getRes.status}`;
-    try {
-      const error = (await getRes.json()) as {
-        error?: { message?: string };
-        message?: string;
-      };
-      errorMessage = error.error?.message ?? error.message ?? errorMessage;
-    } catch {
-      // not JSON
-    }
-    console.error(
-      JSON.stringify({
-        level: "error",
-        route: "rollback/execute",
-        step: "fetch_deployment",
-        status: getRes.status,
-        error: errorMessage,
-        deploymentId,
-      }),
-    );
-    await updateRollbackRecord(deploymentId, {
-      status: "failed",
-      completedAt: new Date().toISOString(),
-      error: errorMessage,
-    }).catch(() => undefined);
-    return NextResponse.json(
-      { error: "Vercel rollback failed", details: errorMessage },
-      { status: 502 },
-    );
-  }
-
-  const targetDeploy = (await getRes.json()) as {
-    uid?: string;
-    url?: string;
-    alias?: string[];
-  };
-
-  const deploymentUrl = targetDeploy.url;
-  if (!deploymentUrl) {
-    await updateRollbackRecord(deploymentId, {
-      status: "failed",
-      completedAt: new Date().toISOString(),
-      error: "Deployment has no URL",
-    }).catch(() => undefined);
-    return NextResponse.json(
-      { error: "Vercel rollback failed", details: "Deployment has no URL" },
-      { status: 502 },
-    );
-  }
 
   // ── Step 2: Determine which alias to reassign ─────────────────────────
   // For preview: dev.dw-portfolio.dev
@@ -182,10 +141,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       : "dev.dw-portfolio.dev");
 
   // ── Step 3: Reassign the alias to the target deployment ───────────────
-  // POST /v2/deployments/{deploymentUrl}/aliases assigns a domain alias to
+  // POST /v2/deployments/{id}/aliases assigns a custom domain alias to
   // an existing deployment without rebuilding — the documented rollback path.
+  // The path parameter must be the deployment uid (dpl_xxx), not the URL.
   const aliasUrl = new URL(
-    `https://api.vercel.com/v2/deployments/${encodeURIComponent(deploymentUrl)}/aliases`,
+    `https://api.vercel.com/v2/deployments/${encodeURIComponent(deploymentId)}/aliases`,
   );
   if (teamId) aliasUrl.searchParams.set("teamId", teamId);
 
@@ -239,7 +199,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     alias?: string;
   };
 
-  const newDeploymentId = targetDeploy.uid ?? deploymentId;
+  const newDeploymentId = deploymentId;
 
   await updateRollbackRecord(deploymentId, {
     status: "success",

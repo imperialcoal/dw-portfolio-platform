@@ -6,6 +6,7 @@ import type { MigrationOperation, RollbackPreflight } from "@dw/contracts";
 
 interface RollbackButtonProps {
   deploymentId: string;
+  deploymentUrl: string;
   commitSha: string;
   commitMessage: string;
 }
@@ -56,6 +57,7 @@ function MigrationOperationRow({ op }: { op: MigrationOperation }) {
 
 export function RollbackButton({
   deploymentId,
+  deploymentUrl,
   commitSha,
   commitMessage,
 }: RollbackButtonProps) {
@@ -110,6 +112,7 @@ export function RollbackButton({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           deploymentId,
+          deploymentUrl,
           commitSha,
           overallRisk: preflight.overallRisk,
           confirmText,

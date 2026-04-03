@@ -231,6 +231,7 @@ function DeployRow({
           {canRollback && (
             <RollbackButton
               deploymentId={deploy.id}
+              deploymentUrl={deploy.url}
               commitSha={commitSha}
               commitMessage={commitMessage ?? ""}
             />
