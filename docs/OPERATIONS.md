@@ -408,21 +408,23 @@ All secrets are stored in **Doppler** under project `dw-portfolio-platform`.
 
 ---
 
-## Documentation Drift — 2026-04-02
+---
+
+## Documentation Drift — 2026-04-03
 
 > Auto-detected by platform-agent · Review and update the sections above · Remove this block when resolved
 
-• Added cron job `/api/cron/docs-agent` → Update **## Infrastructure Overview** → Add docs-agent automated documentation cron job description
-• Added platform dependency analysis endpoint `/api/platform/deps/analyze` → Update **## Infrastructure Overview** → Document dependency analysis API functionality
-• Added platform dependency merge endpoint `/api/platform/deps/merge` → Update **## Infrastructure Overview** → Document dependency merge API functionality
-• Added platform dependencies list endpoint `/api/platform/deps` → Update **## Infrastructure Overview** → Document dependencies management API
-• Added platform docs trigger endpoint `/api/platform/docs/trigger` → Update **## Infrastructure Overview** → Document manual documentation generation trigger
-• Added incident resolution endpoint `/api/platform/incidents/[id]/resolve` → Update **## Infrastructure Overview** → Document incident management API for resolving incidents
-• Added rollback execution endpoint `/api/platform/rollback/execute` → Update **## Infrastructure Overview** → Document platform rollback execution API
-• Added rollback preflight endpoint `/api/platform/rollback/preflight` → Update **## Infrastructure Overview** → Document rollback preflight checks API
-• Added tRPC API handler `/api/trpc/[trpc]` → Update **## Infrastructure Overview** → Document tRPC integration endpoint
-• Added Clerk webhook handler `/api/webhooks/clerk` → Update **## Infrastructure Overview** → Document Clerk authentication webhook processing
-• Added GitHub webhook handler `/api/webhooks/github` → Update **## Infrastructure Overview** → Document GitHub integration webhook
-• Added Sentry webhook handler `/api/webhooks/sentry` → Update **## Infrastructure Overview** → Document Sentry error reporting webhook
-• New environment variable `CRON_SECRET` → Update **### Infrastructure / Terraform** → Add CRON_SECRET for securing cron job endpoints
-• New environment variable `VERCEL_TEAM_ID` → Update **### Observability (Sentry + Vercel API)** → Add VERCEL_TEAM_ID for Vercel API team identification
+• Route `/api/cron/docs-agent` added → update **Cron Jobs** section → document cron endpoint for documentation agent automation
+• Route `/api/platform/deps/analyze` added → update **API Endpoints** section → document dependency analysis endpoint for platform management
+• Route `/api/platform/deps/merge` added → update **API Endpoints** section → document dependency merge endpoint for platform management
+• Route `/api/platform/deps` added → update **API Endpoints** section → document main dependency management endpoint
+• Route `/api/platform/docs/trigger` added → update **API Endpoints** section → document documentation trigger endpoint for manual doc generation
+• Route `/api/platform/incidents/[id]/resolve` added → update **API Endpoints** section → document incident resolution endpoint with ID parameter
+• Route `/api/platform/rollback/execute` added → update **API Endpoints** section → document rollback execution endpoint for deployment reversals
+• Route `/api/platform/rollback/preflight` added → update **API Endpoints** section → document rollback preflight check endpoint
+• Route `/api/trpc/[trpc]` added → update **API Endpoints** section → document tRPC API handler endpoint
+• Environment variable `CRON_SECRET` added → update **Environment Variables > Core Application** section → add CRON_SECRET for authenticating cron job requests
+• Environment variable `VERCEL_TEAM_ID` added → update **Environment Variables > Observability (Sentry + Vercel API)** section → add VERCEL_TEAM_ID for Vercel API team identification
+• Webhook `/api/webhooks/clerk` added → update **Webhooks** section → document Clerk authentication webhook handler
+• Webhook `/api/webhooks/github` added → update **Webhooks** section → document GitHub integration webhook handler
+• Webhook `/api/webhooks/sentry` added → update **Webhooks** section → document Sentry error tracking webhook handler
