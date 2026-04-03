@@ -106,23 +106,96 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
   });
 
-  // Vercel promote API — instantly swaps the live deployment without rebuild.
-  // This is the correct endpoint for rollback: it promotes an existing
-  // deployment to production/preview alias without creating a new build.
-  // Endpoint: POST /v10/projects/{projectId}/promote/{deploymentId}
+  // ── Step 1: Fetch the target deployment to get its URL ───────────────────
+  // We need the deployment's URL to use as the alias target.
+  // The deploymentId here is the uid from the Vercel API (e.g. dpl_xxx).
   const teamId = config.observability.VERCEL_TEAM_ID;
 
-  const url = new URL(
-    `https://api.vercel.com/v10/projects/${projectId}/promote/${deploymentId}`,
+  const getDeployUrl = new URL(
+    `https://api.vercel.com/v13/deployments/${deploymentId}`,
   );
-  if (teamId) url.searchParams.set("teamId", teamId);
+  if (teamId) getDeployUrl.searchParams.set("teamId", teamId);
 
-  const res = await fetch(url.toString(), {
+  const getRes = await fetch(getDeployUrl.toString(), {
+    headers: { Authorization: `Bearer ${vercelToken}` },
+  });
+
+  if (!getRes.ok) {
+    let errorMessage = `Failed to fetch deployment: HTTP ${getRes.status}`;
+    try {
+      const error = (await getRes.json()) as {
+        error?: { message?: string };
+        message?: string;
+      };
+      errorMessage = error.error?.message ?? error.message ?? errorMessage;
+    } catch {
+      // not JSON
+    }
+    console.error(
+      JSON.stringify({
+        level: "error",
+        route: "rollback/execute",
+        step: "fetch_deployment",
+        status: getRes.status,
+        error: errorMessage,
+        deploymentId,
+      }),
+    );
+    await updateRollbackRecord(deploymentId, {
+      status: "failed",
+      completedAt: new Date().toISOString(),
+      error: errorMessage,
+    }).catch(() => undefined);
+    return NextResponse.json(
+      { error: "Vercel rollback failed", details: errorMessage },
+      { status: 502 },
+    );
+  }
+
+  const targetDeploy = (await getRes.json()) as {
+    uid?: string;
+    url?: string;
+    alias?: string[];
+  };
+
+  const deploymentUrl = targetDeploy.url;
+  if (!deploymentUrl) {
+    await updateRollbackRecord(deploymentId, {
+      status: "failed",
+      completedAt: new Date().toISOString(),
+      error: "Deployment has no URL",
+    }).catch(() => undefined);
+    return NextResponse.json(
+      { error: "Vercel rollback failed", details: "Deployment has no URL" },
+      { status: 502 },
+    );
+  }
+
+  // ── Step 2: Determine which alias to reassign ─────────────────────────
+  // For preview: dev.dw-portfolio.dev
+  // For production: dw-portfolio.dev
+  // Fall back to VERCEL_DOMAIN env var or derive from APP_ENV.
+  const aliasToReassign =
+    config.observability.VERCEL_DOMAIN ??
+    (config.app.APP_ENV === "production"
+      ? "dw-portfolio.dev"
+      : "dev.dw-portfolio.dev");
+
+  // ── Step 3: Reassign the alias to the target deployment ───────────────
+  // POST /v2/deployments/{deploymentUrl}/aliases assigns a domain alias to
+  // an existing deployment without rebuilding — the documented rollback path.
+  const aliasUrl = new URL(
+    `https://api.vercel.com/v2/deployments/${encodeURIComponent(deploymentUrl)}/aliases`,
+  );
+  if (teamId) aliasUrl.searchParams.set("teamId", teamId);
+
+  const res = await fetch(aliasUrl.toString(), {
     method: "POST",
     headers: {
       Authorization: `Bearer ${vercelToken}`,
       "Content-Type": "application/json",
     },
+    body: JSON.stringify({ alias: aliasToReassign }),
   });
 
   if (!res.ok) {
@@ -141,9 +214,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       JSON.stringify({
         level: "error",
         route: "rollback/execute",
+        step: "assign_alias",
         status: res.status,
         error: errorMessage,
         deploymentId,
+        alias: aliasToReassign,
       }),
     );
 
@@ -159,14 +234,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
   }
 
-  // The promote API returns the updated deployment
-  const deployment = (await res.json()) as {
-    id?: string;
+  const aliasResult = (await res.json()) as {
     uid?: string;
-    url?: string;
+    alias?: string;
   };
 
-  const newDeploymentId = deployment.id ?? deployment.uid;
+  const newDeploymentId = targetDeploy.uid ?? deploymentId;
 
   await updateRollbackRecord(deploymentId, {
     status: "success",
@@ -181,6 +254,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       event: "rollback_complete",
       fromDeploymentId: deploymentId,
       newDeploymentId,
+      alias: aliasResult.alias ?? aliasToReassign,
       overallRisk,
     }),
   );
@@ -188,6 +262,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   return NextResponse.json({
     ok: true,
     newDeploymentId,
-    deploymentUrl: deployment.url ? `https://${deployment.url}` : undefined,
+    deploymentUrl: `https://${aliasToReassign}`,
   });
 }

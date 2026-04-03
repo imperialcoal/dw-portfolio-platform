@@ -34,6 +34,9 @@ export function observabilityEnv() {
       VERCEL_API_TOKEN: z.string().min(1).optional(),
       VERCEL_PROJECT_ID: z.string().min(1).optional(),
       VERCEL_TEAM_ID: z.string().min(1).optional(),
+      // Custom domain alias used for rollback alias reassignment
+      // Preview: dev.dw-portfolio.dev  |  Production: dw-portfolio.dev
+      VERCEL_DOMAIN: z.string().min(1).optional(),
       VERCEL_AUTOMATION_BYPASS_SECRET: z.string().optional(),
       NODE_ENV: z
         .enum(["development", "test", "production"])
