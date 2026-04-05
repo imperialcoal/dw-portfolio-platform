@@ -7,6 +7,7 @@ import {
 } from "@dw/ai/sensors";
 
 import { env } from "~/env";
+import { SyncAdvisoriesButton } from "./_components/sync-advisories-button";
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -75,7 +76,7 @@ export default async function DatabasePage() {
   ];
 
   return (
-    <div className="min-h-screen bg-zinc-950 p-6 text-zinc-100 lg:p-10">
+    <div className="p-6 lg:p-10">
       <div className="mx-auto max-w-5xl space-y-8">
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
@@ -120,14 +121,19 @@ export default async function DatabasePage() {
         ) : (
           <>
             {/* Security Advisories */}
-            {advisories.length > 0 && (
+            {advisories.length > 0 ? (
               <div>
-                <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold tracking-widest text-zinc-500 uppercase">
-                  Security Advisories
-                  <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-xs text-red-400">
-                    {advisories.length}
-                  </span>
-                </h2>
+                {/* Section header with count and sync button side by side */}
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <h2 className="flex items-center gap-2 text-sm font-semibold tracking-widest text-zinc-500 uppercase">
+                    Security Advisories
+                    <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-xs text-red-400">
+                      {advisories.length}
+                    </span>
+                  </h2>
+                  {/* Push to incidents pipeline with one click */}
+                  <SyncAdvisoriesButton />
+                </div>
                 <div className="space-y-3">
                   {advisories.map((advisory) => {
                     const style = ADVISORY_LEVEL_STYLES[advisory.level];
@@ -157,6 +163,22 @@ export default async function DatabasePage() {
                     );
                   })}
                 </div>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                    <p className="text-sm font-medium text-emerald-400">
+                      No security advisories
+                    </p>
+                  </div>
+                  {/* Still show sync button even when clean — idempotent */}
+                  <SyncAdvisoriesButton />
+                </div>
+                <p className="mt-1 text-xs text-zinc-600">
+                  Supabase Security Advisor found no issues
+                </p>
               </div>
             )}
 
@@ -222,7 +244,7 @@ export default async function DatabasePage() {
               </div>
             )}
 
-            {/* Pooler info — prefer-optional-chain: use health?.poolerConnections */}
+            {/* Pooler info */}
             {health?.poolerConnections !== null &&
               health?.poolerConnections !== undefined && (
                 <div>
