@@ -55,7 +55,7 @@ export default async function DatabasePage() {
     {
       label: "Database Logs",
       desc: "Postgres error and query logs",
-      href: `https://supabase.com/dashboard/project/${supabaseRef}/logs/database-logs`,
+      href: `https://supabase.com/dashboard/project/${supabaseRef}/logs/postgres-logs`,
     },
     {
       label: "API Docs",

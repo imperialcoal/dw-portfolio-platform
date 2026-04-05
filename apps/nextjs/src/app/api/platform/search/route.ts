@@ -1,6 +1,6 @@
-// Federated search across incidents (Redis), deployments (Vercel API),
-// and user activity (Redis). Returns ranked results for the command palette.
-// Admin-only. All data is already in-system — no external API calls for most queries.
+// apps/nextjs/src/app/api/platform/search/route.ts
+// Federated search — incidents, deployments, user activity, static deep-links.
+// Admin-only.
 
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
@@ -26,104 +26,136 @@ export interface SearchResult {
 }
 
 // ─────────────────────────────────────────────
-// Deep-link catalog — static entries always available
+// Deep-link catalog
 // ─────────────────────────────────────────────
 
 const SUPABASE_REF = env.SUPABASE_PROJECT_REF ?? "";
 const CLERK_APP_ID = env.CLERK_APP_ID ?? "";
 const CLERK_INSTANCE_ID = env.CLERK_INSTANCE_ID ?? "";
 
-function clerkBase(): string {
-  return `https://dashboard.clerk.com/apps/${CLERK_APP_ID}/instances/${CLERK_INSTANCE_ID}`;
+function clerkUrl(path: string): string {
+  if (!CLERK_APP_ID || !CLERK_INSTANCE_ID) return "https://dashboard.clerk.com";
+  return `https://dashboard.clerk.com/apps/${CLERK_APP_ID}/instances/${CLERK_INSTANCE_ID}/${path}`;
+}
+
+function supabaseUrl(path: string): string {
+  return `https://supabase.com/dashboard/project/${SUPABASE_REF}/${path}`;
 }
 
 const DEEPLINKS: SearchResult[] = [
-  // Supabase
+  // ── Supabase ───────────────────────────────────────────────────────────
   {
     type: "deeplink",
     id: "supabase-sql",
-    title: "Open SQL Editor",
+    title: "SQL Editor",
     subtitle: "Supabase → Run a diagnostic query",
-    externalHref: `https://supabase.com/dashboard/project/${SUPABASE_REF}/sql/new`,
+    externalHref: supabaseUrl("sql/new"),
   },
   {
     type: "deeplink",
     id: "supabase-db-logs",
     title: "Database Logs",
     subtitle: "Supabase → View Postgres logs",
-    externalHref: `https://supabase.com/dashboard/project/${SUPABASE_REF}/logs/database-logs`,
+    // Correct path: logs/postgres-logs (not database-logs)
+    externalHref: supabaseUrl("logs/postgres-logs"),
   },
   {
     type: "deeplink",
     id: "supabase-table-editor",
     title: "Table Editor",
     subtitle: "Supabase → Browse or edit data",
-    externalHref: `https://supabase.com/dashboard/project/${SUPABASE_REF}/editor`,
+    externalHref: supabaseUrl("editor"),
   },
   {
     type: "deeplink",
     id: "supabase-api",
     title: "Supabase API Docs",
     subtitle: "Supabase → Auto-generated REST endpoints",
-    externalHref: `https://supabase.com/dashboard/project/${SUPABASE_REF}/api`,
+    externalHref: supabaseUrl("api"),
   },
-  // Clerk
+
+  // ── Clerk ──────────────────────────────────────────────────────────────
   {
     type: "deeplink",
     id: "clerk-users",
     title: "Manage Users",
     subtitle: "Clerk → Full user list with roles and metadata",
-    externalHref: `${clerkBase()}/users`,
-  },
-  {
-    type: "deeplink",
-    id: "clerk-webhooks",
-    title: "Clerk Webhooks",
-    subtitle: "Clerk → Debug webhook endpoints and signing secrets",
-    externalHref: `${clerkBase()}/webhooks`,
+    externalHref: clerkUrl("users"),
   },
   {
     type: "deeplink",
     id: "clerk-sessions",
     title: "Active Sessions",
     subtitle: "Clerk → View and revoke live sessions",
-    externalHref: `${clerkBase()}/sessions`,
+    externalHref: clerkUrl("sessions"),
+  },
+  {
+    type: "deeplink",
+    id: "clerk-webhooks",
+    title: "Clerk Webhooks",
+    subtitle: "Clerk → Debug webhook endpoints and signing secrets",
+    externalHref: clerkUrl("webhooks"),
   },
   {
     type: "deeplink",
     id: "clerk-audit-log",
     title: "Clerk Audit Log",
     subtitle: "Clerk → All authentication events",
-    externalHref: `${clerkBase()}/logs`,
+    externalHref: clerkUrl("logs"),
+  },
+  {
+    type: "deeplink",
+    id: "clerk-restrictions",
+    title: "Auth Restrictions",
+    subtitle: "Clerk → Sign-up/sign-in mode and restrictions",
+    externalHref: clerkUrl("user-authentication/restrictions"),
+  },
+  {
+    type: "deeplink",
+    id: "clerk-allowlist",
+    title: "Allowlist",
+    subtitle: "Clerk → Approved sign-up emails and domains",
+    externalHref: clerkUrl("user-authentication/restrictions/allowlist"),
+  },
+  {
+    type: "deeplink",
+    id: "clerk-blocklist",
+    title: "Blocklist",
+    subtitle: "Clerk → Blocked emails and identifiers",
+    externalHref: clerkUrl("user-authentication/restrictions/blocklist"),
   },
   {
     type: "deeplink",
     id: "clerk-email-templates",
     title: "Email Templates",
-    subtitle: "Clerk → Customize auth emails (magic link, verify, etc.)",
-    externalHref: `${clerkBase()}/email-sms-templates`,
+    subtitle: "Clerk → Magic link, verify, reset emails",
+    externalHref: clerkUrl("customization/email-sms-templates"),
   },
-  // Vercel
+
+  // ── Vercel ─────────────────────────────────────────────────────────────
   {
     type: "deeplink",
     id: "vercel-logs",
     title: "Vercel Function Logs",
     subtitle: "Vercel → Real-time serverless logs",
-    externalHref: `https://vercel.com/imperial-coals-projects/dw-portfolio-platform/logs`,
+    externalHref:
+      "https://vercel.com/imperial-coals-projects/dw-portfolio-platform/logs",
   },
   {
     type: "deeplink",
     id: "vercel-analytics",
     title: "Vercel Analytics",
     subtitle: "Vercel → Traffic, performance, and web vitals",
-    externalHref: `https://vercel.com/imperial-coals-projects/dw-portfolio-platform/analytics`,
+    externalHref:
+      "https://vercel.com/imperial-coals-projects/dw-portfolio-platform/analytics",
   },
-  // Internal platform pages
+
+  // ── Internal platform pages ────────────────────────────────────────────
   {
     type: "deeplink",
-    id: "platform-maintenance",
-    title: "Maintenance Mode",
-    subtitle: "Platform → Toggle maintenance mode",
+    id: "platform-home",
+    title: "Platform Home",
+    subtitle: "Platform → Overview, incidents, maintenance mode",
     href: "/platform",
   },
   {
@@ -132,6 +164,13 @@ const DEEPLINKS: SearchResult[] = [
     title: "Deployments",
     subtitle: "Platform → View and roll back deployments",
     href: "/platform/deployments",
+  },
+  {
+    type: "deeplink",
+    id: "platform-incidents",
+    title: "Incidents",
+    subtitle: "Platform → Full incident history and AI analysis",
+    href: "/platform/incidents",
   },
   {
     type: "deeplink",
@@ -147,6 +186,13 @@ const DEEPLINKS: SearchResult[] = [
     subtitle: "Platform → Auth events and user timeline",
     href: "/platform/users",
   },
+  {
+    type: "deeplink",
+    id: "platform-dependencies",
+    title: "Dependencies",
+    subtitle: "Platform → Dependabot PRs and security alerts",
+    href: "/platform/dependencies",
+  },
 ];
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
@@ -159,13 +205,12 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const q = req.nextUrl.searchParams.get("q")?.toLowerCase().trim() ?? "";
 
   if (!q || q.length < 2) {
-    // Return static deep-links when no query
     return NextResponse.json({ results: DEEPLINKS.slice(0, 8) });
   }
 
   const results: SearchResult[] = [];
 
-  // 1. Filter deep-links
+  // 1. Deep-links
   const matchingLinks = DEEPLINKS.filter(
     (l) =>
       l.title.toLowerCase().includes(q) ||
@@ -174,7 +219,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   );
   results.push(...matchingLinks);
 
-  // 2. Search incidents
+  // 2. Incidents
   const incidents = await getIncidents(100).catch(() => []);
   const matchingIncidents = incidents
     .filter(
@@ -192,14 +237,14 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         id: i.id,
         title: i.summary,
         subtitle: `${i.type.replace("_", " ")} · ${i.status} · ${i.severity}`,
-        href: `/platform/incidents`,
+        href: "/platform/incidents",
         severity: i.severity,
         timestamp: i.timestamp,
       }),
     );
   results.push(...matchingIncidents);
 
-  // 3. Search deployments by commit SHA or message
+  // 3. Deployments
   const deployments = await fetchRecentDeployments(20).catch(() => []);
   const matchingDeploys = deployments
     .filter(
@@ -221,7 +266,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     );
   results.push(...matchingDeploys);
 
-  // 4. Search user activity by email or userId
+  // 4. User activity
   const activity = await getUserActivity(100).catch(() => []);
   const matchingActivity = activity
     .filter(
@@ -237,20 +282,20 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         id: a.id,
         title: a.userEmail ?? a.userId,
         subtitle: `${a.eventType} · ${new Date(a.timestamp).toLocaleString()}`,
-        href: `/platform/users`,
+        href: "/platform/users",
         timestamp: a.timestamp,
       }),
     );
   results.push(...matchingActivity);
 
-  // If query looks like a Clerk user ID, add a direct deep-link to their profile
+  // 5. Clerk user profile deep-link for user IDs
   if (q.startsWith("user_") || /^[a-z0-9_]{20,}$/.exec(q)) {
     results.unshift({
       type: "deeplink",
       id: `clerk-user-${q}`,
-      title: `View user in Clerk: ${q}`,
+      title: `View in Clerk: ${q}`,
       subtitle: "Clerk → Open user profile, check status, lock account",
-      externalHref: `${clerkBase()}/users/${q}`,
+      externalHref: clerkUrl(`users/${q}`),
     });
   }
 

@@ -12,7 +12,8 @@ import { getLastProductionDeploy } from "@dw/ai/sensors";
 import { env } from "~/env";
 import { CommandPalette } from "./_components/command-palette";
 import { MaintenanceToggle } from "./_components/maintenance-toggle";
-import { RunDocsAgentButton } from "./docs/_components/run-docs-agent-button";
+import { RunDocsAgentButton } from "./_components/run-docs-agent-button";
+import { RunHealthCheckButton } from "./_components/run-health-check-button";
 
 // ─────────────────────────────────────────────
 // Helpers
@@ -531,6 +532,15 @@ export default async function PlatformPage() {
               and PLAYBOOKS
             </p>
             <RunDocsAgentButton branch={docsBranch} />
+          </div>
+
+          {/* Uptime — with manual trigger */}
+          <div className="rounded-xl border border-white/10 bg-white/5 p-5">
+            <p className="text-sm font-semibold text-zinc-200">Uptime</p>
+            <p className="mt-1 text-xs text-zinc-600">
+              Check production, preview, and API endpoints for availability
+            </p>
+            <RunHealthCheckButton />
           </div>
         </div>
 
