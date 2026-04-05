@@ -1,10 +1,7 @@
 import Link from "next/link";
 
-import {
-  fetchDbHealth,
-  fetchSupabaseAdvisories,
-  isSupabaseConfigured,
-} from "@dw/ai/sensors";
+import { fetchDbHealth, fetchSupabaseAdvisories } from "@dw/ai/sensors";
+import { isSupabaseConfigured } from "@dw/validators";
 
 import { env } from "~/env";
 import { SyncAdvisoriesButton } from "./_components/sync-advisories-button";

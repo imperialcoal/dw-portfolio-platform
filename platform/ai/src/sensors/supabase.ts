@@ -4,6 +4,7 @@
 
 import type { SupabaseAdvisory, UptimeCheckResult } from "@dw/contracts";
 import { config } from "@dw/config";
+import { isSupabaseConfigured } from "@dw/validators";
 
 const MGMT_BASE = "https://api.supabase.com/v1";
 
@@ -17,13 +18,6 @@ function getHeaders(): Record<string, string> {
 
 function getRef(): string {
   return config.supabase.SUPABASE_PROJECT_REF ?? "";
-}
-
-export function isSupabaseConfigured(): boolean {
-  return !!(
-    config.supabase.SUPABASE_MANAGEMENT_TOKEN &&
-    config.supabase.SUPABASE_PROJECT_REF
-  );
 }
 
 // ─────────────────────────────────────────────

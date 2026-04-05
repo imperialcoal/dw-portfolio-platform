@@ -96,5 +96,4 @@ export {
   fetchDbHealth,
   fetchSupabaseAdvisories,
   runUptimeChecks,
-  isSupabaseConfigured,
 } from "./sensors/supabase";
