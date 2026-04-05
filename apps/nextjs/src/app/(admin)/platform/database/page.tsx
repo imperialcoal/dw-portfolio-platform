@@ -111,7 +111,7 @@ export default async function DatabasePage() {
             </p>
             <p className="mt-1 text-xs text-zinc-700">
               Set <code className="font-mono">SUPABASE_PROJECT_REF</code> and{" "}
-              <code className="font-mono">SUPABASE_MANAGEMENT_TOKEN</code> in
+              <code className="font-mono">SUPABASE_ACCESS_TOKEN</code> in
               Doppler.
             </p>
           </div>

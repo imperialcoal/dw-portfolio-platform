@@ -1,11 +1,11 @@
 // Manual trigger for the uptime health check — called from the platform dashboard.
-// Uses requireAdmin() for auth (same as all other /api/platform/* routes).
-// Internally calls the same runUptimeChecks() logic as the cron job.
+// Uses the same uptime sensor as the cron.
 
 import { NextResponse } from "next/server";
 
 import { logIncident, markIncidentOpen } from "@dw/ai/memory";
 import { runUptimeChecks } from "@dw/ai/sensors";
+import { config } from "@dw/config";
 
 import { requireAdmin } from "~/auth/require-admin";
 
@@ -25,19 +25,32 @@ export async function POST(): Promise<NextResponse> {
       route: "health-check/trigger",
       event: "triggered",
       source: "manual",
+      appEnv: config.app.APP_ENV,
     }),
   );
 
   const results = await runUptimeChecks();
+
+  if (results.length === 0) {
+    return NextResponse.json({
+      ok: true,
+      skipped: true,
+      reason: `No uptime checks defined for APP_ENV=${config.app.APP_ENV}`,
+    });
+  }
+
   const failed = results.filter((r) => r.status === "down");
   const degraded = results.filter((r) => r.status === "degraded");
-
   const hourBucket = Math.floor(Date.now() / (1000 * 60 * 60));
 
   await Promise.allSettled(
     failed.map(async (check) => {
-      const safeUrl = check.url.replace(/[^a-z0-9]/gi, "-");
-      const incidentId = `uptime-${safeUrl}-${hourBucket}`;
+      const urlPath = check.url.replace(/^https?:\/\/[^/]+/, "") || "/";
+      const safeId = urlPath
+        .replace(/[^a-z0-9]/gi, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "");
+      const incidentId = `uptime-${safeId || "root"}-${hourBucket}`;
 
       await logIncident({
         type: "uptime_failure",
@@ -48,8 +61,12 @@ export async function POST(): Promise<NextResponse> {
         rootCause: check.error
           ? `Health check failed: ${check.error}`
           : `HTTP ${check.statusCode ?? "timeout"} — endpoint is not responding.`,
-        severity: check.url.includes("dw-portfolio.dev") ? "critical" : "high",
-        labels: ["uptime", "availability", safeUrl],
+        severity: check.critical ? "critical" : "high",
+        labels: [
+          "uptime",
+          "availability",
+          check.name.toLowerCase().replace(/\s+/g, "-"),
+        ],
         commitSha: undefined,
         branch: undefined,
       });
@@ -60,6 +77,7 @@ export async function POST(): Promise<NextResponse> {
 
   return NextResponse.json({
     ok: true,
+    appEnv: config.app.APP_ENV,
     checked: results.length,
     up: results.filter((r) => r.status === "up").length,
     degraded: degraded.length,

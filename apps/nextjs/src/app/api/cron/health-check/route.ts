@@ -1,9 +1,5 @@
-// Synthetic uptime monitoring — runs on a schedule, creates incidents on failure.
-// Vercel Hobby: free cron runs up to 1/day on hobby, 2/day on Pro.
-// We schedule this at a pace safe for all tiers.
-//
-// Schedule: every 30 minutes (via vercel.json — adjust to daily for Hobby tier)
-// Redis cost per run: ~3 reads + 3 writes = negligible on pay-as-you-go Upstash.
+// Synthetic uptime monitoring — runs on a schedule via vercel.json cron.
+// Uses the uptime sensor which derives all URLs from VERCEL_DOMAIN + APP_ENV.
 
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
@@ -23,21 +19,40 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   }
 
   console.log(
-    JSON.stringify({ level: "info", cron: "health-check", event: "triggered" }),
+    JSON.stringify({
+      level: "info",
+      cron: "health-check",
+      event: "triggered",
+      appEnv: config.app.APP_ENV,
+    }),
   );
 
   const results = await runUptimeChecks();
+
+  // runUptimeChecks returns [] in local/test — nothing to do
+  if (results.length === 0) {
+    return NextResponse.json({
+      ok: true,
+      skipped: true,
+      reason: `No uptime checks defined for APP_ENV=${config.app.APP_ENV}`,
+    });
+  }
+
   const failed = results.filter((r) => r.status === "down");
   const degraded = results.filter((r) => r.status === "degraded");
 
-  // Create incidents for any failed checks
-  // Use a time-bucketed ID to prevent duplicate incidents within the same hour
+  // Hourly dedup bucket — one incident per URL per hour maximum
   const hourBucket = Math.floor(Date.now() / (1000 * 60 * 60));
 
   await Promise.allSettled(
     failed.map(async (check) => {
-      const safeUrl = check.url.replace(/[^a-z0-9]/gi, "-");
-      const incidentId = `uptime-${safeUrl}-${hourBucket}`;
+      // Build a safe ID from the URL path, not the full URL
+      const urlPath = check.url.replace(/^https?:\/\/[^/]+/, "") || "/";
+      const safeId = urlPath
+        .replace(/[^a-z0-9]/gi, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "");
+      const incidentId = `uptime-${safeId || "root"}-${hourBucket}`;
 
       await logIncident({
         type: "uptime_failure",
@@ -48,8 +63,13 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         rootCause: check.error
           ? `Health check failed: ${check.error}`
           : `HTTP ${check.statusCode ?? "timeout"} — endpoint is not responding.`,
-        severity: check.url.includes("dw-portfolio.dev") ? "critical" : "high",
-        labels: ["uptime", "availability", safeUrl],
+        // Use the critical flag from the check definition
+        severity: check.critical ? "critical" : "high",
+        labels: [
+          "uptime",
+          "availability",
+          check.name.toLowerCase().replace(/\s+/g, "-"),
+        ],
         commitSha: undefined,
         branch: undefined,
       });
@@ -59,6 +79,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   );
 
   const summary = {
+    ok: true,
+    appEnv: config.app.APP_ENV,
     checked: results.length,
     up: results.filter((r) => r.status === "up").length,
     degraded: degraded.length,
@@ -80,5 +102,5 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     }),
   );
 
-  return NextResponse.json({ ok: true, ...summary });
+  return NextResponse.json(summary);
 }

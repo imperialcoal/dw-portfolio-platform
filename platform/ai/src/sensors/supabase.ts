@@ -1,15 +1,25 @@
-// Reads Supabase Management API for database health metrics and security advisories.
-// Uses SUPABASE_PROJECT_REF + SUPABASE_ACCESS_TOKEN (service-level management token).
-// All calls are read-only. Never writes to the database from here.
+// Reads the Supabase Management API for database health metrics and security advisories.
+//
+// Authentication:
+//   SUPABASE_ACCESS_TOKEN — Personal Access Token (same one used by Terraform)
+//   Authenticates against: https://api.supabase.com/v1
+//
+// NOT the service_role key (SUPABASE_SECRET_DEFAULT_KEY) — that only works
+// against the project's PostgREST endpoint (project-ref.supabase.co).
+//
+// All calls are read-only. Never writes to the database.
 
-import type { SupabaseAdvisory, UptimeCheckResult } from "@dw/contracts";
+import type { SupabaseAdvisory } from "@dw/contracts";
 import { config } from "@dw/config";
 import { isSupabaseConfigured } from "@dw/validators";
 
 const MGMT_BASE = "https://api.supabase.com/v1";
 
 function getHeaders(): Record<string, string> {
-  const token = config.supabase.SUPABASE_MANAGEMENT_TOKEN;
+  // Use SUPABASE_ACCESS_TOKEN (Personal Access Token) for the Management API.
+  // This is the same token used by Terraform — it's account-scoped and
+  // authenticates against api.supabase.com, not the project URL.
+  const token = config.supabase.SUPABASE_ACCESS_TOKEN;
   return {
     Authorization: `Bearer ${token ?? ""}`,
     "Content-Type": "application/json",
@@ -55,7 +65,6 @@ export async function fetchDbHealth(): Promise<DbHealthMetrics | null> {
   const ref = getRef();
 
   try {
-    // Fetch table stats — requires management API token with read access
     const tableRes = await fetch(
       `${MGMT_BASE}/projects/${ref}/database/table-sizes`,
       { headers: getHeaders() },
@@ -76,7 +85,6 @@ export async function fetchDbHealth(): Promise<DbHealthMetrics | null> {
         .sort((a, b) => b.sizeBytes - a.sizeBytes);
     }
 
-    // Fetch pooler/connection stats via the pooler config endpoint
     const poolerRes = await fetch(
       `${MGMT_BASE}/projects/${ref}/config/database/pgbouncer`,
       { headers: getHeaders() },
@@ -90,7 +98,7 @@ export async function fetchDbHealth(): Promise<DbHealthMetrics | null> {
         max_client_conn?: number;
       };
       poolerConnections = {
-        active: 0, // Would need pg_stat_activity query — not available in mgmt API
+        active: 0,
         idle: 0,
         total: pooler.pool_size ?? 0,
         maxAllowed: pooler.max_client_conn ?? 200,
@@ -117,7 +125,6 @@ export async function fetchDbHealth(): Promise<DbHealthMetrics | null> {
 }
 
 function parseSizeBytes(sizeStr: string): number {
-  // Supabase returns sizes like "8192 bytes", "1.2 MB", "456 kB"
   const match = /^([\d.]+)\s*(bytes?|kB|MB|GB)?$/i.exec(sizeStr.trim());
   if (!match) return 0;
   const value = parseFloat(match[1] ?? "0");
@@ -174,7 +181,7 @@ export async function fetchSupabaseAdvisories(): Promise<SupabaseAdvisory[]> {
       (a): SupabaseAdvisory => ({
         name: a.name ?? "unknown",
         title: a.title ?? a.name ?? "Security Advisory",
-        level: a.level?.toUpperCase() as SupabaseAdvisory["level"],
+        level: (a.level?.toUpperCase() ?? "WARN") as SupabaseAdvisory["level"],
         description: a.description ?? "",
         metadata: a.metadata,
         detectedAt: new Date().toISOString(),
@@ -191,81 +198,4 @@ export async function fetchSupabaseAdvisories(): Promise<SupabaseAdvisory[]> {
     );
     return [];
   }
-}
-
-// ─────────────────────────────────────────────
-// Uptime checks — hit the app URLs and measure response time
-// ─────────────────────────────────────────────
-
-export const UPTIME_CHECKS: { name: string; url: string }[] = [
-  { name: "Portfolio (Production)", url: "https://dw-portfolio.dev" },
-  {
-    name: "tRPC API (Production)",
-    url: "https://dw-portfolio.dev/api/trpc/post.all",
-  },
-  {
-    name: "Platform Dashboard (Preview)",
-    url: "https://dev.dw-portfolio.dev/platform",
-  },
-];
-
-export async function runUptimeChecks(): Promise<UptimeCheckResult[]> {
-  const results = await Promise.allSettled(
-    UPTIME_CHECKS.map(async (check): Promise<UptimeCheckResult> => {
-      const start = Date.now();
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10_000);
-
-        const res = await fetch(check.url, {
-          method: "GET",
-          signal: controller.signal,
-          // Don't follow Clerk auth redirects — a 307 is still "up"
-          redirect: "manual",
-        });
-        clearTimeout(timeout);
-
-        const elapsed = Date.now() - start;
-        const status =
-          res.status >= 200 && res.status < 500
-            ? elapsed > 3000
-              ? "degraded"
-              : "up"
-            : "down";
-
-        return {
-          url: check.url,
-          name: check.name,
-          status,
-          statusCode: res.status,
-          responseTimeMs: elapsed,
-          checkedAt: new Date().toISOString(),
-        };
-      } catch (err) {
-        return {
-          url: check.url,
-          name: check.name,
-          status: "down",
-          statusCode: null,
-          responseTimeMs: Date.now() - start,
-          checkedAt: new Date().toISOString(),
-          error: err instanceof Error ? err.message : String(err),
-        };
-      }
-    }),
-  );
-
-  return results.map((r) =>
-    r.status === "fulfilled"
-      ? r.value
-      : {
-          url: "unknown",
-          name: "unknown",
-          status: "down" as const,
-          statusCode: null,
-          responseTimeMs: null,
-          checkedAt: new Date().toISOString(),
-          error: "Check threw unexpectedly",
-        },
-  );
 }

@@ -1,8 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 
+import { isSupabaseStorageConfigured } from "@dw/validators";
+
 import { env } from "~/env";
 import { createAdminClient } from "./admin";
-import { isStorageAvailable } from "./utils";
 
 export const STORAGE_BUCKETS = {
   PORTFOLIO: "portfolio-assets",
@@ -22,7 +23,7 @@ const ALLOWED_MIME_TYPES = [
 export type AllowedMimeType = (typeof ALLOWED_MIME_TYPES)[number];
 
 function createPublicClient() {
-  if (!isStorageAvailable()) {
+  if (!isSupabaseStorageConfigured()) {
     throw new Error(
       "Supabase storage is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY to enable storage reads.",
     );

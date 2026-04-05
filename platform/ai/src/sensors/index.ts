@@ -23,8 +23,6 @@ export {
   mergeDependabotPR,
 } from "./github-deps";
 
-export {
-  fetchDbHealth,
-  fetchSupabaseAdvisories,
-  runUptimeChecks,
-} from "./supabase";
+export { fetchDbHealth, fetchSupabaseAdvisories } from "./supabase";
+
+export { runUptimeChecks } from "./uptime";

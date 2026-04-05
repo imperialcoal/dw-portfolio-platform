@@ -1,12 +1,13 @@
 import { createClient } from "@supabase/supabase-js";
 
+import { isSupabaseDbConfigured } from "@dw/validators";
+
 import { env } from "~/env";
-import { isSupabaseConfigured } from "./utils";
 
 // Admin client bypasses RLS — server-only, never expose to client
 // Used for all storage write/delete operations (admin only)
 export function createAdminClient() {
-  if (!isSupabaseConfigured()) {
+  if (!isSupabaseDbConfigured()) {
     throw new Error(
       "Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_DEFAULT_KEY to enable storage features.",
     );

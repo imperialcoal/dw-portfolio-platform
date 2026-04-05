@@ -11,13 +11,21 @@ export { authEnv } from "./auth-env";
 export { clerkEnv, isClerkConfigured } from "./clerk-env";
 
 // Cloud services
-export { supabaseEnv, isSupabaseConfigured } from "./supabase-env";
+export {
+  supabaseEnv,
+  isSupabaseConfigured,
+  isSupabaseDbConfigured,
+  isSupabaseStorageConfigured,
+} from "./supabase-env";
+
 export {
   messagingEnv,
   isMessagingConfigured,
   isAgentEmailConfigured,
 } from "./messaging-env";
+
 export { qstashEnv, isQStashConfigured } from "./qstash-env";
+
 export { redisEnv, isRedisConfigured } from "./redis-env";
 
 // Platform AI & DevOps

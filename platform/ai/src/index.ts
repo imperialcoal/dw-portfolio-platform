@@ -92,8 +92,6 @@ export {
   mergeDependabotPR,
 } from "./sensors/github-deps";
 
-export {
-  fetchDbHealth,
-  fetchSupabaseAdvisories,
-  runUptimeChecks,
-} from "./sensors/supabase";
+export { fetchDbHealth, fetchSupabaseAdvisories } from "./sensors/supabase";
+
+export { runUptimeChecks } from "./sensors/uptime";
