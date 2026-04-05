@@ -1,4 +1,10 @@
+// apps/nextjs/src/app/(admin)/platform/page.tsx
 // Platform Intelligence — Health Overview
+//
+// CommandPalette is NO LONGER rendered here — it lives in layout.tsx which
+// wraps all /platform/* pages. The layout provides the sticky top bar.
+// This page only provides its own content with appropriate top padding.
+
 import Link from "next/link";
 
 import type { IncidentRecord, VercelDeployment } from "@dw/contracts";
@@ -10,7 +16,6 @@ import {
 import { getLastProductionDeploy } from "@dw/ai/sensors";
 
 import { env } from "~/env";
-import { CommandPalette } from "./_components/command-palette";
 import { MaintenanceToggle } from "./_components/maintenance-toggle";
 import { RunDocsAgentButton } from "./_components/run-docs-agent-button";
 import { RunHealthCheckButton } from "./_components/run-health-check-button";
@@ -114,7 +119,6 @@ function StatusDot({ severity }: { severity: string }) {
           : severity === "medium"
             ? "bg-yellow-400"
             : "bg-green-400";
-
   return (
     <span className="relative flex h-2 w-2 shrink-0">
       {severity !== "healthy" && (
@@ -141,19 +145,13 @@ function StatCard({
   const color = severity ? severityColor(severity) : SEVERITY_STYLES.healthy;
   return (
     <div
-      className={`rounded-xl border p-5 ${
-        severity && severity !== "healthy"
-          ? `${color.border} ${color.bg}`
-          : "border-white/10 bg-white/5"
-      }`}
+      className={`rounded-xl border p-5 ${severity && severity !== "healthy" ? `${color.border} ${color.bg}` : "border-white/10 bg-white/5"}`}
     >
       <p className="mb-1 text-[10px] font-semibold tracking-widest text-zinc-500 uppercase">
         {label}
       </p>
       <p
-        className={`text-2xl font-bold tabular-nums ${
-          severity && severity !== "healthy" ? color.text : "text-white"
-        }`}
+        className={`text-2xl font-bold tabular-nums ${severity && severity !== "healthy" ? color.text : "text-white"}`}
       >
         {value}
       </p>
@@ -166,7 +164,6 @@ function ActiveIncidentRow({ incident }: { incident: IncidentRecord }) {
   const statusStyle = STATUS_STYLES[incident.status];
   const severityStyle = SEVERITY_STYLES[incident.severity as SeverityKey];
   const typeLabel = TYPE_LABEL[incident.type];
-
   return (
     <div
       className={`flex items-start gap-3 rounded-xl border p-4 ${severityStyle.border} ${severityStyle.bg}`}
@@ -175,7 +172,7 @@ function ActiveIncidentRow({ incident }: { incident: IncidentRecord }) {
       <div className="min-w-0 flex-1">
         <div className="mb-1 flex flex-wrap items-center gap-1.5">
           <span
-            className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase ${severityStyle.border} ${severityStyle.text} bg-transparent`}
+            className={`rounded border bg-transparent px-1.5 py-0.5 text-[10px] font-semibold uppercase ${severityStyle.border} ${severityStyle.text}`}
           >
             {incident.severity}
           </span>
@@ -209,7 +206,6 @@ function DeployCard({ deploy }: { deploy: VercelDeployment }) {
   const sha = deploy.meta.githubCommitSha?.slice(0, 7) ?? "—";
   const msg = deploy.meta.githubCommitMessage ?? "—";
   const branch = deploy.meta.githubBranch ?? deploy.target ?? "—";
-
   return (
     <div className="rounded-xl border border-white/10 bg-white/5 p-5">
       <p className="mb-3 text-[10px] font-semibold tracking-widest text-zinc-600 uppercase">
@@ -237,10 +233,6 @@ function DeployCard({ deploy }: { deploy: VercelDeployment }) {
     </div>
   );
 }
-
-// ─────────────────────────────────────────────
-// Nav cards config
-// ─────────────────────────────────────────────
 
 const NAV_ITEMS = [
   {
@@ -287,7 +279,6 @@ export default async function PlatformPage() {
     getMaintenanceMode().catch(() => null),
   ]);
 
-  // Status buckets
   const activeIncidents = incidents.filter(
     (i) => i.status === "open" || i.status === "investigating",
   );
@@ -321,30 +312,28 @@ export default async function PlatformPage() {
   const docsBranch = currentEnv === "production" ? "main" : "dev";
 
   return (
-    <div className="min-h-screen bg-zinc-950 p-6 text-zinc-100 lg:p-10">
+    // No bg/min-h here — layout.tsx owns the full-page background
+    // pt-6 accounts for the sticky command palette bar from the layout
+    <div className="p-6 lg:p-10">
       <div className="mx-auto max-w-5xl space-y-8">
-        {/* Header row — title + system status + command palette */}
-        <div className="space-y-4">
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-white">
-                Platform Intelligence
-              </h1>
-              <p className="mt-1 text-sm text-zinc-500">
-                AI DevOps control center
-              </p>
-            </div>
-            <div
-              className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium ${healthColor.bg} ${healthColor.border} ${healthColor.text}`}
-            >
-              <StatusDot severity={health.recentSeverity} />
-              {health.recentSeverity === "healthy"
-                ? "All systems healthy"
-                : `${health.recentSeverity.toUpperCase()} severity active`}
-            </div>
+        {/* Header — title + system status pill */}
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-white">
+              Platform Intelligence
+            </h1>
+            <p className="mt-1 text-sm text-zinc-500">
+              AI DevOps control center
+            </p>
           </div>
-          {/* Command palette — renders as static bar + Cmd+K modal */}
-          <CommandPalette />
+          <div
+            className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium ${healthColor.bg} ${healthColor.border} ${healthColor.text}`}
+          >
+            <StatusDot severity={health.recentSeverity} />
+            {health.recentSeverity === "healthy"
+              ? "All systems healthy"
+              : `${health.recentSeverity.toUpperCase()} severity active`}
+          </div>
         </div>
 
         {/* Stats */}
@@ -381,7 +370,7 @@ export default async function PlatformPage() {
           </div>
         </div>
 
-        {/* Security alert banner */}
+        {/* Alert banners */}
         {activeSecurityAlerts.length > 0 && (
           <div className="flex items-center gap-3 rounded-xl border border-purple-500/20 bg-purple-500/5 px-4 py-3">
             <span className="relative flex h-2.5 w-2.5 shrink-0">
@@ -403,7 +392,6 @@ export default async function PlatformPage() {
           </div>
         )}
 
-        {/* Auth security alert banner */}
         {activeAuthAlerts.length > 0 && (
           <div className="flex items-center gap-3 rounded-xl border border-orange-500/20 bg-orange-500/5 px-4 py-3">
             <span className="relative flex h-2.5 w-2.5 shrink-0">
@@ -424,7 +412,6 @@ export default async function PlatformPage() {
           </div>
         )}
 
-        {/* Uptime alert banner */}
         {uptimeIncidents.length > 0 && (
           <div className="flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3">
             <span className="relative flex h-2.5 w-2.5 shrink-0">
@@ -465,7 +452,6 @@ export default async function PlatformPage() {
               View all →
             </Link>
           </div>
-
           {activeIncidents.length === 0 ? (
             <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-6 text-center">
               <p className="text-sm font-medium text-emerald-400">
@@ -524,7 +510,7 @@ export default async function PlatformPage() {
             </Link>
           ))}
 
-          {/* Documentation — with manual trigger */}
+          {/* Documentation — manual trigger */}
           <div className="rounded-xl border border-white/10 bg-white/5 p-5">
             <p className="text-sm font-semibold text-zinc-200">Documentation</p>
             <p className="mt-1 text-xs text-zinc-600">
@@ -534,7 +520,7 @@ export default async function PlatformPage() {
             <RunDocsAgentButton branch={docsBranch} />
           </div>
 
-          {/* Uptime — with manual trigger */}
+          {/* Uptime — manual trigger */}
           <div className="rounded-xl border border-white/10 bg-white/5 p-5">
             <p className="text-sm font-semibold text-zinc-200">Uptime</p>
             <p className="mt-1 text-xs text-zinc-600">
@@ -544,7 +530,7 @@ export default async function PlatformPage() {
           </div>
         </div>
 
-        {/* Maintenance Mode — bottom of page, intentionally not prominent */}
+        {/* Maintenance Mode */}
         <div>
           <p className="mb-3 text-[10px] font-semibold tracking-widest text-zinc-600 uppercase">
             Operations
