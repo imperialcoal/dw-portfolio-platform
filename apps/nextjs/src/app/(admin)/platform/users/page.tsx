@@ -179,11 +179,7 @@ export default async function UsersPage() {
     {
       label: "Email Templates",
       desc: "Magic link, verify, reset emails",
-      href: clerkUrl(
-        "customization/email-sms-templates",
-        clerkAppId,
-        clerkInstanceId,
-      ),
+      href: clerkUrl("customization/email", clerkAppId, clerkInstanceId),
     },
     {
       label: "Allowlist",

@@ -129,7 +129,7 @@ const DEEPLINKS: SearchResult[] = [
     id: "clerk-email-templates",
     title: "Email Templates",
     subtitle: "Clerk → Magic link, verify, reset emails",
-    externalHref: clerkUrl("customization/email-sms-templates"),
+    externalHref: clerkUrl("customization/email"),
   },
 
   // ── Vercel ─────────────────────────────────────────────────────────────
