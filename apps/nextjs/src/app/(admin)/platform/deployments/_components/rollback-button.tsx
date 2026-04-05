@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 import type { MigrationOperation, RollbackPreflight } from "@dw/contracts";
 
@@ -61,6 +62,7 @@ export function RollbackButton({
   commitSha,
   commitMessage,
 }: RollbackButtonProps) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<
     "idle" | "loading" | "review" | "confirm" | "executing" | "done" | "error"
@@ -132,6 +134,8 @@ export function RollbackButton({
       const data = (await res.json()) as { deploymentUrl?: string };
       setResultUrl(data.deploymentUrl ?? null);
       setStep("done");
+      // Refresh server data so LIVE badge and rollback buttons update
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Rollback failed");
       setStep("error");

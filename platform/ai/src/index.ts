@@ -46,25 +46,55 @@ export {
   getRollbackRecord,
 } from "./memory/redis";
 
+export {
+  logUserActivity,
+  getUserActivity,
+  incrementFailedSessions,
+  getFailedSessionCount,
+  clearFailedSessions,
+} from "./memory/user-activity";
+
+export { getMaintenanceMode, setMaintenanceMode } from "./memory/maintenance";
+
+export {
+  recordPerfSample,
+  getPerfBaseline,
+  setPerfBaseline,
+  getRollingPerf,
+  computePercentile,
+} from "./memory/performance";
+
 // ─────────────────────────────────────────────
 // Sensors
 // ─────────────────────────────────────────────
 export { fetchCiJobDetails } from "./sensors/github-ci";
+
 export {
   fetchSentryIssueDetail,
   fetchSentryIssueEvents,
   fetchSentryIssues,
 } from "./sensors/sentry";
+
 export {
   fetchRecentDeployments,
   fetchLiveDeploymentId,
   getLastProductionDeploy,
   getLastDeploy,
 } from "./sensors/vercel";
+
 export { scanRepo } from "./sensors/repo";
+
 export { analyzeDeploymentMigrations } from "./sensors/migrations";
+
 export {
   fetchDependabotPRs,
   fetchSecurityAlerts,
   mergeDependabotPR,
 } from "./sensors/github-deps";
+
+export {
+  fetchDbHealth,
+  fetchSupabaseAdvisories,
+  runUptimeChecks,
+  isSupabaseConfigured,
+} from "./sensors/supabase";

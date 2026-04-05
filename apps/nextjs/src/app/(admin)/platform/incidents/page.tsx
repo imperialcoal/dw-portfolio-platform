@@ -79,12 +79,18 @@ const TYPE_BADGE: Record<IncidentRecord["type"], string> = {
   ci_failure: "",
   sentry_error: "",
   security_alert: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+  clerk_event: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+  uptime_failure: "bg-red-500/10 text-red-400 border-red-500/20",
+  supabase_advisory: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
 };
 
 const TYPE_LABEL: Record<IncidentRecord["type"], string> = {
   ci_failure: "CI Failure",
   sentry_error: "Runtime Error",
   security_alert: "Security Alert",
+  clerk_event: "Auth Event",
+  uptime_failure: "Uptime",
+  supabase_advisory: "DB Advisory",
 };
 
 const RESOLVED_BY_LABELS: Record<

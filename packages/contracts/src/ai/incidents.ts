@@ -30,7 +30,13 @@ export interface IncidentDocResult {
 
 export interface IncidentRecord {
   // ── Identity ──────────────────────────────────────────────────────────────
-  type: "ci_failure" | "sentry_error" | "security_alert";
+  type:
+    | "ci_failure"
+    | "sentry_error"
+    | "security_alert"
+    | "clerk_event"
+    | "uptime_failure"
+    | "supabase_advisory";
   id: string;
   service: string;
   timestamp: string;

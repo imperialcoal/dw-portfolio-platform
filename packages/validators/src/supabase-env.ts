@@ -17,7 +17,9 @@ import { z } from "zod";
 export function supabaseEnv() {
   return createEnv({
     server: {
+      // Supabase Management API — for DB health and security advisories
       SUPABASE_PROJECT_REF: z.string().min(1).optional(),
+      SUPABASE_MANAGEMENT_TOKEN: z.string().min(1).optional(),
       SUPABASE_SECRET_DEFAULT_KEY: z.string().min(1).optional(),
       NODE_ENV: z
         .enum(["development", "test", "production"])

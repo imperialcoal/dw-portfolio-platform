@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 
 import type {
   BreakingChangeAnalysis,
@@ -308,6 +309,7 @@ export function DependencyManagerClient({
   securityAlerts: SecurityAlertWithPR[];
   analyses: Record<number, BreakingChangeAnalysis>;
 }) {
+  const router = useRouter();
   const [selectedPRs, setSelectedPRs] = useState<Set<number>>(new Set());
   const [analyses, setAnalyses] =
     useState<Record<number, BreakingChangeAnalysis>>(initialAnalyses);
@@ -387,7 +389,6 @@ export function DependencyManagerClient({
       const data = (await res.json()) as { results?: MergeResult[] };
       if (data.results) {
         setMergeResults(data.results);
-        // Remove successfully merged PRs from selection
         const mergedNums = new Set(
           data.results.filter((r) => r.success).map((r) => r.prNumber),
         );
@@ -396,6 +397,10 @@ export function DependencyManagerClient({
           for (const n of mergedNums) next.delete(n);
           return next;
         });
+        // Refresh server data so merged PRs disappear from the list
+        if (mergedNums.size > 0) {
+          router.refresh();
+        }
       }
     });
   }

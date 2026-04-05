@@ -22,3 +22,10 @@ export {
   fetchSecurityAlerts,
   mergeDependabotPR,
 } from "./github-deps";
+
+export {
+  fetchDbHealth,
+  fetchSupabaseAdvisories,
+  runUptimeChecks,
+  isSupabaseConfigured,
+} from "./supabase";

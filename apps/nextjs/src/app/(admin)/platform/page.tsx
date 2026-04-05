@@ -2,10 +2,16 @@
 import Link from "next/link";
 
 import type { IncidentRecord, VercelDeployment } from "@dw/contracts";
-import { getIncidents, getSystemHealth } from "@dw/ai/memory";
+import {
+  getIncidents,
+  getMaintenanceMode,
+  getSystemHealth,
+} from "@dw/ai/memory";
 import { getLastProductionDeploy } from "@dw/ai/sensors";
 
 import { env } from "~/env";
+import { CommandPalette } from "./_components/command-palette";
+import { MaintenanceToggle } from "./_components/maintenance-toggle";
 import { RunDocsAgentButton } from "./docs/_components/run-docs-agent-button";
 
 // ─────────────────────────────────────────────
@@ -54,231 +60,233 @@ const SEVERITY_STYLES = {
   },
 } as const;
 
+type SeverityKey = keyof typeof SEVERITY_STYLES;
+
+function severityColor(s: string): (typeof SEVERITY_STYLES)[SeverityKey] {
+  return SEVERITY_STYLES[s as SeverityKey];
+}
+
 const STATUS_STYLES = {
   open: {
     badge: "bg-red-500/10 text-red-400 border-red-500/20",
     dot: "bg-red-400",
-    label: "Open",
   },
   investigating: {
     badge: "bg-orange-500/10 text-orange-400 border-orange-500/20",
     dot: "bg-orange-400",
-    label: "Investigating",
   },
   monitoring: {
     badge: "bg-blue-500/10 text-blue-400 border-blue-500/20",
     dot: "bg-blue-400",
-    label: "Monitoring",
   },
   resolved: {
     badge: "bg-green-500/10 text-green-400 border-green-500/20",
     dot: "bg-green-400",
-    label: "Resolved",
   },
   closed: {
     badge: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
-    dot: "bg-zinc-500",
-    label: "Closed",
+    dot: "bg-zinc-600",
   },
-} as const;
+};
 
-function severityColor(s: IncidentRecord["severity"] | "healthy") {
-  return SEVERITY_STYLES[s];
-}
-
-function getTypeLabel(type: IncidentRecord["type"]): string {
-  if (type === "ci_failure") return "CI";
-  if (type === "security_alert") return "Security";
-  return "Error";
-}
+const TYPE_LABEL: Record<IncidentRecord["type"], string> = {
+  ci_failure: "CI Failure",
+  sentry_error: "Runtime Error",
+  security_alert: "Security Alert",
+  clerk_event: "Auth Event",
+  uptime_failure: "Uptime",
+  supabase_advisory: "DB Advisory",
+};
 
 // ─────────────────────────────────────────────
-// Components
+// Sub-components
 // ─────────────────────────────────────────────
 
-function StatusDot({
-  severity,
-}: {
-  severity: IncidentRecord["severity"] | "healthy";
-}) {
-  const c = severityColor(severity);
+function StatusDot({ severity }: { severity: string }) {
+  const color =
+    severity === "healthy"
+      ? "bg-emerald-400"
+      : severity === "critical"
+        ? "bg-red-400"
+        : severity === "high"
+          ? "bg-orange-400"
+          : severity === "medium"
+            ? "bg-yellow-400"
+            : "bg-green-400";
+
   return (
-    <span className="relative flex h-2.5 w-2.5">
-      <span
-        className={`absolute inline-flex h-full w-full animate-ping rounded-full ${c.dot} opacity-50`}
-      />
-      <span
-        className={`relative inline-flex h-2.5 w-2.5 rounded-full ${c.dot}`}
-      />
+    <span className="relative flex h-2 w-2 shrink-0">
+      {severity !== "healthy" && (
+        <span
+          className={`absolute inline-flex h-full w-full animate-ping rounded-full ${color} opacity-60`}
+        />
+      )}
+      <span className={`relative inline-flex h-2 w-2 rounded-full ${color}`} />
     </span>
   );
 }
 
 function StatCard({
   label,
-  sub,
   value,
+  sub,
   severity,
 }: {
   label: string;
-  sub?: string;
   value: string | number;
-  severity?: IncidentRecord["severity"] | "healthy";
+  sub: string;
+  severity?: string;
 }) {
-  const c = severity !== undefined ? severityColor(severity) : null;
+  const color = severity ? severityColor(severity) : SEVERITY_STYLES.healthy;
   return (
     <div
-      className={`rounded-xl border p-5 ${c !== null ? `${c.bg} ${c.border}` : "border-white/10 bg-white/5"}`}
+      className={`rounded-xl border p-5 ${
+        severity && severity !== "healthy"
+          ? `${color.border} ${color.bg}`
+          : "border-white/10 bg-white/5"
+      }`}
     >
-      <p className="mb-1 text-xs font-medium tracking-widest text-zinc-500 uppercase">
+      <p className="mb-1 text-[10px] font-semibold tracking-widest text-zinc-500 uppercase">
         {label}
       </p>
       <p
-        className={`text-3xl font-bold tabular-nums ${c !== null ? c.text : "text-white"}`}
+        className={`text-2xl font-bold tabular-nums ${
+          severity && severity !== "healthy" ? color.text : "text-white"
+        }`}
       >
         {value}
       </p>
-      {sub !== undefined && <p className="mt-1 text-xs text-zinc-500">{sub}</p>}
+      <p className="mt-0.5 text-[11px] text-zinc-600">{sub}</p>
     </div>
   );
 }
 
 function ActiveIncidentRow({ incident }: { incident: IncidentRecord }) {
-  const sev = SEVERITY_STYLES[incident.severity];
-  const status = STATUS_STYLES[incident.status];
-  const isSecurityAlert = incident.type === "security_alert";
-  const typeLabel = getTypeLabel(incident.type);
-
-  const typeBadgeClass = isSecurityAlert
-    ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
-    : `${sev.bg} ${sev.text} ${sev.border}`;
+  const statusStyle = STATUS_STYLES[incident.status];
+  const severityStyle = SEVERITY_STYLES[incident.severity as SeverityKey];
+  const typeLabel = TYPE_LABEL[incident.type];
 
   return (
     <div
-      className={`flex items-start gap-4 rounded-lg border p-4 ${
-        isSecurityAlert
-          ? "border-purple-500/20 bg-purple-500/5"
-          : `${sev.bg} ${sev.border}`
-      }`}
+      className={`flex items-start gap-3 rounded-xl border p-4 ${severityStyle.border} ${severityStyle.bg}`}
     >
-      <div className="mt-1">
-        <StatusDot severity={incident.severity} />
-      </div>
+      <StatusDot severity={incident.severity} />
       <div className="min-w-0 flex-1">
-        <div className="mb-1 flex flex-wrap items-center gap-2">
+        <div className="mb-1 flex flex-wrap items-center gap-1.5">
           <span
-            className={`rounded border px-1.5 py-0.5 text-[11px] font-semibold tracking-wider uppercase ${typeBadgeClass}`}
+            className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase ${severityStyle.border} ${severityStyle.text} bg-transparent`}
           >
-            {typeLabel}
+            {incident.severity}
           </span>
+          <span className="text-[10px] text-zinc-600">{typeLabel}</span>
           <span
-            className={`rounded border px-1.5 py-0.5 text-[11px] font-semibold ${status.badge}`}
+            className={`ml-auto rounded border px-1.5 py-0.5 text-[10px] font-semibold ${statusStyle.badge}`}
           >
-            {status.label}
-          </span>
-          <span className="text-[11px] text-zinc-500">{incident.service}</span>
-          <span className="ml-auto text-[11px] text-zinc-600">
-            {timeAgo(incident.timestamp)}
+            {incident.status}
           </span>
         </div>
-        <p className="truncate text-sm leading-snug font-medium text-zinc-200">
-          {incident.summary}
-        </p>
-        <p className="mt-0.5 line-clamp-1 text-xs text-zinc-500">
-          {incident.rootCause}
-        </p>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          {!isSecurityAlert && incident.commitSha !== undefined && (
-            <span className="font-mono text-[10px] text-zinc-600">
-              {incident.commitSha.slice(0, 7)}
-            </span>
-          )}
-          {!isSecurityAlert && incident.branch !== undefined && (
-            <span className="text-[10px] text-zinc-600">{incident.branch}</span>
-          )}
-          {incident.labels.slice(0, 3).map((l) => (
-            <span
-              key={l}
-              className={`rounded border px-1.5 py-0.5 text-[10px] ${
-                isSecurityAlert
-                  ? "border-purple-500/20 bg-purple-500/10 text-purple-300"
-                  : "border-white/10 bg-white/5 text-zinc-400"
-              }`}
-            >
-              {l}
-            </span>
-          ))}
-        </div>
-      </div>
-      <div className="flex shrink-0 flex-col items-end gap-2">
-        {incident.issueUrl !== undefined && (
+        <p className="text-sm font-medium text-zinc-200">{incident.summary}</p>
+        {incident.issueUrl && (
           <a
             href={incident.issueUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[11px] text-zinc-500 transition-colors hover:text-zinc-300"
+            className="mt-1 block text-[11px] text-zinc-600 transition-colors hover:text-zinc-400"
           >
-            Issue →
+            GitHub Issue →
           </a>
         )}
       </div>
+      <span className="shrink-0 text-[11px] text-zinc-700">
+        {timeAgo(incident.timestamp)}
+      </span>
     </div>
   );
 }
 
 function DeployCard({ deploy }: { deploy: VercelDeployment }) {
-  const commitSha = deploy.meta.githubCommitSha ?? null;
-  const commitMessage = deploy.meta.githubCommitMessage ?? null;
-  const branch = deploy.meta.githubBranch ?? null;
+  const sha = deploy.meta.githubCommitSha?.slice(0, 7) ?? "—";
+  const msg = deploy.meta.githubCommitMessage ?? "—";
+  const branch = deploy.meta.githubBranch ?? deploy.target ?? "—";
+
   return (
     <div className="rounded-xl border border-white/10 bg-white/5 p-5">
-      <p className="mb-3 text-xs font-semibold tracking-widest text-zinc-500 uppercase">
+      <p className="mb-3 text-[10px] font-semibold tracking-widest text-zinc-600 uppercase">
         Last Production Deploy
       </p>
-      <div className="flex flex-wrap items-center gap-4">
-        <div>
-          <p className="font-mono text-sm text-zinc-300">
-            {commitSha !== null ? commitSha.slice(0, 7) : "—"}
-          </p>
-          <p className="text-xs text-zinc-500">commit</p>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <span className="rounded border border-white/10 bg-white/5 px-1.5 py-0.5 font-mono text-xs text-zinc-400">
+            {sha}
+          </span>
+          <p className="truncate text-sm text-zinc-300">{msg}</p>
         </div>
-        <div className="h-8 w-px bg-white/10" />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm text-zinc-300">
-            {commitMessage !== null ? commitMessage.slice(0, 60) : "—"}
-          </p>
-          <p className="text-xs text-zinc-500">message</p>
+        <div className="flex shrink-0 items-center gap-3">
+          <span className="text-xs text-zinc-600">{branch}</span>
+          <a
+            href={`https://${deploy.url}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-zinc-500 transition-colors hover:text-zinc-300"
+          >
+            View deploy →
+          </a>
         </div>
-        <div className="h-8 w-px bg-white/10" />
-        <div>
-          <p className="text-sm text-zinc-300">{branch ?? "—"}</p>
-          <p className="text-xs text-zinc-500">branch</p>
-        </div>
-        <a
-          href={`https://${deploy.url}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="ml-auto text-xs text-zinc-500 transition-colors hover:text-zinc-300"
-        >
-          View deploy →
-        </a>
       </div>
     </div>
   );
 }
+
+// ─────────────────────────────────────────────
+// Nav cards config
+// ─────────────────────────────────────────────
+
+const NAV_ITEMS = [
+  {
+    href: "/platform/incidents",
+    label: "Incident History",
+    desc: "Full log with status tracking and AI analysis",
+  },
+  {
+    href: "/platform/deployments",
+    label: "Deployments",
+    desc: "Deploy history with incident correlation and one-click rollback",
+  },
+  {
+    href: "/platform/insights",
+    label: "AI Insights",
+    desc: "Pattern analysis and recommendations",
+  },
+  {
+    href: "/platform/dependencies",
+    label: "Dependencies",
+    desc: "Manage Dependabot PRs and security vulnerabilities",
+  },
+  {
+    href: "/platform/users",
+    label: "User Activity",
+    desc: "Clerk auth events, sign-ins, and security signals",
+  },
+  {
+    href: "/platform/database",
+    label: "Database Health",
+    desc: "Supabase table sizes, connections, and security advisories",
+  },
+] as const;
 
 // ─────────────────────────────────────────────
 // Page
 // ─────────────────────────────────────────────
 
 export default async function PlatformPage() {
-  const [health, incidents, lastDeploy] = await Promise.all([
+  const [health, incidents, lastDeploy, maintenanceMode] = await Promise.all([
     getSystemHealth(),
     getIncidents(50),
     getLastProductionDeploy(),
+    getMaintenanceMode().catch(() => null),
   ]);
 
-  // Status buckets — mutually exclusive
+  // Status buckets
   const activeIncidents = incidents.filter(
     (i) => i.status === "open" || i.status === "investigating",
   );
@@ -289,7 +297,13 @@ export default async function PlatformPage() {
     (i) => i.status === "resolved" || i.status === "closed",
   );
   const activeSecurityAlerts = activeIncidents.filter(
-    (i) => i.type === "security_alert",
+    (i) => i.type === "security_alert" || i.type === "supabase_advisory",
+  );
+  const activeAuthAlerts = activeIncidents.filter(
+    (i) => i.type === "clerk_event",
+  );
+  const uptimeIncidents = activeIncidents.filter(
+    (i) => i.type === "uptime_failure",
   );
 
   const healthColor = severityColor(health.recentSeverity);
@@ -302,34 +316,37 @@ export default async function PlatformPage() {
       ? (lastDeploy.meta.githubBranch ?? lastDeploy.target ?? "main")
       : "no deploy found";
 
-  // Branch for the docs agent trigger — match the current environment
   const currentEnv = env.NEXT_PUBLIC_APP_ENV;
   const docsBranch = currentEnv === "production" ? "main" : "dev";
 
   return (
     <div className="min-h-screen bg-zinc-950 p-6 text-zinc-100 lg:p-10">
       <div className="mx-auto max-w-5xl space-y-8">
-        {/* Header */}
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-white">
-              Platform Intelligence
-            </h1>
-            <p className="mt-1 text-sm text-zinc-500">
-              AI DevOps control center
-            </p>
+        {/* Header row — title + system status + command palette */}
+        <div className="space-y-4">
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-white">
+                Platform Intelligence
+              </h1>
+              <p className="mt-1 text-sm text-zinc-500">
+                AI DevOps control center
+              </p>
+            </div>
+            <div
+              className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium ${healthColor.bg} ${healthColor.border} ${healthColor.text}`}
+            >
+              <StatusDot severity={health.recentSeverity} />
+              {health.recentSeverity === "healthy"
+                ? "All systems healthy"
+                : `${health.recentSeverity.toUpperCase()} severity active`}
+            </div>
           </div>
-          <div
-            className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium ${healthColor.bg} ${healthColor.border} ${healthColor.text}`}
-          >
-            <StatusDot severity={health.recentSeverity} />
-            {health.recentSeverity === "healthy"
-              ? "All systems healthy"
-              : `${health.recentSeverity.toUpperCase()} severity active`}
-          </div>
+          {/* Command palette — renders as static bar + Cmd+K modal */}
+          <CommandPalette />
         </div>
 
-        {/* Stats — incident status overview */}
+        {/* Stats */}
         <div>
           <p className="mb-3 text-[10px] font-semibold tracking-widest text-zinc-600 uppercase">
             Incident Status
@@ -374,12 +391,53 @@ export default async function PlatformPage() {
               {activeSecurityAlerts.length} active security{" "}
               {activeSecurityAlerts.length === 1
                 ? "vulnerability"
-                : "vulnerabilities"}{" "}
-              detected by Dependabot
+                : "vulnerabilities"}
             </p>
             <Link
               href="/platform/incidents"
               className="ml-auto text-xs text-purple-400 transition-colors hover:text-purple-200"
+            >
+              View →
+            </Link>
+          </div>
+        )}
+
+        {/* Auth security alert banner */}
+        {activeAuthAlerts.length > 0 && (
+          <div className="flex items-center gap-3 rounded-xl border border-orange-500/20 bg-orange-500/5 px-4 py-3">
+            <span className="relative flex h-2.5 w-2.5 shrink-0">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-50" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-orange-400" />
+            </span>
+            <p className="text-sm font-medium text-orange-300">
+              {activeAuthAlerts.length} auth security{" "}
+              {activeAuthAlerts.length === 1 ? "signal" : "signals"} — possible
+              brute force
+            </p>
+            <Link
+              href="/platform/users"
+              className="ml-auto text-xs text-orange-400 transition-colors hover:text-orange-200"
+            >
+              View users →
+            </Link>
+          </div>
+        )}
+
+        {/* Uptime alert banner */}
+        {uptimeIncidents.length > 0 && (
+          <div className="flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3">
+            <span className="relative flex h-2.5 w-2.5 shrink-0">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-50" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-400" />
+            </span>
+            <p className="text-sm font-medium text-red-300">
+              {uptimeIncidents.length}{" "}
+              {uptimeIncidents.length === 1 ? "service is" : "services are"}{" "}
+              unreachable
+            </p>
+            <Link
+              href="/platform/incidents"
+              className="ml-auto text-xs text-red-400 transition-colors hover:text-red-200"
             >
               View →
             </Link>
@@ -450,32 +508,9 @@ export default async function PlatformPage() {
           </div>
         )}
 
-        {/* Nav */}
+        {/* Nav grid */}
         <div className="grid grid-cols-2 gap-4 pt-2 lg:grid-cols-3">
-          {(
-            [
-              {
-                href: "/platform/incidents",
-                label: "Incident History",
-                desc: "Full log with status tracking and AI analysis",
-              },
-              {
-                href: "/platform/deployments",
-                label: "Deployments",
-                desc: "Deploy history with incident correlation",
-              },
-              {
-                href: "/platform/insights",
-                label: "AI Insights",
-                desc: "Pattern analysis and recommendations",
-              },
-              {
-                href: "/platform/dependencies",
-                label: "Dependencies",
-                desc: "Manage Dependabot PRs and security vulnerabilities",
-              },
-            ] as const
-          ).map((item) => (
+          {NAV_ITEMS.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -497,6 +532,14 @@ export default async function PlatformPage() {
             </p>
             <RunDocsAgentButton branch={docsBranch} />
           </div>
+        </div>
+
+        {/* Maintenance Mode — bottom of page, intentionally not prominent */}
+        <div>
+          <p className="mb-3 text-[10px] font-semibold tracking-widest text-zinc-600 uppercase">
+            Operations
+          </p>
+          <MaintenanceToggle initial={maintenanceMode} />
         </div>
       </div>
     </div>

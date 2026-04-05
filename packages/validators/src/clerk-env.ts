@@ -16,6 +16,8 @@ export function clerkEnv() {
   return createEnv({
     server: {
       CLERK_SECRET_KEY: z.string().min(1).optional(),
+      CLERK_APP_ID: z.string().min(1).optional(),
+      CLERK_INSTANCE_ID: z.string().min(1).optional(),
       CLERK_WEBHOOK_SECRET: z.string().min(1).optional(),
       // Proxy for OAuth redirects in local tunnel dev
       AUTH_REDIRECT_PROXY_URL: z.url().optional(),

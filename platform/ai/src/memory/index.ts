@@ -17,3 +17,21 @@ export {
   updateRollbackRecord,
   getRollbackRecord,
 } from "./redis";
+
+export {
+  logUserActivity,
+  getUserActivity,
+  incrementFailedSessions,
+  getFailedSessionCount,
+  clearFailedSessions,
+} from "./user-activity";
+
+export { getMaintenanceMode, setMaintenanceMode } from "./maintenance";
+
+export {
+  recordPerfSample,
+  getPerfBaseline,
+  setPerfBaseline,
+  getRollingPerf,
+  computePercentile,
+} from "./performance";

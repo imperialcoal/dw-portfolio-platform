@@ -102,6 +102,35 @@ export type {
 } from "./ai/deps";
 
 // ─────────────────────────────────────────────
+// User activity
+// ─────────────────────────────────────────────
+export type {
+  UserActivityRecord,
+  UserActivityEventType,
+  AuthSecuritySignal,
+} from "./ai/user-activity";
+
+// ─────────────────────────────────────────────
+// Maintenance mode
+// ─────────────────────────────────────────────
+export type { MaintenanceMode } from "./ai/maintenance";
+
+// ─────────────────────────────────────────────
+// Performance
+// ─────────────────────────────────────────────
+export type { PerfBaseline } from "./ai/performance";
+
+// ─────────────────────────────────────────────
+// Supabase - Database
+// ─────────────────────────────────────────────
+export type { SupabaseAdvisory } from "./ai/supabase";
+
+// ─────────────────────────────────────────────
+// Uptime
+// ─────────────────────────────────────────────
+export type { UptimeCheckResult } from "./ai/uptime";
+
+// ─────────────────────────────────────────────
 // Event bus
 // ─────────────────────────────────────────────
 
