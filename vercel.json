@@ -8,12 +8,5 @@
       "path": "/api/cron/health-check",
       "schedule": "0 12 * * *"
     }
-    // Recommended resolution: Remove perf-baseline from vercel.json for now —
-    // it has no data to baseline yet since recordPerfSample() hasn't been called yet (requires a log drain setup).
-    // Trigger it manually via the cron route when you're ready to capture a baseline after a stable deploy.
-    // {
-    //   "path": "/api/cron/perf-baseline",
-    //   "schedule": "0 3 * * *"
-    // }
   ]
 }
