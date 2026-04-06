@@ -121,8 +121,12 @@ interface GitHubPR {
   html_url: string;
   labels: { name: string }[];
   created_at: string;
+  draft: boolean;
+  state: string;
+  merged_at: string | null;
   user: { login: string };
   head: { ref: string };
+  base: { ref: string };
 }
 
 interface GitHubDependabotAlert {
@@ -153,7 +157,7 @@ export async function fetchDependabotPRs(): Promise<DependabotPR[]> {
   if (!token) return [];
 
   const res = await fetch(
-    `${GITHUB_API}/repos/${getRepo()}/pulls?state=open&per_page=100`,
+    `${GITHUB_API}/repos/${getRepo()}/pulls?state=open&per_page=100&sort=updated&direction=desc`,
     { headers: getHeaders() },
   );
 
@@ -162,8 +166,8 @@ export async function fetchDependabotPRs(): Promise<DependabotPR[]> {
       JSON.stringify({
         level: "error",
         sensor: "github-deps",
+        event: "fetch_prs_failed",
         status: res.status,
-        message: "Failed to fetch PRs",
       }),
     );
     return [];
@@ -171,10 +175,31 @@ export async function fetchDependabotPRs(): Promise<DependabotPR[]> {
 
   const prs = (await res.json()) as GitHubPR[];
 
+  console.log(
+    JSON.stringify({
+      level: "info",
+      sensor: "github-deps",
+      event: "prs_fetched",
+      total: prs.length,
+      logins: [...new Set(prs.map((pr) => pr.user.login))],
+    }),
+  );
+
   const dependabotPRs = prs.filter(
     (pr) =>
       pr.user.login === "dependabot[bot]" ||
+      pr.user.login === "app/dependabot" ||
       pr.head.ref.startsWith("dependabot/"),
+  );
+
+  console.log(
+    JSON.stringify({
+      level: "info",
+      sensor: "github-deps",
+      event: "dependabot_prs_filtered",
+      count: dependabotPRs.length,
+      prNumbers: dependabotPRs.map((pr) => pr.number),
+    }),
   );
 
   return dependabotPRs.map((pr): DependabotPR => {

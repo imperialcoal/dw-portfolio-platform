@@ -154,17 +154,42 @@ export async function fetchSupabaseAdvisories(): Promise<SupabaseAdvisory[]> {
   const ref = getRef();
 
   try {
+    console.log(
+      JSON.stringify({
+        level: "info",
+        sensor: "supabase",
+        event: "advisories_fetch_start",
+        ref: ref.slice(0, 8) + "...",
+        hasToken: !!config.supabase.SUPABASE_ACCESS_TOKEN,
+        tokenPrefix:
+          config.supabase.SUPABASE_ACCESS_TOKEN?.slice(0, 8) ?? "unset",
+      }),
+    );
+
     const res = await fetch(`${MGMT_BASE}/projects/${ref}/advisors/security`, {
       headers: getHeaders(),
     });
 
     if (!res.ok) {
+      // Read the error body for diagnostics — Supabase returns JSON on 401/403
+      let errorBody: unknown = null;
+      try {
+        errorBody = await res.json();
+      } catch {
+        // body wasn't JSON — ignore
+      }
+
       console.warn(
         JSON.stringify({
           level: "warn",
           sensor: "supabase",
           event: "advisories_unavailable",
           status: res.status,
+          // This will show the exact Supabase error message in Vercel logs
+          error: errorBody,
+          // Show which token is being used (masked for security)
+          tokenPrefix:
+            config.supabase.SUPABASE_ACCESS_TOKEN?.slice(0, 8) ?? "unset",
         }),
       );
       return [];

@@ -337,14 +337,24 @@ export default async function DeploymentsPage() {
       .sort((a, b) => b.createdAt - a.createdAt)[0]?.id ??
     null;
 
-  const deploysWithActiveIncidents = deploys.filter((d) =>
-    findCorrelatedIncidents(d, incidents).some(
-      (i) => i.status === "open" || i.status === "investigating",
-    ),
-  );
-  const deploysWithAnyIncidents = deploys.filter(
-    (d) => findCorrelatedIncidents(d, incidents).length > 0,
-  );
+  // Collect unique incident IDs across all deployment correlation windows.
+  // A single incident that falls within multiple deploy windows must count once
+  const uniqueActiveIncidentIds = new Set<string>();
+  const uniqueAnyIncidentIds = new Set<string>();
+
+  for (const deploy of deploys) {
+    const correlated = findCorrelatedIncidents(deploy, incidents);
+    for (const incident of correlated) {
+      uniqueAnyIncidentIds.add(incident.id);
+      if (incident.status === "open" || incident.status === "investigating") {
+        uniqueActiveIncidentIds.add(incident.id);
+      }
+    }
+  }
+
+  const uniqueActiveIncidentCount = uniqueActiveIncidentIds.size;
+  const uniqueResolvedIncidentCount =
+    uniqueAnyIncidentIds.size - uniqueActiveIncidentIds.size;
   const deploysWithRollbacks = rollbackRecords.filter((r) => r !== null).length;
 
   return (
@@ -389,9 +399,9 @@ export default async function DeploymentsPage() {
           </div>
           <div
             className={`rounded-xl border p-5 ${
-              deploysWithActiveIncidents.length > 0
+              uniqueActiveIncidentCount > 0
                 ? "border-red-500/20 bg-red-500/5"
-                : deploysWithAnyIncidents.length > 0
+                : uniqueAnyIncidentIds.size > 0
                   ? "border-orange-500/20 bg-orange-500/5"
                   : "border-white/10 bg-white/5"
             }`}
@@ -401,21 +411,18 @@ export default async function DeploymentsPage() {
             </p>
             <p
               className={`text-3xl font-bold tabular-nums ${
-                deploysWithActiveIncidents.length > 0
+                uniqueActiveIncidentCount > 0
                   ? "text-red-400"
-                  : deploysWithAnyIncidents.length > 0
+                  : uniqueAnyIncidentIds.size > 0
                     ? "text-orange-400"
                     : "text-white"
               }`}
             >
-              {deploysWithActiveIncidents.length}
+              {uniqueActiveIncidentCount}
             </p>
-            {deploysWithAnyIncidents.length >
-              deploysWithActiveIncidents.length && (
+            {uniqueResolvedIncidentCount > 0 && (
               <p className="mt-1 text-xs text-zinc-600">
-                {deploysWithAnyIncidents.length -
-                  deploysWithActiveIncidents.length}{" "}
-                resolved
+                {uniqueResolvedIncidentCount} resolved
               </p>
             )}
             {deploysWithRollbacks > 0 && (
