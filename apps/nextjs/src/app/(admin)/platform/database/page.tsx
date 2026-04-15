@@ -134,6 +134,9 @@ export default async function DatabasePage() {
                 <div className="space-y-3">
                   {advisories.map((advisory) => {
                     const style = ADVISORY_LEVEL_STYLES[advisory.level];
+                    // advisory.name is the cache_key from the linter,
+                    // e.g. "rls_disabled_in_public_public_post"
+                    const advisoryUrl = `https://supabase.com/dashboard/project/${supabaseRef}/advisors/security?id=${advisory.name}`;
                     return (
                       <div
                         key={advisory.name}
@@ -155,6 +158,14 @@ export default async function DatabasePage() {
                               {advisory.description}
                             </p>
                           </div>
+                          <a
+                            href={advisoryUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="shrink-0 text-[11px] text-zinc-600 transition-colors hover:text-zinc-300"
+                          >
+                            View →
+                          </a>
                         </div>
                       </div>
                     );
