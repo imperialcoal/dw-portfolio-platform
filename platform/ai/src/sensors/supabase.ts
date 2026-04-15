@@ -140,12 +140,19 @@ function parseSizeBytes(sizeStr: string): number {
 // GET /v1/projects/{ref}/advisors/security
 // ─────────────────────────────────────────────
 
+interface RawAdvisoryResult {
+  name?: string;
+  [key: string]: unknown;
+}
+
 interface RawAdvisory {
   name?: string;
   title?: string;
   level?: string;
   description?: string;
   metadata?: Record<string, unknown>;
+  // The linter API returns affected items in a `results` array
+  results?: RawAdvisoryResult[];
 }
 
 export async function fetchSupabaseAdvisories(): Promise<SupabaseAdvisory[]> {
@@ -171,7 +178,6 @@ export async function fetchSupabaseAdvisories(): Promise<SupabaseAdvisory[]> {
     });
 
     if (!res.ok) {
-      // Read the error body for diagnostics — Supabase returns JSON on 401/403
       let errorBody: unknown = null;
       try {
         errorBody = await res.json();
@@ -185,9 +191,7 @@ export async function fetchSupabaseAdvisories(): Promise<SupabaseAdvisory[]> {
           sensor: "supabase",
           event: "advisories_unavailable",
           status: res.status,
-          // This will show the exact Supabase error message in Vercel logs
           error: errorBody,
-          // Show which token is being used (masked for security)
           tokenPrefix:
             config.supabase.SUPABASE_ACCESS_TOKEN?.slice(0, 8) ?? "unset",
         }),
@@ -202,16 +206,68 @@ export async function fetchSupabaseAdvisories(): Promise<SupabaseAdvisory[]> {
       ? data
       : (data.advisories ?? []);
 
-    return raw.map(
-      (a): SupabaseAdvisory => ({
-        name: a.name ?? "unknown",
-        title: a.title ?? a.name ?? "Security Advisory",
-        level: (a.level?.toUpperCase() ?? "WARN") as SupabaseAdvisory["level"],
-        description: a.description ?? "",
-        metadata: a.metadata,
-        detectedAt: new Date().toISOString(),
+    // Log the raw response shape for diagnostics (truncated to avoid log bloat)
+    console.log(
+      JSON.stringify({
+        level: "info",
+        sensor: "supabase",
+        event: "advisories_raw",
+        count: raw.length,
+        // Log first item keys and level to understand the shape
+        firstItemKeys: raw[0] ? Object.keys(raw[0]) : [],
+        firstItemLevel: raw[0]?.level,
+        firstItemName: raw[0]?.name,
+        firstItemResultsCount: raw[0]?.results?.length ?? 0,
       }),
     );
+
+    // Expand: if a check has a `results` array, emit one advisory per affected item.
+    // If no results array (or empty), emit one advisory for the check itself.
+    const expanded: SupabaseAdvisory[] = [];
+
+    for (const a of raw) {
+      const level = (a.level?.toUpperCase() ??
+        "WARN") as SupabaseAdvisory["level"];
+      const baseTitle = a.title ?? a.name ?? "Security Advisory";
+      const description = a.description ?? "";
+
+      if (a.results && a.results.length > 0) {
+        for (const result of a.results) {
+          const resultName = result.name ?? "unknown";
+          expanded.push({
+            // Use check name + result name as stable unique identifier
+            name: `${a.name ?? "advisory"}-${resultName}`,
+            title: baseTitle,
+            level,
+            description: `${description}${description ? " · " : ""}Affected: ${resultName}`,
+            metadata: { ...a.metadata, affectedItem: resultName },
+            detectedAt: new Date().toISOString(),
+          });
+        }
+      } else {
+        expanded.push({
+          name: a.name ?? "unknown",
+          title: baseTitle,
+          level,
+          description,
+          metadata: a.metadata,
+          detectedAt: new Date().toISOString(),
+        });
+      }
+    }
+
+    console.log(
+      JSON.stringify({
+        level: "info",
+        sensor: "supabase",
+        event: "advisories_parsed",
+        rawChecks: raw.length,
+        expandedAdvisories: expanded.length,
+        levels: expanded.map((a) => a.level),
+      }),
+    );
+
+    return expanded;
   } catch (err) {
     console.error(
       JSON.stringify({

@@ -34,8 +34,14 @@ function parseDependabotTitle(title: string): {
   updateType: DependencyUpdateType;
   isMajor: boolean;
 } {
+  // Handles all Dependabot title formats:
+  //   "chore: bump X from A to B"
+  //   "chore: bump X from A to B in /some/path"
+  //   "chore(deps): bump X from A to B"
+  //   "chore(deps-dev): bump X from A to B"
+  //   "Bump X from A to B"
   const singleMatch =
-    /^(?:chore\(deps(?:-dev)?\):\s+)?[Bb]ump\s+(.+?)\s+from\s+([\w.+-]+)\s+to\s+([\w.+-]+)/i.exec(
+    /^(?:chore(?:\(deps(?:-dev)?\))?:\s+)?[Bb]ump\s+(.+?)\s+from\s+([\w.+-]+)\s+to\s+([\w.+-]+)/i.exec(
       title,
     );
 
@@ -71,26 +77,30 @@ function parseDependabotTitle(title: string): {
     };
   }
 
+  // Group update PRs: "chore: bump the patch-updates group with 9 updates"
+  //                   "chore(deps): bump the nextjs group with 3 updates"
   const groupMatch =
-    /^chore\(deps(?:-dev)?\):\s+bump\s+the\s+(.+?)\s+group\s+with\s+\d+\s+updates?/i.exec(
+    /^(?:chore(?:\(deps(?:-dev)?\))?:\s+)?[Bb]ump\s+the\s+(.+?)\s+group(?:\s+across\s+\S+\s+director(?:y|ies))?\s+with\s+(\d+)\s+updates?/i.exec(
       title,
     );
 
   if (groupMatch?.[1]) {
+    const count = groupMatch[2] ? ` (${groupMatch[2]} updates)` : "";
     return {
-      packageName: `${groupMatch[1].trim()} group`,
+      packageName: `${groupMatch[1].trim()} group${count}`,
       fromVersion: null,
       toVersion: null,
-      updateType: "unknown",
+      updateType: "patch",
       isMajor: false,
     };
   }
 
+  // Fallback: strip known prefixes and take what's left
+  const stripped = title
+    .replace(/^(?:chore(?:\(deps(?:-dev)?\))?:\s+)?[Bb]ump\s+/i, "")
+    .trim();
   return {
-    packageName:
-      title
-        .replace(/^(?:chore\(deps(?:-dev)?\):\s+)?[Bb]ump\s+/, "")
-        .split(" ")[0] ?? title,
+    packageName: stripped || title,
     fromVersion: null,
     toVersion: null,
     updateType: "unknown",
