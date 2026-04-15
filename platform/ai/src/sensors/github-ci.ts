@@ -1,12 +1,7 @@
 // Sensors only gather raw signals — no analysis logic here.
 
+import type { GitHubJob } from "@dw/contracts";
 import { config } from "@dw/config";
-
-interface GitHubJob {
-  name: string;
-  conclusion: string | null;
-  steps?: { name: string; conclusion: string | null; number: number }[];
-}
 
 /**
  * Fetches the failed job steps from a GitHub workflow run.

@@ -9,7 +9,12 @@
 //
 // All calls are read-only. Never writes to the database.
 
-import type { SupabaseAdvisory } from "@dw/contracts";
+import type {
+  DbHealthMetrics,
+  SupabaseAdvisory,
+  SupabaseRawLintResult,
+  SupabaseTableStats,
+} from "@dw/contracts";
 import { config } from "@dw/config";
 import { isSupabaseConfigured } from "@dw/validators";
 
@@ -28,35 +33,6 @@ function getHeaders(): Record<string, string> {
 
 function getRef(): string {
   return config.supabase.SUPABASE_PROJECT_REF ?? "";
-}
-
-// ─────────────────────────────────────────────
-// Database metrics via Supabase Management API
-// ─────────────────────────────────────────────
-
-interface SupabaseTableStats {
-  name: string;
-  schema: string;
-  live_rows_estimate: number;
-  size: string; // e.g. "8192 bytes"
-  index_size: string;
-}
-
-export interface DbHealthMetrics {
-  projectRef: string;
-  poolerConnections: {
-    active: number;
-    idle: number;
-    total: number;
-    maxAllowed: number;
-  } | null;
-  tables: {
-    schema: string;
-    name: string;
-    rowEstimate: number;
-    sizeBytes: number;
-  }[];
-  fetchedAt: string;
 }
 
 export async function fetchDbHealth(): Promise<DbHealthMetrics | null> {
@@ -135,26 +111,6 @@ function parseSizeBytes(sizeStr: string): number {
   return Math.round(value);
 }
 
-// ─────────────────────────────────────────────
-// Security Advisories — Supabase Security Advisor API
-// GET /v1/projects/{ref}/advisors/security
-// ─────────────────────────────────────────────
-
-interface RawAdvisoryResult {
-  name?: string;
-  [key: string]: unknown;
-}
-
-interface RawAdvisory {
-  name?: string;
-  title?: string;
-  level?: string;
-  description?: string;
-  metadata?: Record<string, unknown>;
-  // The linter API returns affected items in a `results` array
-  results?: RawAdvisoryResult[];
-}
-
 export async function fetchSupabaseAdvisories(): Promise<SupabaseAdvisory[]> {
   if (!isSupabaseConfigured()) return [];
 
@@ -166,6 +122,7 @@ export async function fetchSupabaseAdvisories(): Promise<SupabaseAdvisory[]> {
         level: "info",
         sensor: "supabase",
         event: "advisories_fetch_start",
+        endpoint: "lint",
         ref: ref.slice(0, 8) + "...",
         hasToken: !!config.supabase.SUPABASE_ACCESS_TOKEN,
         tokenPrefix:
@@ -173,7 +130,8 @@ export async function fetchSupabaseAdvisories(): Promise<SupabaseAdvisory[]> {
       }),
     );
 
-    const res = await fetch(`${MGMT_BASE}/projects/${ref}/advisors/security`, {
+    // /lint is the Postgres linter (splinter) endpoint — powers Security Advisor
+    const res = await fetch(`${MGMT_BASE}/projects/${ref}/lint`, {
       headers: getHeaders(),
     });
 
@@ -199,75 +157,78 @@ export async function fetchSupabaseAdvisories(): Promise<SupabaseAdvisory[]> {
       return [];
     }
 
-    const data = (await res.json()) as
-      | { advisories?: RawAdvisory[] }
-      | RawAdvisory[];
-    const raw: RawAdvisory[] = Array.isArray(data)
-      ? data
-      : (data.advisories ?? []);
+    const raw = (await res.json()) as SupabaseRawLintResult[];
 
-    // Log the raw response shape for diagnostics (truncated to avoid log bloat)
     console.log(
       JSON.stringify({
         level: "info",
         sensor: "supabase",
-        event: "advisories_raw",
-        count: raw.length,
-        // Log first item keys and level to understand the shape
-        firstItemKeys: raw[0] ? Object.keys(raw[0]) : [],
-        firstItemLevel: raw[0]?.level,
-        firstItemName: raw[0]?.name,
-        firstItemResultsCount: raw[0]?.results?.length ?? 0,
+        event: "lint_raw",
+        isArray: Array.isArray(raw),
+        count: Array.isArray(raw) ? raw.length : 0,
+        firstItemKeys: Array.isArray(raw) && raw[0] ? Object.keys(raw[0]) : [],
+        firstItemLevel: Array.isArray(raw) ? (raw[0]?.level ?? null) : null,
+        firstItemName: Array.isArray(raw) ? (raw[0]?.name ?? null) : null,
+        firstCacheKey: Array.isArray(raw) ? (raw[0]?.cache_key ?? null) : null,
       }),
     );
 
-    // Expand: if a check has a `results` array, emit one advisory per affected item.
-    // If no results array (or empty), emit one advisory for the check itself.
-    const expanded: SupabaseAdvisory[] = [];
-
-    for (const a of raw) {
-      const level = (a.level?.toUpperCase() ??
-        "WARN") as SupabaseAdvisory["level"];
-      const baseTitle = a.title ?? a.name ?? "Security Advisory";
-      const description = a.description ?? "";
-
-      if (a.results && a.results.length > 0) {
-        for (const result of a.results) {
-          const resultName = result.name ?? "unknown";
-          expanded.push({
-            // Use check name + result name as stable unique identifier
-            name: `${a.name ?? "advisory"}-${resultName}`,
-            title: baseTitle,
-            level,
-            description: `${description}${description ? " · " : ""}Affected: ${resultName}`,
-            metadata: { ...a.metadata, affectedItem: resultName },
-            detectedAt: new Date().toISOString(),
-          });
-        }
-      } else {
-        expanded.push({
-          name: a.name ?? "unknown",
-          title: baseTitle,
-          level,
-          description,
-          metadata: a.metadata,
-          detectedAt: new Date().toISOString(),
-        });
-      }
+    if (!Array.isArray(raw)) {
+      console.warn(
+        JSON.stringify({
+          level: "warn",
+          sensor: "supabase",
+          event: "lint_unexpected_shape",
+          received: typeof raw,
+        }),
+      );
+      return [];
     }
+
+    const advisories: SupabaseAdvisory[] = raw.map((r) => {
+      const entity =
+        r.metadata?.schema && r.metadata.name
+          ? `${r.metadata.schema}.${r.metadata.name}`
+          : (r.detail ?? "");
+
+      const description = [r.description, entity ? `Affected: ${entity}` : ""]
+        .filter(Boolean)
+        .join(" · ");
+
+      return {
+        // cache_key matches the Supabase dashboard URL ?id= param — use as stable ID
+        name:
+          r.cache_key ??
+          `${r.name ?? "advisory"}-${entity.replace(/[^a-z0-9]/gi, "-").toLowerCase()}`,
+        title: r.title ?? r.name ?? "Security Advisory",
+        level: (r.level?.toUpperCase() ?? "WARN") as SupabaseAdvisory["level"],
+        description,
+        metadata: {
+          ...r.metadata,
+          cacheKey: r.cache_key,
+          detail: r.detail,
+          remediation: r.remediation,
+          categories: r.categories,
+        },
+        detectedAt: new Date().toISOString(),
+      };
+    });
 
     console.log(
       JSON.stringify({
         level: "info",
         sensor: "supabase",
         event: "advisories_parsed",
-        rawChecks: raw.length,
-        expandedAdvisories: expanded.length,
-        levels: expanded.map((a) => a.level),
+        total: advisories.length,
+        levels: advisories.reduce<Record<string, number>>((acc, a) => {
+          acc[a.level] = (acc[a.level] ?? 0) + 1;
+          return acc;
+        }, {}),
+        names: advisories.map((a) => a.name),
       }),
     );
 
-    return expanded;
+    return advisories;
   } catch (err) {
     console.error(
       JSON.stringify({

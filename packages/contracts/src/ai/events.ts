@@ -79,3 +79,22 @@ export interface VercelDeployment {
     githubBranch?: string;
   };
 }
+
+/**
+ * Raw Vercel API deployment shape.
+ * The API returns `uid` as the deployment identifier, not `id`.
+ * We map it to `id` in our VercelDeployment contract.
+ */
+export interface VercelApiDeployment {
+  uid: string;
+  url: string;
+  state: string;
+  createdAt: number;
+  target: "production" | "preview" | null;
+  meta: {
+    githubCommitSha?: string;
+    githubCommitMessage?: string;
+    githubCommitAuthorName?: string;
+    githubBranch?: string;
+  };
+}

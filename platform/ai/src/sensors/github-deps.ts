@@ -5,6 +5,8 @@ import type {
   DependabotPR,
   DependencyEcosystem,
   DependencyUpdateType,
+  GitHubDependabotAlert,
+  GitHubPR,
   SecurityAlertWithPR,
 } from "@dw/contracts";
 import { config } from "@dw/config";
@@ -123,43 +125,6 @@ function detectEcosystem(
   if (labels.some((l) => l.includes("nuget")) || branchName.includes("nuget"))
     return "nuget";
   return "npm";
-}
-
-interface GitHubPR {
-  number: number;
-  title: string;
-  html_url: string;
-  labels: { name: string }[];
-  created_at: string;
-  draft: boolean;
-  state: string;
-  merged_at: string | null;
-  user: { login: string };
-  head: { ref: string };
-  base: { ref: string };
-}
-
-interface GitHubDependabotAlert {
-  number: number;
-  state: "open" | "dismissed" | "fixed" | "auto_dismissed";
-  dependency: {
-    package: { ecosystem: string; name: string };
-    manifest_path: string;
-    scope: "runtime" | "development" | null;
-  };
-  security_advisory: {
-    ghsa_id: string;
-    cve_id: string | null;
-    summary: string;
-    // GitHub Dependabot alerts API uses these exact values
-    severity: "low" | "medium" | "high" | "critical";
-    vulnerable_version_range: string;
-  };
-  security_vulnerability: {
-    first_patched_version: { identifier: string } | null;
-  };
-  html_url: string;
-  auto_dismissed_at: string | null;
 }
 
 export async function fetchDependabotPRs(): Promise<DependabotPR[]> {

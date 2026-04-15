@@ -8,6 +8,7 @@ export type {
   SecurityAlertEvent,
   PlatformEvent,
   VercelDeployment,
+  VercelApiDeployment,
 } from "./ai/events";
 
 export type {
@@ -67,6 +68,11 @@ export type {
 } from "./queue";
 
 // ─────────────────────────────────────────────
+// CI
+// ─────────────────────────────────────────────
+export type { GitHubJob } from "./ai/ci";
+
+// ─────────────────────────────────────────────
 // Repo
 // ─────────────────────────────────────────────
 export type { RepoFile, RepoStructure } from "./ai/repo";
@@ -74,7 +80,7 @@ export type { RepoFile, RepoStructure } from "./ai/repo";
 // ─────────────────────────────────────────────
 // Docs
 // ─────────────────────────────────────────────
-export type { DocsAgentResult } from "./ai/docs";
+export type { DocsAgentResult, DriftItem, DocChangelogSpec } from "./ai/docs";
 
 // ─────────────────────────────────────────────
 // Rollback
@@ -99,6 +105,8 @@ export type {
   SecurityAlertWithPR,
   DependencyDashboardData,
   MergeResult,
+  GitHubPR,
+  GitHubDependabotAlert,
 } from "./ai/deps";
 
 // ─────────────────────────────────────────────
@@ -123,12 +131,17 @@ export type { PerfBaseline } from "./ai/performance";
 // ─────────────────────────────────────────────
 // Supabase - Database
 // ─────────────────────────────────────────────
-export type { SupabaseAdvisory } from "./ai/supabase";
+export type {
+  SupabaseAdvisory,
+  SupabaseTableStats,
+  DbHealthMetrics,
+  SupabaseRawLintResult,
+} from "./ai/supabase";
 
 // ─────────────────────────────────────────────
 // Uptime
 // ─────────────────────────────────────────────
-export type { UptimeCheckResult } from "./ai/uptime";
+export type { UptimeCheckResult, CheckDefinition } from "./ai/uptime";
 
 // ─────────────────────────────────────────────
 // Event bus

@@ -1,6 +1,6 @@
 // Sensors only gather raw signals.
 
-import type { VercelDeployment } from "@dw/contracts";
+import type { VercelApiDeployment, VercelDeployment } from "@dw/contracts";
 import { config } from "@dw/config";
 import { isVercelApiConfigured } from "@dw/validators/observability-env";
 
@@ -9,25 +9,6 @@ import { isVercelApiConfigured } from "@dw/validators/observability-env";
  */
 function getDeploymentTarget(): "production" | "preview" {
   return config.app.APP_ENV === "production" ? "production" : "preview";
-}
-
-/**
- * Raw Vercel API deployment shape.
- * The API returns `uid` as the deployment identifier, not `id`.
- * We map it to `id` in our VercelDeployment contract.
- */
-interface VercelApiDeployment {
-  uid: string;
-  url: string;
-  state: string;
-  createdAt: number;
-  target: "production" | "preview" | null;
-  meta: {
-    githubCommitSha?: string;
-    githubCommitMessage?: string;
-    githubCommitAuthorName?: string;
-    githubBranch?: string;
-  };
 }
 
 async function fetchDeployments(

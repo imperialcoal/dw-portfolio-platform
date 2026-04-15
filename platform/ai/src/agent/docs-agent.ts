@@ -23,7 +23,12 @@
 //   - appendToFile uses the Git Blobs API fallback for docs > 1MB, eliminating
 //     the truncation bug that previously wrote only the changelog block
 
-import type { DocsAgentResult, RepoStructure } from "@dw/contracts";
+import type {
+  DocChangelogSpec,
+  DocsAgentResult,
+  DriftItem,
+  RepoStructure,
+} from "@dw/contracts";
 import type { ContentBlock } from "@dw/llm";
 import {
   ANALYSIS_MODEL,
@@ -38,24 +43,6 @@ import {
 
 import { appendToFile, commitFile } from "../actions/github";
 import { scanRepo } from "../sensors/repo";
-
-// ─────────────────────────────────────────────
-// Structural diff types
-// ─────────────────────────────────────────────
-
-interface DriftItem {
-  category:
-    | "new_api_route"
-    | "new_package"
-    | "new_env_var"
-    | "new_cron"
-    | "new_webhook_handler"
-    | "missing_readme"
-    | "empty_readme";
-  path: string;
-  description: string;
-  affectedDocs: string[];
-}
 
 // ─────────────────────────────────────────────
 // Structural detectors — pure functions, no I/O
@@ -330,16 +317,6 @@ function getExistingDoc(path: string, repo: RepoStructure): string {
 // ─────────────────────────────────────────────
 
 type TextBlock = Extract<ContentBlock, { type: "text" }>;
-
-interface DocChangelogSpec {
-  docPath: string;
-  systemPrompt: string;
-  buildPrompt: (
-    items: { description: string; path: string }[],
-    existingDoc: string,
-    repo: RepoStructure,
-  ) => string;
-}
 
 const DOC_CHANGELOG_SPECS: DocChangelogSpec[] = [
   {
