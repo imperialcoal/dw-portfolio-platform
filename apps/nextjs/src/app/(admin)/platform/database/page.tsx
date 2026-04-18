@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import type { SupabaseAdvisory } from "@dw/contracts";
 import { fetchDbHealth, fetchSupabaseAdvisories } from "@dw/ai/sensors";
 import { isSupabaseConfigured } from "@dw/validators";
 
@@ -32,10 +33,21 @@ const ADVISORY_LEVEL_STYLES = {
 export default async function DatabasePage() {
   const configured = isSupabaseConfigured();
 
-  const [health, advisories] = await Promise.all([
+  const [health, advisoryResult] = await Promise.all([
     configured ? fetchDbHealth() : Promise.resolve(null),
-    configured ? fetchSupabaseAdvisories() : Promise.resolve([]),
+    configured
+      ? fetchSupabaseAdvisories().then(
+          (data) => ({ ok: true as const, data }),
+          (err: unknown) => ({
+            ok: false as const,
+            error: err instanceof Error ? err.message : "Unknown error",
+          }),
+        )
+      : Promise.resolve({ ok: true as const, data: [] as SupabaseAdvisory[] }),
   ]);
+
+  const advisories = advisoryResult.ok ? advisoryResult.data : [];
+  const advisoryFetchError = advisoryResult.ok ? null : advisoryResult.error;
 
   const supabaseRef = env.SUPABASE_PROJECT_REF ?? "";
 
@@ -118,7 +130,27 @@ export default async function DatabasePage() {
         ) : (
           <>
             {/* Security Advisories */}
-            {advisories.length > 0 ? (
+            {advisoryFetchError !== null ? (
+              <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-yellow-400" />
+                    <p className="text-sm font-medium text-yellow-400">
+                      Could not fetch security advisories
+                    </p>
+                  </div>
+                  <SyncAdvisoriesButton />
+                </div>
+                <p className="mt-1 font-mono text-xs text-zinc-600">
+                  {advisoryFetchError}
+                </p>
+                <p className="mt-1 text-xs text-zinc-700">
+                  Check that{" "}
+                  <code className="font-mono">SUPABASE_ACCESS_TOKEN</code> is
+                  set and has Management API access.
+                </p>
+              </div>
+            ) : advisories.length > 0 ? (
               <div>
                 {/* Section header with count and sync button side by side */}
                 <div className="mb-3 flex items-center justify-between gap-3">
@@ -136,7 +168,13 @@ export default async function DatabasePage() {
                     const style = ADVISORY_LEVEL_STYLES[advisory.level];
                     // advisory.name is the cache_key from the linter,
                     // e.g. "rls_disabled_in_public_public_post"
-                    const advisoryUrl = `https://supabase.com/dashboard/project/${supabaseRef}/advisors/security?id=${advisory.name}`;
+                    const preset =
+                      advisory.level === "ERROR"
+                        ? "ERROR"
+                        : advisory.level === "WARN"
+                          ? "WARN"
+                          : "INFO";
+                    const advisoryUrl = `https://supabase.com/dashboard/project/${supabaseRef}/advisors/security?preset=${preset}&id=${advisory.name}`;
                     return (
                       <div
                         key={advisory.name}

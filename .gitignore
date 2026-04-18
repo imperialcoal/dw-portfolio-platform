@@ -82,3 +82,7 @@ terraform.tfvars
 *.auto.tfvars.json
 !platform/infra/terraform/scripts/
 doppler.auto.tfvars.json
+
+# repomix
+.repomixignore
+repomix-output.xml

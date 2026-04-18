@@ -140,9 +140,8 @@ export async function fetchSupabaseAdvisories(): Promise<SupabaseAdvisory[]> {
       try {
         errorBody = await res.json();
       } catch {
-        // body wasn't JSON — ignore
+        /* ignore */
       }
-
       console.warn(
         JSON.stringify({
           level: "warn",
@@ -154,7 +153,9 @@ export async function fetchSupabaseAdvisories(): Promise<SupabaseAdvisory[]> {
             config.supabase.SUPABASE_ACCESS_TOKEN?.slice(0, 8) ?? "unset",
         }),
       );
-      return [];
+      // Throw so callers (database/page.tsx) can render an error state
+      // instead of a misleading "no advisories found" green banner.
+      throw new Error(`Supabase lint API returned ${res.status}`);
     }
 
     const raw = (await res.json()) as SupabaseRawLintResult[];
