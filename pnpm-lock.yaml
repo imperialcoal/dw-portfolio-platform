@@ -878,6 +878,9 @@ importers:
       '@dw/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@dw/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@dw/llm':
         specifier: workspace:*
         version: link:../../packages/llm

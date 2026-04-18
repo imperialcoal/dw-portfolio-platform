@@ -1,29 +1,27 @@
-// Reads the Supabase Management API for database health metrics and security advisories.
+// Reads the Supabase Management API for database health metrics,
+// and queries the database directly for security advisories.
 //
 // Authentication:
-//   SUPABASE_ACCESS_TOKEN — Personal Access Token (same one used by Terraform)
-//   Authenticates against: https://api.supabase.com/v1
+//   fetchDbHealth    → SUPABASE_ACCESS_TOKEN (Management API, account-scoped)
+//   fetchSupabaseAdvisories → DATABASE_URL via runtimeDb() (service_role, project-scoped)
 //
-// NOT the service_role key (SUPABASE_SECRET_DEFAULT_KEY) — that only works
-// against the project's PostgREST endpoint (project-ref.supabase.co).
-//
-// All calls are read-only. Never writes to the database.
+// The /lint Management API endpoint is unreliable from Vercel serverless
+// functions with Personal Access Tokens — it hangs without responding.
+// Security advisories are instead derived directly from Postgres system
+// tables, which mirrors exactly what the Supabase Security Advisor checks.
 
 import type {
   DbHealthMetrics,
   SupabaseAdvisory,
-  SupabaseRawLintResult,
   SupabaseTableStats,
 } from "@dw/contracts";
 import { config } from "@dw/config";
-import { isSupabaseConfigured } from "@dw/validators";
+import { getDb, sql } from "@dw/db";
+import { isSupabaseConfigured, isSupabaseDbConfigured } from "@dw/validators";
 
 const MGMT_BASE = "https://api.supabase.com/v1";
 
 function getHeaders(): Record<string, string> {
-  // Use SUPABASE_ACCESS_TOKEN (Personal Access Token) for the Management API.
-  // This is the same token used by Terraform — it's account-scoped and
-  // authenticates against api.supabase.com, not the project URL.
   const token = config.supabase.SUPABASE_ACCESS_TOKEN;
   return {
     Authorization: `Bearer ${token ?? ""}`,
@@ -111,109 +109,96 @@ function parseSizeBytes(sizeStr: string): number {
   return Math.round(value);
 }
 
-export async function fetchSupabaseAdvisories(): Promise<SupabaseAdvisory[]> {
-  if (!isSupabaseConfigured()) return [];
+// ─────────────────────────────────────────────
+// Security Advisories — direct SQL via Drizzle
+//
+// Queries pg_tables and information_schema directly using the existing
+// DATABASE_URL / PgBouncer connection (service_role). This mirrors the
+// exact checks the Supabase Security Advisor runs:
+//
+//   Check 1: RLS disabled on public tables  → ERROR
+//   Check 2: Anon role has table grants     → WARN
+//
+// The SupabaseAdvisory shape is identical to what the /lint endpoint
+// returns, so the database page and sync route are unchanged.
+// ─────────────────────────────────────────────
 
-  const ref = getRef();
+export async function fetchSupabaseAdvisories(): Promise<SupabaseAdvisory[]> {
+  if (!isSupabaseDbConfigured()) {
+    console.log(
+      JSON.stringify({
+        level: "info",
+        sensor: "supabase",
+        event: "advisories_skipped",
+        reason: "DATABASE_URL or SUPABASE_SECRET_DEFAULT_KEY not configured",
+      }),
+    );
+    return [];
+  }
+
+  const now = new Date().toISOString();
+  const advisories: SupabaseAdvisory[] = [];
+
+  console.log(
+    JSON.stringify({
+      level: "info",
+      sensor: "supabase",
+      event: "advisories_fetch_start",
+      method: "sql",
+    }),
+  );
 
   try {
-    console.log(
-      JSON.stringify({
-        level: "info",
-        sensor: "supabase",
-        event: "advisories_fetch_start",
-        endpoint: "lint",
-        ref: ref.slice(0, 8) + "...",
-        hasToken: !!config.supabase.SUPABASE_ACCESS_TOKEN,
-        tokenPrefix:
-          config.supabase.SUPABASE_ACCESS_TOKEN?.slice(0, 8) ?? "unset",
-      }),
-    );
+    // ── Check 1: RLS disabled on public tables ──────────────────────────────
+    const db = getDb();
 
-    // /lint is the Postgres linter (splinter) endpoint — powers Security Advisor
-    const res = await fetch(`${MGMT_BASE}/projects/${ref}/lint`, {
-      headers: getHeaders(),
-    });
+    const rlsRows = (await db.execute(
+      sql`SELECT schemaname, tablename FROM pg_tables WHERE schemaname = 'public' AND rowsecurity = false`,
+    )) as { schemaname: string; tablename: string }[];
 
-    if (!res.ok) {
-      let errorBody: unknown = null;
-      try {
-        errorBody = await res.json();
-      } catch {
-        /* ignore */
-      }
-      console.warn(
-        JSON.stringify({
-          level: "warn",
-          sensor: "supabase",
-          event: "advisories_unavailable",
-          status: res.status,
-          error: errorBody,
-          tokenPrefix:
-            config.supabase.SUPABASE_ACCESS_TOKEN?.slice(0, 8) ?? "unset",
-        }),
-      );
-      // Throw so callers (database/page.tsx) can render an error state
-      // instead of a misleading "no advisories found" green banner.
-      throw new Error(`Supabase lint API returned ${res.status}`);
-    }
-
-    const raw = (await res.json()) as SupabaseRawLintResult[];
-
-    console.log(
-      JSON.stringify({
-        level: "info",
-        sensor: "supabase",
-        event: "lint_raw",
-        isArray: Array.isArray(raw),
-        count: Array.isArray(raw) ? raw.length : 0,
-        firstItemKeys: Array.isArray(raw) && raw[0] ? Object.keys(raw[0]) : [],
-        firstItemLevel: Array.isArray(raw) ? (raw[0]?.level ?? null) : null,
-        firstItemName: Array.isArray(raw) ? (raw[0]?.name ?? null) : null,
-        firstCacheKey: Array.isArray(raw) ? (raw[0]?.cache_key ?? null) : null,
-      }),
-    );
-
-    if (!Array.isArray(raw)) {
-      console.warn(
-        JSON.stringify({
-          level: "warn",
-          sensor: "supabase",
-          event: "lint_unexpected_shape",
-          received: typeof raw,
-        }),
-      );
-      return [];
-    }
-
-    const advisories: SupabaseAdvisory[] = raw.map((r) => {
-      const entity =
-        r.metadata?.schema && r.metadata.name
-          ? `${r.metadata.schema}.${r.metadata.name}`
-          : (r.detail ?? "");
-
-      const description = [r.description, entity ? `Affected: ${entity}` : ""]
-        .filter(Boolean)
-        .join(" · ");
-
-      return {
-        // cache_key matches the Supabase dashboard URL ?id= param — use as stable ID
-        name:
-          r.cache_key ??
-          `${r.name ?? "advisory"}-${entity.replace(/[^a-z0-9]/gi, "-").toLowerCase()}`,
-        title: r.title ?? r.name ?? "Security Advisory",
-        level: (r.level?.toUpperCase() ?? "WARN") as SupabaseAdvisory["level"],
-        description,
+    for (const row of rlsRows) {
+      const entity = `${row.schemaname}.${row.tablename}`;
+      advisories.push({
+        name: `rls_disabled_in_public_${row.schemaname}_${row.tablename}`,
+        title: "RLS Disabled in Public",
+        level: "ERROR",
+        description: `Table \`${entity}\` is public but RLS has not been enabled. Detects cases where row level security has not been enabled on tables in schemas exposed to PostgREST · Affected: ${entity}`,
         metadata: {
-          ...r.metadata,
-          cacheKey: r.cache_key,
-          detail: r.detail,
-          remediation: r.remediation,
-          categories: r.categories,
+          schema: row.schemaname,
+          name: row.tablename,
+          type: "table",
         },
-        detectedAt: new Date().toISOString(),
-      };
-    });
+        detectedAt: now,
+      });
+    }
+
+    // ── Check 2: Anon role has direct table grants ──────────────────────────
+    const anonRows = (await db.execute(
+      sql`SELECT table_schema, table_name, privilege_type FROM information_schema.role_table_grants WHERE grantee = 'anon' AND table_schema = 'public' ORDER BY table_name, privilege_type`,
+    )) as {
+      table_schema: string;
+      table_name: string;
+      privilege_type: string;
+    }[];
+
+    const anonTables = new Map<string, string[]>();
+    for (const row of anonRows) {
+      const key = `${row.table_schema}.${row.table_name}`;
+      const privs = anonTables.get(key) ?? [];
+      privs.push(row.privilege_type);
+      anonTables.set(key, privs);
+    }
+
+    for (const [table, privs] of anonTables) {
+      advisories.push({
+        name: `anon_access_${table.replace(".", "_")}`,
+        title: "Exposed to Anon Role",
+        level: "WARN",
+        description: `The anon role has ${privs.join(", ")} access on \`${table}\`. All unauthenticated PostgREST requests run as anon — verify this exposure is intentional · Affected: ${table}`,
+        metadata: { table, privileges: privs },
+        detectedAt: now,
+      });
+    }
 
     console.log(
       JSON.stringify({
@@ -221,6 +206,7 @@ export async function fetchSupabaseAdvisories(): Promise<SupabaseAdvisory[]> {
         sensor: "supabase",
         event: "advisories_parsed",
         total: advisories.length,
+        method: "sql",
         levels: advisories.reduce<Record<string, number>>((acc, a) => {
           acc[a.level] = (acc[a.level] ?? 0) + 1;
           return acc;
@@ -239,6 +225,6 @@ export async function fetchSupabaseAdvisories(): Promise<SupabaseAdvisory[]> {
         error: String(err),
       }),
     );
-    return [];
+    throw err; // surface to database/page.tsx → renders yellow error banner
   }
 }

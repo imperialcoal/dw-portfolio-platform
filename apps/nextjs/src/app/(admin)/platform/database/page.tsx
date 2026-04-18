@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import type { SupabaseAdvisory } from "@dw/contracts";
 import { fetchDbHealth, fetchSupabaseAdvisories } from "@dw/ai/sensors";
-import { isSupabaseConfigured } from "@dw/validators";
+import { isSupabaseConfigured, isSupabaseDbConfigured } from "@dw/validators";
 
 import { env } from "~/env";
 import { SyncAdvisoriesButton } from "./_components/sync-advisories-button";
@@ -37,10 +37,11 @@ const ADVISORY_LEVEL_STYLES = {
 
 export default async function DatabasePage() {
   const configured = isSupabaseConfigured();
+  const dbConfigured = isSupabaseDbConfigured();
 
   const [health, advisoryResult] = await Promise.all([
     configured ? fetchDbHealth() : Promise.resolve(null),
-    configured
+    dbConfigured
       ? fetchSupabaseAdvisories().then(
           (data) => ({ ok: true as const, data }),
           (err: unknown) => ({
@@ -122,6 +123,9 @@ export default async function DatabasePage() {
         </div>
 
         {!configured ? (
+          // Management API not configured — fetchDbHealth returns null
+          // Note: advisories are independent (use dbConfigured/DATABASE_URL)
+          // and will show their own empty state below if dbConfigured is also false
           <div className="rounded-xl border border-white/10 bg-white/5 p-12 text-center">
             <p className="text-zinc-500">
               Supabase management API not configured.

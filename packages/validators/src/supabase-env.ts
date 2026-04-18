@@ -53,7 +53,6 @@ export function supabaseEnv() {
  * Used by:
  *   - platform/ai/src/sensors/supabase.ts (fetchDbHealth, fetchSupabaseAdvisories)
  *   - apps/nextjs/src/app/(admin)/platform/database/page.tsx
- *   - apps/nextjs/src/app/api/platform/advisories/sync/route.ts
  */
 export function isSupabaseConfigured(): boolean {
   const env = supabaseEnv();

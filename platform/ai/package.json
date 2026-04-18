@@ -40,6 +40,7 @@
   "dependencies": {
     "@dw/config": "workspace:*",
     "@dw/contracts": "workspace:*",
+    "@dw/db": "workspace:*",
     "@dw/llm": "workspace:*",
     "@dw/messaging": "workspace:*",
     "@dw/runtime": "workspace:*",
