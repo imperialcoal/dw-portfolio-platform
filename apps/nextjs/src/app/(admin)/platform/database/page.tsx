@@ -7,6 +7,11 @@ import { isSupabaseConfigured } from "@dw/validators";
 import { env } from "~/env";
 import { SyncAdvisoriesButton } from "./_components/sync-advisories-button";
 
+// Force dynamic rendering — this page calls the Supabase Management API
+// and Redis on every request. Without this, Next.js prerenders it at build
+// time and serves stale HTML (cache: PRERENDER) on all subsequent requests.
+export const dynamic = "force-dynamic";
+
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;

@@ -12,6 +12,7 @@ interface SyncResult {
   total: number;
   skipped: number;
   message?: string;
+  error?: string;
 }
 
 export function SyncAdvisoriesButton() {
@@ -34,11 +35,20 @@ export function SyncAdvisoriesButton() {
         const data = (await res.json()) as SyncResult;
         setResult(data);
         setStatus("done");
-        // Refresh the page so new incidents appear in the header banner
         if (data.synced > 0) {
           router.refresh();
         }
       } else {
+        const data = (await res.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        setResult({
+          ok: false,
+          synced: 0,
+          total: 0,
+          skipped: 0,
+          message: data?.error ?? "Fetch failed",
+        });
         setStatus("error");
       }
     } catch {
@@ -68,7 +78,8 @@ export function SyncAdvisoriesButton() {
           result !== null &&
           result.synced === 0 &&
           "✓ Already up to date"}
-        {status === "error" && "✗ Sync failed"}
+        {status === "error" &&
+          `✗ ${result?.error ?? result?.message ?? "Failed"}`}
       </button>
 
       {status === "done" && result !== null && result.synced > 0 && (

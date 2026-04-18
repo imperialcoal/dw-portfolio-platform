@@ -10,6 +10,7 @@
 
 import { NextResponse } from "next/server";
 
+import type { SupabaseAdvisory } from "@dw/contracts";
 import { getIncidents, logIncident, markIncidentOpen } from "@dw/ai/memory";
 import { fetchSupabaseAdvisories } from "@dw/ai/sensors";
 
@@ -25,7 +26,28 @@ export async function POST(): Promise<NextResponse> {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const advisories = await fetchSupabaseAdvisories();
+  let advisories: SupabaseAdvisory[];
+  try {
+    advisories = await fetchSupabaseAdvisories();
+  } catch (err) {
+    console.error(
+      JSON.stringify({
+        level: "error",
+        route: "advisories/sync",
+        event: "fetch_failed",
+        error: String(err),
+      }),
+    );
+    return NextResponse.json(
+      {
+        ok: false,
+        synced: 0,
+        error:
+          err instanceof Error ? err.message : "Failed to fetch advisories",
+      },
+      { status: 502 },
+    );
+  }
 
   if (advisories.length === 0) {
     return NextResponse.json({
