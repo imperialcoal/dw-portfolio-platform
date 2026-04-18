@@ -1,5 +1,5 @@
 {
-  "extends": "@dw/tsconfig/compiled-package.json",
+  "extends": "@dw/tsconfig/compiled-package-with-tests.json",
   "include": ["src", "__tests__", "vitest.config.ts", "vitest.setup.ts"],
   "exclude": ["node_modules"]
 }

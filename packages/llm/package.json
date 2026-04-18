@@ -21,6 +21,7 @@
     "@dw/eslint-config": "workspace:*",
     "@dw/prettier-config": "workspace:*",
     "@dw/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
     "eslint": "catalog:",
     "prettier": "catalog:",
     "typescript": "catalog:"

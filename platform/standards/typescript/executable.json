@@ -3,6 +3,7 @@
   "extends": "./base.json",
   "compilerOptions": {
     "outDir": "${configDir}/dist",
+    "rootDir": "${configDir}/src",
     "declaration": false,
     "declarationMap": false,
     "emitDeclarationOnly": false,

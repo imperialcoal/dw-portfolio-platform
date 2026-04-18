@@ -12,7 +12,7 @@ import { z } from "zod";
 export function cronEnv() {
   return createEnv({
     server: {
-      CRON_SECRET: z.string().min(32),
+      CRON_SECRET: z.string().min(32).optional(),
       NODE_ENV: z
         .enum(["development", "test", "production"])
         .default("development"),

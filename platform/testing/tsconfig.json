@@ -1,5 +1,5 @@
 {
   "extends": "@dw/tsconfig/base.json",
-  "include": ["*.ts", "src"],
+  "include": ["src", "vitest.env.ts", "vitest.runtime.ts"],
   "exclude": ["node_modules"]
 }
