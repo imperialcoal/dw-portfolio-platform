@@ -37,6 +37,7 @@
     "dev:local:check": "bash platform/dev-tools/scripts/shell/wait-for-docker.sh && pnpm dev:local",
     "dev:next:local": "turbo watch dev:local -F @dw/nextjs...",
     "dev:next:local:check": "bash platform/dev-tools/scripts/shell/wait-for-docker.sh && pnpm dev:next:local",
+    "sync:dev": "git checkout dev && git pull origin dev --rebase && pnpm install",
     "ui-add": "turbo run ui-add",
     "android": "expo run:android",
     "ios": "expo run:ios",
