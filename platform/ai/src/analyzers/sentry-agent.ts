@@ -229,6 +229,7 @@ export async function runSentryAgent(
     githubIssueNumber,
     incidentDocPath,
     sentryIssueId: issueId,
+    sentryIssueUrl: event.context.issueUrl,
   });
 
   await markIncidentOpen(issueId);

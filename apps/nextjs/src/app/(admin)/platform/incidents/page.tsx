@@ -107,9 +107,11 @@ function issueUrlLabel(incident: IncidentRecord): string {
     case "supabase_advisory":
       return "Supabase Advisor";
     case "sentry_error":
+      // issueUrl for sentry errors is always the GitHub tracking issue.
+      // The Sentry permalink is shown separately via sentryIssueUrl.
       return incident.githubIssueNumber !== undefined
         ? `GitHub Issue #${incident.githubIssueNumber}`
-        : "Sentry Issue";
+        : "GitHub Issue";
     case "security_alert":
       return incident.githubIssueNumber !== undefined
         ? `GitHub Issue #${incident.githubIssueNumber}`
@@ -118,6 +120,8 @@ function issueUrlLabel(incident: IncidentRecord): string {
       return incident.githubIssueNumber !== undefined
         ? `GitHub Issue #${incident.githubIssueNumber}`
         : "GitHub Issue";
+    case "uptime_failure":
+      return "Vercel Logs";
     default:
       return "View Issue";
   }
@@ -330,6 +334,18 @@ function IncidentCard({ incident }: { incident: IncidentRecord }) {
             → {issueUrlLabel(incident)}
           </a>
         )}
+        {/* Sentry direct link — only for sentry_error type */}
+        {incident.type === "sentry_error" &&
+          incident.sentryIssueUrl !== undefined && (
+            <a
+              href={incident.sentryIssueUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-zinc-500 transition-colors hover:text-zinc-300"
+            >
+              → Sentry Issue
+            </a>
+          )}
         {incident.incidentDocPath !== undefined && ghRepo !== "" && (
           <a
             href={`https://github.com/${ghRepo}/blob/dev/${incident.incidentDocPath}`}
@@ -340,14 +356,10 @@ function IncidentCard({ incident }: { incident: IncidentRecord }) {
             → Incident Doc
           </a>
         )}
+        {/* Remove the old plain-text Sentry ID display — replaced by the link above */}
         {isSecurityAlert && incident.sentryIssueId !== undefined && (
           <span className="text-xs text-zinc-600">
             Alert #{incident.sentryIssueId}
-          </span>
-        )}
-        {!isSecurityAlert && incident.sentryIssueId !== undefined && (
-          <span className="text-xs text-zinc-600">
-            Sentry #{incident.sentryIssueId}
           </span>
         )}
         <div className="ml-auto">

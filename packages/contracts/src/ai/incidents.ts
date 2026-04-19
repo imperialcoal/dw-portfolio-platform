@@ -66,6 +66,8 @@ export interface IncidentRecord {
    * Dependabot alert number (as string) for security_alert incidents.
    */
   sentryIssueId?: string;
+  /** Sentry issue URL for direct navigation to the Sentry dashboard */
+  sentryIssueUrl?: string;
   /** Incident doc path committed to the repo */
   incidentDocPath?: string;
   /** Deployment SHA at time of incident — for correlation */
@@ -85,6 +87,7 @@ export interface IncidentSummary {
   updatedAt: string;
   issueUrl?: string;
   sentryIssueId?: string;
+  sentryIssueUrl?: string;
   githubIssueNumber?: number;
 }
 
@@ -100,6 +103,7 @@ export function toIncidentSummary(record: IncidentRecord): IncidentSummary {
     updatedAt: record.updatedAt,
     issueUrl: record.issueUrl,
     sentryIssueId: record.sentryIssueId,
+    sentryIssueUrl: record.sentryIssueUrl,
     githubIssueNumber: record.githubIssueNumber,
   };
 }

@@ -109,9 +109,11 @@ function issueUrlLabel(incident: IncidentRecord): string {
     case "supabase_advisory":
       return "Supabase Advisor";
     case "sentry_error":
+      // issueUrl for sentry errors is always the GitHub tracking issue.
+      // The Sentry permalink is shown separately via sentryIssueUrl.
       return incident.githubIssueNumber !== undefined
         ? `GitHub Issue #${incident.githubIssueNumber}`
-        : "Sentry Issue";
+        : "GitHub Issue";
     case "security_alert":
       return incident.githubIssueNumber !== undefined
         ? `GitHub Issue #${incident.githubIssueNumber}`
@@ -120,6 +122,8 @@ function issueUrlLabel(incident: IncidentRecord): string {
       return incident.githubIssueNumber !== undefined
         ? `GitHub Issue #${incident.githubIssueNumber}`
         : "GitHub Issue";
+    case "uptime_failure":
+      return "Vercel Logs";
     default:
       return "View Issue";
   }

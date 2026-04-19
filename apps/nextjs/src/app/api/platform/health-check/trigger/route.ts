@@ -8,6 +8,7 @@ import { runUptimeChecks } from "@dw/ai/sensors";
 import { config } from "@dw/config";
 
 import { requireAdmin } from "~/auth/require-admin";
+import { env } from "~/env";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -52,6 +53,12 @@ export async function POST(): Promise<NextResponse> {
         .replace(/^-|-$/g, "");
       const incidentId = `uptime-${safeId || "root"}-${hourBucket}`;
 
+      const vercelProjectId = env.VERCEL_PROJECT_ID ?? "";
+      const vercelTeamId = env.VERCEL_TEAM_ID ?? "";
+      const vercelLogsUrl = vercelProjectId
+        ? `https://vercel.com/${vercelTeamId ? `${vercelTeamId}/` : ""}${vercelProjectId}/logs`
+        : undefined;
+
       await logIncident({
         type: "uptime_failure",
         id: incidentId,
@@ -67,6 +74,7 @@ export async function POST(): Promise<NextResponse> {
           "availability",
           check.name.toLowerCase().replace(/\s+/g, "-"),
         ],
+        issueUrl: vercelLogsUrl,
         commitSha: undefined,
         branch: undefined,
       });
