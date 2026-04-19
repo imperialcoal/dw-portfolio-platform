@@ -15,13 +15,12 @@ import { fetchCiJobDetails } from "../sensors/github-ci";
 /**
  * Returns true if this branch should get a GitHub Issue created on failure.
  * Protected branches (main, dev) always get issues.
- * Dependabot branches get issues so resolution tracking works — closing the
- * issue marks the incident resolved in the dashboard.
+ * Dependabot branches get PR comments (via prNumber path above), not
+ * standalone issues — they're transient and resolve when the PR merges/closes.
  */
 function shouldCreateIssue(branch: string, prNumber: number | null): boolean {
-  if (prNumber !== null) return false; // PR comment path handles this case
+  if (prNumber !== null) return false;
   if (["main", "dev"].includes(branch)) return true;
-  if (branch.startsWith("dependabot/")) return true;
   return false;
 }
 
@@ -77,8 +76,6 @@ export async function runCiAgent(
   }
 
   // ── Layer 2: Dedup by commit SHA + workflow + branch ──────────────────────
-  // Prevents the same broken commit from being analyzed multiple times
-  // even if it triggers multiple CI runs (e.g. incident doc commits).
   if (commitSha) {
     const commitDedupKey = `ci:commit:${commitSha.slice(0, 12)}:${workflowName}:${branch}`;
     if (await isDuplicate("ci_failure", commitDedupKey)) {
@@ -98,6 +95,18 @@ export async function runCiAgent(
 
   const jobLogs = await fetchCiJobDetails(repoFullName, runId);
   const event = normalizeGitHubWorkflowRun(payload, jobLogs);
+
+  // When job logs are too sparse for Claude to extract a meaningful step,
+  // substitute the workflow name from the payload so the summary is always
+  // grounded in something specific rather than "no detailed error logs provided."
+  // normalizeGitHubWorkflowRun sets context.workflow from run.name already,
+  // but context.failedStep falls back to "Unknown step" when logs are minimal.
+  const failedJobName =
+    typeof workflowRun.name === "string" ? workflowRun.name : "CI";
+  if (event.context.failedStep === "Unknown step" && failedJobName !== "CI") {
+    event.context.failedStep = failedJobName;
+  }
+
   await logEvent(event);
 
   const analysis = await analyzeEvent(event);
@@ -116,6 +125,7 @@ export async function runCiAgent(
 
   const prNumber = event.context.prNumber;
   const createGithubIssue = shouldCreateIssue(event.context.branch, prNumber);
+  const isDependabotBranch = branch.startsWith("dependabot/");
 
   const [prResult, issueResult, docResult] = await Promise.allSettled([
     prNumber !== null
@@ -127,7 +137,11 @@ export async function runCiAgent(
           event.context.workflow,
         ])
       : Promise.resolve(null),
-    generateAndCommitIncidentDoc(event, analysis),
+    // Don't commit incident docs for Dependabot branch failures —
+    // they're transient and create noise in the docs/incidents/ directory.
+    !isDependabotBranch
+      ? generateAndCommitIncidentDoc(event, analysis)
+      : Promise.resolve({ filePath: "", slug: "" }),
   ]);
 
   const issueValue =
@@ -140,7 +154,9 @@ export async function runCiAgent(
     : undefined;
 
   const incidentDocPath =
-    docResult.status === "fulfilled" ? docResult.value.filePath : undefined;
+    docResult.status === "fulfilled" && docResult.value.filePath !== ""
+      ? docResult.value.filePath
+      : undefined;
 
   if (prResult.status === "rejected") {
     console.error(

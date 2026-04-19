@@ -15,6 +15,7 @@ import { getIncidents, logIncident, markIncidentOpen } from "@dw/ai/memory";
 import { fetchSupabaseAdvisories } from "@dw/ai/sensors";
 
 import { requireAdmin } from "~/auth/require-admin";
+import { env } from "~/env";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -73,6 +74,17 @@ export async function POST(): Promise<NextResponse> {
       continue; // Already tracked
     }
 
+    const supabaseRef = env.SUPABASE_PROJECT_REF ?? "";
+    const preset =
+      advisory.level === "ERROR"
+        ? "ERROR"
+        : advisory.level === "WARN"
+          ? "WARN"
+          : "INFO";
+    const supabaseUrl = supabaseRef
+      ? `https://supabase.com/dashboard/project/${supabaseRef}/advisors/security?preset=${preset}&id=${advisory.name}`
+      : undefined;
+
     const severity =
       advisory.level === "ERROR"
         ? ("high" as const)
@@ -94,6 +106,7 @@ export async function POST(): Promise<NextResponse> {
         "supabase",
         advisory.level.toLowerCase(),
       ],
+      issueUrl: supabaseUrl,
       commitSha: undefined,
       branch: undefined,
     });
