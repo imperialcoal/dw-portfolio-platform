@@ -104,6 +104,27 @@ const TYPE_LABEL: Record<IncidentRecord["type"], string> = {
   supabase_advisory: "DB Advisory",
 };
 
+function issueUrlLabel(incident: IncidentRecord): string {
+  switch (incident.type) {
+    case "supabase_advisory":
+      return "Supabase Advisor";
+    case "sentry_error":
+      return incident.githubIssueNumber !== undefined
+        ? `GitHub Issue #${incident.githubIssueNumber}`
+        : "Sentry Issue";
+    case "security_alert":
+      return incident.githubIssueNumber !== undefined
+        ? `GitHub Issue #${incident.githubIssueNumber}`
+        : "Security Alert";
+    case "ci_failure":
+      return incident.githubIssueNumber !== undefined
+        ? `GitHub Issue #${incident.githubIssueNumber}`
+        : "GitHub Issue";
+    default:
+      return "View Issue";
+  }
+}
+
 // ─────────────────────────────────────────────
 // Sub-components
 // ─────────────────────────────────────────────
@@ -191,7 +212,7 @@ function ActiveIncidentRow({ incident }: { incident: IncidentRecord }) {
             rel="noopener noreferrer"
             className="mt-1 block text-[11px] text-zinc-600 transition-colors hover:text-zinc-400"
           >
-            GitHub Issue →
+            {issueUrlLabel(incident)} →
           </a>
         )}
       </div>

@@ -102,6 +102,27 @@ const RESOLVED_BY_LABELS: Record<
   manual: "Manual override",
 };
 
+function issueUrlLabel(incident: IncidentRecord): string {
+  switch (incident.type) {
+    case "supabase_advisory":
+      return "Supabase Advisor";
+    case "sentry_error":
+      return incident.githubIssueNumber !== undefined
+        ? `GitHub Issue #${incident.githubIssueNumber}`
+        : "Sentry Issue";
+    case "security_alert":
+      return incident.githubIssueNumber !== undefined
+        ? `GitHub Issue #${incident.githubIssueNumber}`
+        : "Security Alert";
+    case "ci_failure":
+      return incident.githubIssueNumber !== undefined
+        ? `GitHub Issue #${incident.githubIssueNumber}`
+        : "GitHub Issue";
+    default:
+      return "View Issue";
+  }
+}
+
 // ─────────────────────────────────────────────
 // Stat group component — labelled container for a row of chips
 // ─────────────────────────────────────────────
@@ -306,12 +327,7 @@ function IncidentCard({ incident }: { incident: IncidentRecord }) {
             rel="noopener noreferrer"
             className="text-xs text-zinc-500 transition-colors hover:text-zinc-300"
           >
-            → GitHub Issue
-            {incident.githubIssueNumber !== undefined && (
-              <span className="ml-1 text-zinc-600">
-                #{incident.githubIssueNumber}
-              </span>
-            )}
+            → {issueUrlLabel(incident)}
           </a>
         )}
         {incident.incidentDocPath !== undefined && ghRepo !== "" && (
