@@ -22,7 +22,7 @@ terraform {
     }
     supabase = {
       source  = "supabase/supabase"
-      version = "~> 1.7.0"
+      version = "~> 1.9.0"
     }    
   }
 
