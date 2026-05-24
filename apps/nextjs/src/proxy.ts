@@ -11,14 +11,21 @@
 //   /admin/*      → always bypass maintenance, require Clerk auth
 //   /platform/*   → always bypass maintenance, require Clerk auth
 //   everything else → if maintenance enabled, return maintenance page
+//
+// Role enforcement (viewer vs admin) happens at the page/route level via
+// requireViewerOrAdmin() and requireAdmin() guards — NOT here.
+// Middleware only checks: is the user authenticated with Clerk?
+// The RBAC layer (DB role check) runs in the Server Component.
 
 import { clerkMiddleware, createRouteMatcher } from "~/auth/server";
 import { env } from "~/env";
 
+// Both /admin and /platform require Clerk session — viewers are authenticated.
 const isProtectedPage = createRouteMatcher(["/admin(.*)", "/platform(.*)"]);
 const isApiRoute = createRouteMatcher(["/api/(.*)"]);
 
 // Admin/platform routes that bypass maintenance mode entirely
+// Viewers need to bypass maintenance too — they're accessing the dashboard.
 const bypassesMaintenance = createRouteMatcher([
   "/admin(.*)",
   "/platform(.*)",
@@ -165,7 +172,9 @@ export default clerkMiddleware(async (auth, request) => {
     return;
   }
 
-  // Admin and platform routes bypass maintenance mode — always require Clerk auth
+  // Require Clerk session for protected pages.
+  // NOTE: role check (viewer vs admin) happens in the Server Component guard,
+  // not here. Middleware only enforces authentication, not authorization.
   if (isProtectedPage(request)) {
     await auth.protect();
     return;

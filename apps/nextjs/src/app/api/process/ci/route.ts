@@ -1,3 +1,10 @@
+// QStash delivery endpoint for CI failure jobs.
+// Runs in Node.js runtime (fetchCiJobDetails requires TCP → GitHub API).
+//
+// Called by QStash after the Edge webhook handler enqueues the job.
+// Returns 500 on agent failure so QStash retries automatically (up to 3x).
+// Returns 400 on schema validation failure — QStash will NOT retry 4xx.
+
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
@@ -45,8 +52,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         errors: result.error.flatten(),
       }),
     );
-    // Return 400 — QStash won't retry on 4xx, preventing infinite retries
-    // on a malformed payload that will never succeed
+    // 400 — QStash will not retry malformed payloads
     return NextResponse.json(
       { error: "Invalid payload schema" },
       { status: 400 },
@@ -68,8 +74,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // 3. Run the CI agent synchronously.
   // QStash waits for our response before marking the job complete.
   // Returning 500 triggers automatic retry with exponential backoff.
+  //
+  // repoFullName is passed separately — the agent uses it as the first
+  // argument to fetchCiJobDetails(repo, runId). It's validated by the
+  // CiJobPayloadSchema above so it's guaranteed to be a non-empty string.
   try {
-    await runCiAgent(job.githubPayload);
+    await runCiAgent(job.githubPayload, job.repoFullName);
     return NextResponse.json({ ok: true });
   } catch (err: unknown) {
     console.error(
@@ -80,7 +90,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         error: String(err),
       }),
     );
-    // 500 → QStash retries (up to configured retry count)
+    // 500 → QStash retries
     return NextResponse.json({ error: "Agent failed" }, { status: 500 });
   }
 }

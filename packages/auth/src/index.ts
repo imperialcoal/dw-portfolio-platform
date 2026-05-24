@@ -1,6 +1,7 @@
 export { clerkConfig, type ClerkAuth, type ClerkUser } from "./clerk";
 
-export { ROLES, type Role } from "./roles";
+export type { Role } from "./roles";
+export { ROLES, canViewPlatform, canMutatePlatform } from "./roles";
 
 // export {
 //   requireUser,
@@ -9,7 +10,14 @@ export { ROLES, type Role } from "./roles";
 //   requireNotBanned,
 // } from "./rbac";
 
-export { assertUser, assertRole, assertAdmin, assertNotBanned } from "./rbac";
+export {
+  assertUser,
+  assertRole,
+  assertAdmin,
+  assertViewerOrAdmin,
+  assertPlatformMutator,
+  assertNotBanned,
+} from "./rbac";
 export type { RBACUser, RBACContext } from "./rbac";
 
 export { loadAuthorityUser } from "./load-authority-user";

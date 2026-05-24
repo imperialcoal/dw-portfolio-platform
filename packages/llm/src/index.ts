@@ -1,4 +1,4 @@
-export { analyzeEvent } from "./analyze";
+export { analyzeEvent, parseAnalysisXml } from "./analyze";
 export type { AnalysisResult } from "./analyze";
 
 export { ANALYSIS_MODEL, getAnthropicClient } from "./client";

@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 
 import type { Role } from "./roles";
-import { ROLES } from "./roles";
+import { canMutatePlatform, canViewPlatform, ROLES } from "./roles";
 
 export interface RBACUser {
   id: string;
@@ -15,7 +15,7 @@ export interface RBACContext {
 }
 
 /**
- * Require authenticated user
+ * Require authenticated user (any role).
  */
 export function assertUser(ctx: RBACContext): asserts ctx is {
   user: RBACUser;
@@ -26,7 +26,7 @@ export function assertUser(ctx: RBACContext): asserts ctx is {
 }
 
 /**
- * Require specific role
+ * Require specific role (exact match).
  */
 export function assertRole(
   ctx: RBACContext,
@@ -43,14 +43,43 @@ export function assertRole(
 }
 
 /**
- * Require admin
+ * Require admin role (full platform access + destructive actions).
  */
 export function assertAdmin(ctx: RBACContext) {
   assertRole(ctx, ROLES.ADMIN);
 }
 
 /**
- * Require not banned
+ * Require viewer OR admin role (read-only platform access).
+ * Use this on all /platform/* pages except destructive endpoints.
+ */
+export function assertViewerOrAdmin(ctx: RBACContext) {
+  assertUser(ctx);
+  if (!canViewPlatform(ctx.user.role)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "You are not authorized to view the platform dashboard.",
+    });
+  }
+}
+
+/**
+ * Require admin for mutations (resolve, rollback, maintenance toggle).
+ * Throws FORBIDDEN for viewers with a clear message so the UI can display it.
+ */
+export function assertPlatformMutator(ctx: RBACContext) {
+  assertUser(ctx);
+  if (!canMutatePlatform(ctx.user.role)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message:
+        "This action requires admin access. You are viewing in read-only mode.",
+    });
+  }
+}
+
+/**
+ * Require not banned (used as an additional check after role assertions).
  */
 export function assertNotBanned(ctx: RBACContext) {
   assertUser(ctx);

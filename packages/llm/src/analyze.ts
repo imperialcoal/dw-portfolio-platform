@@ -77,7 +77,7 @@ function buildPrompts(event: PlatformEvent): {
   }
 }
 
-function parseAnalysisXml(raw: string): AnalysisResult {
+export function parseAnalysisXml(raw: string): AnalysisResult {
   const extract = (tag: string): string => {
     const match = new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`).exec(raw);
     return match?.[1]?.trim() ?? "";
