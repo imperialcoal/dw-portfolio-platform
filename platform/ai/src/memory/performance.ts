@@ -1,15 +1,8 @@
-// Redis functions for user activity, maintenance mode, and performance baselines.
+// Redis functions for performance baselines.
 // Follows the same pattern as redis.ts.
 
 import type { PerfBaseline } from "@dw/contracts";
 import { runtimeRedis } from "@dw/runtime/singletons";
-
-// ─────────────────────────────────────────────
-// Key schema additions
-//
-// platform:perf:baseline:{route}   → PerfBaseline (7d TTL)
-// platform:perf:rolling:{route}    → list of durations, last 100 (7d TTL)
-// ─────────────────────────────────────────────
 
 const PERF_BASELINE_KEY = (route: string) =>
   `platform:perf:baseline:${route.replace(/\//g, "_")}`;
@@ -17,10 +10,6 @@ const PERF_ROLLING_KEY = (route: string) =>
   `platform:perf:rolling:${route.replace(/\//g, "_")}`;
 const MAX_PERF_SAMPLES = 100;
 const PERF_TTL = 60 * 60 * 24 * 7; // 7d
-
-// ─────────────────────────────────────────────
-// Performance Baselines
-// ─────────────────────────────────────────────
 
 export async function recordPerfSample(
   route: string,
@@ -40,9 +29,9 @@ export async function getPerfBaseline(
   try {
     const raw = await redis.get<string>(PERF_BASELINE_KEY(route));
     if (!raw) return null;
-    return typeof raw === "string"
-      ? (JSON.parse(raw) as PerfBaseline)
-      : (raw as PerfBaseline);
+    // raw is always string here — get<string> returns string | null,
+    // null is handled above, so JSON.parse is always correct.
+    return JSON.parse(raw) as PerfBaseline;
   } catch {
     return null;
   }
@@ -66,7 +55,6 @@ export async function getRollingPerf(
     .filter((n) => !isNaN(n));
 }
 
-// Compute percentile from a sorted array
 export function computePercentile(sorted: number[], p: number): number {
   if (sorted.length === 0) return 0;
   const idx = Math.ceil((p / 100) * sorted.length) - 1;

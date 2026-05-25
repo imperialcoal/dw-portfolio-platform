@@ -1,10 +1,6 @@
 // Agent memory layer — Redis-backed incident and event storage.
 // All functions call runtimeRedis() which asserts Node.js runtime.
 
-// ─────────────────────────────────────────────
-// Dependency analysis cache
-// deps:analysis:{prNumber} → BreakingChangeAnalysis (24h TTL)
-// ─────────────────────────────────────────────
 import type {
   BreakingChangeAnalysis,
   IncidentRecord,
@@ -18,20 +14,35 @@ import { runtimeRedis } from "@dw/runtime/singletons";
 // ─────────────────────────────────────────────
 // Key schema
 //
-// platform:incident:{id}        → IncidentRecord (individual, updateable)
-// platform:incidents:index      → list of ids, newest first (ordered index)
-// platform:events               → list of raw PlatformEvents
-// ci:failure:{runId}            → dedup key (24h TTL)
-// ci:commit:{sha}:{workflow}    → commit-level dedup (24h TTL)
-// sentry:error:{issueId}        → dedup key (7d TTL)
-// deps:analysis:{prNumber}      → BreakingChangeAnalysis (24h TTL)
-// rollback:record:{deploymentId}→ RollbackRecord (7d TTL)
+// platform:incident:{id}         → IncidentRecord (individual, updateable)
+// platform:incidents:index       → list of ids, newest first (ordered index)
+// platform:events                → list of raw PlatformEvents
+// ci:failure:{runId}             → dedup key (24h TTL)
+// ci:commit:{sha}:{workflow}     → commit-level dedup (24h TTL)
+// sentry:error:{issueId}         → dedup key (7d TTL)
+// deps:analysis:{prNumber}       → BreakingChangeAnalysis (24h TTL)
+// rollback:record:{deploymentId} → RollbackRecord (7d TTL)
 // ─────────────────────────────────────────────
 
 const INCIDENT_KEY = (id: string) => `platform:incident:${id}`;
 const INCIDENT_INDEX_KEY = "platform:incidents:index";
 const MAX_INCIDENTS = 100;
 const INCIDENT_TTL = 60 * 60 * 24 * 30; // 30d
+
+// ─────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────
+
+/**
+ * Parses a Redis value that is always a JSON string when non-null.
+ * get<string>() returns string | null — the null case is handled by callers
+ * before reaching this function, so raw is always a string here.
+ * The redundant ternary `typeof raw === "string" ? JSON.parse(raw) : raw`
+ * was removed because the else branch is `never` (flagged by no-unnecessary-type-assertion).
+ */
+function parseJson<T>(raw: string): T {
+  return JSON.parse(raw) as T;
+}
 
 // ─────────────────────────────────────────────
 // Dedup
@@ -56,10 +67,6 @@ export async function isDuplicate(
 // Incident CRUD
 // ─────────────────────────────────────────────
 
-/**
- * Creates a new incident record. Sets status to "investigating" automatically
- * since the agent is actively running when this is called.
- */
 export async function logIncident(
   incident: Omit<IncidentRecord, "status" | "updatedAt">,
 ): Promise<void> {
@@ -81,18 +88,10 @@ export async function logIncident(
   await redis.expire(INCIDENT_INDEX_KEY, INCIDENT_TTL);
 }
 
-/**
- * Marks an incident complete after the agent finishes fan-out.
- * Transitions from "investigating" to "open".
- */
 export async function markIncidentOpen(id: string): Promise<void> {
   await updateIncidentStatus(id, "open");
 }
 
-/**
- * Updates the status of an existing incident.
- * Used by webhook handlers and the manual resolution endpoint.
- */
 export async function updateIncidentStatus(
   id: string,
   status: IncidentStatus,
@@ -105,12 +104,9 @@ export async function updateIncidentStatus(
   const raw = await redis.get<string>(INCIDENT_KEY(id));
   if (!raw) return null;
 
-  const record: IncidentRecord =
-    typeof raw === "string"
-      ? (JSON.parse(raw) as IncidentRecord)
-      : (raw as IncidentRecord);
-
+  const record = parseJson<IncidentRecord>(raw);
   const now = new Date().toISOString();
+
   const updated: IncidentRecord = {
     ...record,
     status,
@@ -142,21 +138,13 @@ export async function updateIncidentStatus(
   return updated;
 }
 
-/**
- * Fetches a single incident by ID.
- */
 export async function getIncident(id: string): Promise<IncidentRecord | null> {
   const redis = runtimeRedis();
   const raw = await redis.get<string>(INCIDENT_KEY(id));
   if (!raw) return null;
-  return typeof raw === "string"
-    ? (JSON.parse(raw) as IncidentRecord)
-    : (raw as IncidentRecord);
+  return parseJson<IncidentRecord>(raw);
 }
 
-/**
- * Fetches incidents in order (newest first), with optional status filter.
- */
 export async function getIncidents(
   limit = 20,
   statusFilter?: IncidentStatus[],
@@ -170,13 +158,7 @@ export async function getIncidents(
     ids.map((id) =>
       redis
         .get<string>(INCIDENT_KEY(id))
-        .then((raw) =>
-          raw
-            ? typeof raw === "string"
-              ? (JSON.parse(raw) as IncidentRecord)
-              : (raw as IncidentRecord)
-            : null,
-        )
+        .then((raw) => (raw ? parseJson<IncidentRecord>(raw) : null))
         .catch(() => null),
     ),
   );
@@ -190,10 +172,6 @@ export async function getIncidents(
   return filtered.slice(0, limit);
 }
 
-/**
- * Finds an incident by its GitHub issue number.
- * Used by the GitHub webhook to resolve incidents when issues are closed.
- */
 export async function findIncidentByGithubIssue(
   issueNumber: number,
 ): Promise<IncidentRecord | null> {
@@ -201,10 +179,6 @@ export async function findIncidentByGithubIssue(
   return incidents.find((i) => i.githubIssueNumber === issueNumber) ?? null;
 }
 
-/**
- * Finds an incident by its Sentry issue ID.
- * Used by the Sentry webhook to update status when issues are resolved.
- */
 export async function findIncidentBySentryIssue(
   sentryIssueId: string,
 ): Promise<IncidentRecord | null> {
@@ -216,10 +190,6 @@ export async function findIncidentBySentryIssue(
   );
 }
 
-/**
- * Finds a security alert incident by Dependabot alert number.
- * Uses sentryIssueId field which stores the alert number for security_alert type.
- */
 export async function findIncidentBySecurityAlert(
   alertId: string,
 ): Promise<IncidentRecord | null> {
@@ -250,9 +220,7 @@ export async function getEvents(limit = 50): Promise<PlatformEvent[]> {
   const redis = runtimeRedis();
   const items = await redis.lrange(EVENTS_KEY, 0, limit - 1);
   return items.map((item) =>
-    typeof item === "string"
-      ? (JSON.parse(item) as PlatformEvent)
-      : (item as PlatformEvent),
+    typeof item === "string" ? parseJson<PlatformEvent>(item) : item,
   );
 }
 
@@ -293,7 +261,6 @@ export async function getSystemHealth(): Promise<SystemHealth> {
 
 // ─────────────────────────────────────────────
 // Dependency analysis cache
-// deps:analysis:{prNumber} → BreakingChangeAnalysis (24h TTL)
 // ─────────────────────────────────────────────
 
 const DEPS_ANALYSIS_KEY = (prNumber: number) => `deps:analysis:${prNumber}`;
@@ -306,9 +273,7 @@ export async function getDepAnalysis(
   try {
     const raw = await redis.get<string>(DEPS_ANALYSIS_KEY(prNumber));
     if (!raw) return null;
-    return typeof raw === "string"
-      ? (JSON.parse(raw) as BreakingChangeAnalysis)
-      : (raw as BreakingChangeAnalysis);
+    return parseJson<BreakingChangeAnalysis>(raw);
   } catch {
     return null;
   }
@@ -327,10 +292,6 @@ export async function storeDepAnalysis(
 
 // ─────────────────────────────────────────────
 // Rollback audit log
-// rollback:record:{deploymentId} → RollbackRecord (7d TTL)
-//
-// Written by the rollback execute route before + after the Vercel API call.
-// Read by the deployments page to show rollback history alongside deploys.
 // ─────────────────────────────────────────────
 
 const ROLLBACK_KEY = (deploymentId: string) =>
@@ -356,11 +317,7 @@ export async function updateRollbackRecord(
   const raw = await redis.get<string>(ROLLBACK_KEY(deploymentId));
   if (!raw) return;
 
-  const existing: RollbackRecord =
-    typeof raw === "string"
-      ? (JSON.parse(raw) as RollbackRecord)
-      : (raw as RollbackRecord);
-
+  const existing = parseJson<RollbackRecord>(raw);
   const updated: RollbackRecord = { ...existing, ...patch };
 
   await redis.set(ROLLBACK_KEY(deploymentId), JSON.stringify(updated), {
@@ -375,9 +332,7 @@ export async function getRollbackRecord(
   try {
     const raw = await redis.get<string>(ROLLBACK_KEY(deploymentId));
     if (!raw) return null;
-    return typeof raw === "string"
-      ? (JSON.parse(raw) as RollbackRecord)
-      : (raw as RollbackRecord);
+    return parseJson<RollbackRecord>(raw);
   } catch {
     return null;
   }

@@ -18,28 +18,26 @@ export async function loadAuthorityUser(
   db: DbInstance,
   redis: Redis,
 ): Promise<AuthorityUser | null> {
-  // Try to get user from Redis cache first
   const cacheKey = cacheKeys.userById(userId);
 
   let profile = await redis.get<AuthorityUser>(cacheKey);
 
-  // If not in cache, load from DB
   if (!profile) {
     const dbProfile = await db.query.user.findFirst({
       where: eq(user.id, userId),
     });
 
-    // Convert undefined to null for consistency
     if (!dbProfile) return null;
 
+    // dbProfile.role is now "admin" | "viewer" | "user" — matches Role exactly.
+    // No cast needed since roleEnum was updated to include "viewer".
     profile = {
       id: dbProfile.id,
-      role: dbProfile.role as Role,
+      role: dbProfile.role,
       banned: dbProfile.banned,
       deletedAt: dbProfile.deletedAt,
     };
 
-    // Cache the user profile if found (5 min TTL)
     await redis.set(cacheKey, profile, { ex: 300 });
   }
 

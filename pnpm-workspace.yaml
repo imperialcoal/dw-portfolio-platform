@@ -55,4 +55,11 @@ overrides:
 
 publicHoistPattern:
   - '@ianvs/prettier-plugin-sort-imports'
-  - prettier-plugin-tailwindcss
+  - 'prettier-plugin-tailwindcss'
+  - 'radix-ui'
+  - '@radix-ui/react-icons'
+  - 'sonner'
+  - 'eslint-plugin-import'
+  - 'eslint-plugin-turbo'
+  - 'typescript-eslint'
+  - '@next/eslint-plugin-next'

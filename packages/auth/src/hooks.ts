@@ -6,10 +6,19 @@ import type { ClerkPublicMetadata } from "./metadata";
 import type { Role } from "./roles";
 import { ROLES } from "./roles";
 
+function isClerkPublicMetadata(v: unknown): v is ClerkPublicMetadata {
+  return (
+    v !== null &&
+    typeof v === "object" &&
+    "role" in v &&
+    typeof (v as Record<string, unknown>).role === "string"
+  );
+}
+
 export function useUserRole(): Role | undefined {
   const { user } = useUser();
-  const metadata = user?.publicMetadata as ClerkPublicMetadata | undefined;
-  return metadata?.role;
+  const meta = user?.publicMetadata;
+  return isClerkPublicMetadata(meta) ? meta.role : undefined;
 }
 
 export function useIsAdmin(): boolean {
