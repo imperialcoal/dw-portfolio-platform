@@ -34,14 +34,28 @@ const INCIDENT_TTL = 60 * 60 * 24 * 30; // 30d
 // ─────────────────────────────────────────────
 
 /**
- * Parses a Redis value that is always a JSON string when non-null.
- * get<string>() returns string | null — the null case is handled by callers
- * before reaching this function, so raw is always a string here.
- * The redundant ternary `typeof raw === "string" ? JSON.parse(raw) : raw`
- * was removed because the else branch is `never` (flagged by no-unnecessary-type-assertion).
+ * Safely parses a value returned by the Upstash Redis REST client.
+ *
+ * IMPORTANT: The Upstash REST client performs automatic JSON deserialization.
+ * When a value stored via JSON.stringify() is fetched with get<string>(),
+ * the client returns the already-parsed object — NOT the raw JSON string.
+ * TypeScript types this as `string | null` based on the generic, but at
+ * runtime it can be `T | string | null`.
+ *
+ * The typeof check is therefore NOT redundant — it handles both:
+ *   - Old values fetched as strings (needs JSON.parse)
+ *   - Auto-deserialized values returned as objects (already parsed)
+ *
+ * Removing the else branch (as suggested by no-unnecessary-type-assertion)
+ * caused a production regression where all incident reads silently returned
+ * null because JSON.parse threw on a pre-parsed object.
  */
-function parseJson<T>(raw: string): T {
-  return JSON.parse(raw) as T;
+
+function parseRedisValue<T>(raw: string | T): T {
+  if (typeof raw === "string") {
+    return JSON.parse(raw) as T;
+  }
+  return raw;
 }
 
 // ─────────────────────────────────────────────
@@ -67,6 +81,10 @@ export async function isDuplicate(
 // Incident CRUD
 // ─────────────────────────────────────────────
 
+/**
+ * Creates a new incident record. Sets status to "investigating" automatically
+ * since the agent is actively running when this is called.
+ */
 export async function logIncident(
   incident: Omit<IncidentRecord, "status" | "updatedAt">,
 ): Promise<void> {
@@ -88,10 +106,18 @@ export async function logIncident(
   await redis.expire(INCIDENT_INDEX_KEY, INCIDENT_TTL);
 }
 
+/**
+ * Marks an incident complete after the agent finishes fan-out.
+ * Transitions from "investigating" to "open".
+ */
 export async function markIncidentOpen(id: string): Promise<void> {
   await updateIncidentStatus(id, "open");
 }
 
+/**
+ * Updates the status of an existing incident.
+ * Used by webhook handlers and the manual resolution endpoint.
+ */
 export async function updateIncidentStatus(
   id: string,
   status: IncidentStatus,
@@ -104,7 +130,7 @@ export async function updateIncidentStatus(
   const raw = await redis.get<string>(INCIDENT_KEY(id));
   if (!raw) return null;
 
-  const record = parseJson<IncidentRecord>(raw);
+  const record = parseRedisValue<IncidentRecord>(raw);
   const now = new Date().toISOString();
 
   const updated: IncidentRecord = {
@@ -138,13 +164,19 @@ export async function updateIncidentStatus(
   return updated;
 }
 
+/**
+ * Fetches a single incident by ID.
+ */
 export async function getIncident(id: string): Promise<IncidentRecord | null> {
   const redis = runtimeRedis();
   const raw = await redis.get<string>(INCIDENT_KEY(id));
   if (!raw) return null;
-  return parseJson<IncidentRecord>(raw);
+  return parseRedisValue<IncidentRecord>(raw);
 }
 
+/**
+ * Fetches incidents in order (newest first), with optional status filter.
+ */
 export async function getIncidents(
   limit = 20,
   statusFilter?: IncidentStatus[],
@@ -158,7 +190,7 @@ export async function getIncidents(
     ids.map((id) =>
       redis
         .get<string>(INCIDENT_KEY(id))
-        .then((raw) => (raw ? parseJson<IncidentRecord>(raw) : null))
+        .then((raw) => (raw ? parseRedisValue<IncidentRecord>(raw) : null))
         .catch(() => null),
     ),
   );
@@ -172,6 +204,9 @@ export async function getIncidents(
   return filtered.slice(0, limit);
 }
 
+/**
+ * Finds an incident by its GitHub issue number.
+ */
 export async function findIncidentByGithubIssue(
   issueNumber: number,
 ): Promise<IncidentRecord | null> {
@@ -179,6 +214,9 @@ export async function findIncidentByGithubIssue(
   return incidents.find((i) => i.githubIssueNumber === issueNumber) ?? null;
 }
 
+/**
+ * Finds an incident by its Sentry issue ID.
+ */
 export async function findIncidentBySentryIssue(
   sentryIssueId: string,
 ): Promise<IncidentRecord | null> {
@@ -190,6 +228,9 @@ export async function findIncidentBySentryIssue(
   );
 }
 
+/**
+ * Finds a security alert incident by Dependabot alert number.
+ */
 export async function findIncidentBySecurityAlert(
   alertId: string,
 ): Promise<IncidentRecord | null> {
@@ -219,9 +260,7 @@ export async function logEvent(event: PlatformEvent): Promise<void> {
 export async function getEvents(limit = 50): Promise<PlatformEvent[]> {
   const redis = runtimeRedis();
   const items = await redis.lrange(EVENTS_KEY, 0, limit - 1);
-  return items.map((item) =>
-    typeof item === "string" ? parseJson<PlatformEvent>(item) : item,
-  );
+  return items.map((item) => parseRedisValue<PlatformEvent>(item));
 }
 
 // ─────────────────────────────────────────────
@@ -273,7 +312,7 @@ export async function getDepAnalysis(
   try {
     const raw = await redis.get<string>(DEPS_ANALYSIS_KEY(prNumber));
     if (!raw) return null;
-    return parseJson<BreakingChangeAnalysis>(raw);
+    return parseRedisValue<BreakingChangeAnalysis>(raw);
   } catch {
     return null;
   }
@@ -317,7 +356,7 @@ export async function updateRollbackRecord(
   const raw = await redis.get<string>(ROLLBACK_KEY(deploymentId));
   if (!raw) return;
 
-  const existing = parseJson<RollbackRecord>(raw);
+  const existing = parseRedisValue<RollbackRecord>(raw);
   const updated: RollbackRecord = { ...existing, ...patch };
 
   await redis.set(ROLLBACK_KEY(deploymentId), JSON.stringify(updated), {
@@ -332,7 +371,7 @@ export async function getRollbackRecord(
   try {
     const raw = await redis.get<string>(ROLLBACK_KEY(deploymentId));
     if (!raw) return null;
-    return parseJson<RollbackRecord>(raw);
+    return parseRedisValue<RollbackRecord>(raw);
   } catch {
     return null;
   }
