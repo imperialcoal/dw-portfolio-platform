@@ -1,8 +1,7 @@
 "use client";
 
 import {
-  SignedIn,
-  SignedOut,
+  Show,
   SignInButton,
   SignUpButton,
   useAuth,
@@ -18,7 +17,7 @@ export function AuthHeader() {
         <div className="h-10 w-10" />
       ) : (
         <>
-          <SignedOut>
+          <Show when="signed-out">
             <SignInButton mode="modal">
               <button className="text-foreground hover:text-primary transition-colors">
                 Sign In
@@ -29,8 +28,8 @@ export function AuthHeader() {
                 Sign Up
               </button>
             </SignUpButton>
-          </SignedOut>
-          <SignedIn>
+          </Show>
+          <Show when="signed-in">
             <UserButton
               appearance={{
                 elements: {
@@ -38,7 +37,7 @@ export function AuthHeader() {
                 },
               }}
             />
-          </SignedIn>
+          </Show>
         </>
       )}
     </header>

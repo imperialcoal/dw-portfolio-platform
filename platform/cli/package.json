@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "execa": "^9.6.1",
-    "uuid": "^13.0.0"
+    "uuid": "^14.0.0"
   },
   "devDependencies": {
     "@dw/eslint-config": "workspace:*",
