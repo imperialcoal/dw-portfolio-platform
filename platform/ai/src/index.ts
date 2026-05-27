@@ -7,6 +7,7 @@ export {
   appendToFile,
   createIssue,
   postPrComment,
+  closeGithubIssue,
 } from "./actions/github";
 export { generateAndCommitIncidentDoc } from "./actions/incident-doc";
 

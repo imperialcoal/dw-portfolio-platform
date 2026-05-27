@@ -32,89 +32,51 @@ function getBranch(): string {
 // Internal helpers
 // ─────────────────────────────────────────────
 
-/**
- * Fetches the file SHA and content (if available) for an existing file.
- *
- * The GitHub Contents API returns content inline for files < 1MB.
- * For larger files, `content` is null and `encoding` is "none".
- * In that case we fall back to the Git Blobs API which has no size limit.
- *
- * Returns { sha, content } or null if the file doesn't exist.
- */
-async function getExistingFile(
-  path: string,
-): Promise<{ sha: string; content: string } | null> {
+interface ExistingFile {
+  sha: string;
+  content: string;
+}
+
+async function getExistingFile(path: string): Promise<ExistingFile | null> {
   const branch = getBranch();
   const res = await fetch(
     `${GITHUB_API}/repos/${getRepo()}/contents/${path}?ref=${branch}`,
     { headers: getHeaders() },
   );
-
-  if (res.status === 404) return null;
-  if (!res.ok) {
-    throw new Error(`GitHub Contents API error ${res.status} for ${path}`);
-  }
+  if (!res.ok) return null;
 
   const data = (await res.json()) as {
-    sha?: string;
-    content?: string | null;
-    encoding?: string;
+    sha: string;
+    content?: string;
+    size?: number;
+    git_url?: string;
   };
 
-  if (!data.sha) return null;
-
-  // Happy path — content inline (files < 1MB)
-  if (data.content && data.encoding === "base64") {
-    const decoded = Buffer.from(
-      data.content.replace(/\n/g, ""),
-      "base64",
-    ).toString("utf-8");
-    return { sha: data.sha, content: decoded };
+  // Large file fallback via Git Blobs API (files > 1MB are truncated in Contents API)
+  if (data.size && data.size > 1_000_000 && data.git_url) {
+    const blobRes = await fetch(data.git_url, { headers: getHeaders() });
+    if (!blobRes.ok) return null;
+    const blob = (await blobRes.json()) as { sha: string; content: string };
+    return {
+      sha: blob.sha,
+      content: Buffer.from(blob.content, "base64").toString("utf-8"),
+    };
   }
 
-  // Fallback — file too large for Contents API, use Git Blobs API
-  // This path handles files > 1MB and avoids the truncation bug.
-  console.log(
-    JSON.stringify({
-      level: "info",
-      action: "github.getExistingFile",
-      event: "large_file_fallback",
-      path,
-      blobSha: data.sha,
-    }),
-  );
-
-  const blobRes = await fetch(
-    `${GITHUB_API}/repos/${getRepo()}/git/blobs/${data.sha}`,
-    {
-      headers: {
-        ...getHeaders(),
-        // Use raw media type to get content without size limits
-        Accept: "application/vnd.github.v3.raw",
-      },
-    },
-  );
-
-  if (!blobRes.ok) {
-    throw new Error(
-      `GitHub Blobs API error ${blobRes.status} for blob ${data.sha}`,
-    );
-  }
-
-  const rawContent = await blobRes.text();
-  return { sha: data.sha, content: rawContent };
+  return {
+    sha: data.sha,
+    content: data.content
+      ? Buffer.from(data.content, "base64").toString("utf-8")
+      : "",
+  };
 }
 
 // ─────────────────────────────────────────────
-// Public actions
+// Public API
 // ─────────────────────────────────────────────
 
 /**
- * Creates or updates a file in the repository.
- *
- * If the file already exists, the existing SHA is fetched first (required
- * by the GitHub Contents API for updates). Uses the Git Blobs API fallback
- * for files larger than 1MB to avoid content truncation.
+ * Commits a file to the repository (create or update).
  */
 export async function commitFile(
   path: string,
@@ -151,12 +113,6 @@ export async function commitFile(
 
 /**
  * Appends content to an existing file without replacing it.
- *
- * Fetches the existing content (including large-file fallback),
- * strips any previous changelog block with the given marker (to avoid
- * accumulating duplicate blocks), then appends the new block.
- *
- * Used by the docs agent to append drift changelog entries.
  */
 export async function appendToFile(
   path: string,
@@ -174,11 +130,8 @@ export async function appendToFile(
 
   let baseContent = existing?.content ?? "";
 
-  // Remove any previous block with the same marker to avoid accumulation
-  // This handles re-running the docs agent on the same day
   if (dedupeMarker && baseContent.includes(dedupeMarker)) {
     const markerIdx = baseContent.indexOf(dedupeMarker);
-    // Remove from the marker to end of file (trim trailing whitespace)
     baseContent = baseContent.slice(0, markerIdx).trimEnd();
   }
 
@@ -247,6 +200,54 @@ export async function createIssue(
 
   const issue = (await res.json()) as { html_url: string; number: number };
   return { url: issue.html_url, number: issue.number };
+}
+
+/**
+ * Closes a GitHub issue by number.
+ *
+ * Called by the manual resolve route when an admin resolves an incident
+ * from the platform dashboard. This keeps GitHub Issues in sync with
+ * Redis incident state — resolving in the dashboard also closes the issue.
+ *
+ * Fails silently if the issue is already closed or doesn't exist —
+ * the Redis resolution still proceeds regardless.
+ */
+export async function closeGithubIssue(issueNumber: number): Promise<void> {
+  if (!isDevopsConfigured()) {
+    console.info("[DevOps not configured] Skipping GitHub issue close");
+    return;
+  }
+
+  const res = await fetch(
+    `${GITHUB_API}/repos/${getRepo()}/issues/${issueNumber}`,
+    {
+      method: "PATCH",
+      headers: getHeaders(),
+      body: JSON.stringify({ state: "closed" }),
+    },
+  );
+
+  if (!res.ok) {
+    const err = (await res.json()) as { message?: string };
+    // Log but don't throw — Redis resolution is more important than GitHub sync
+    console.error(
+      JSON.stringify({
+        level: "error",
+        action: "close_github_issue",
+        issueNumber,
+        error: err.message ?? `HTTP ${res.status}`,
+      }),
+    );
+  } else {
+    console.log(
+      JSON.stringify({
+        level: "info",
+        action: "close_github_issue",
+        issueNumber,
+        status: "closed",
+      }),
+    );
+  }
 }
 
 /**

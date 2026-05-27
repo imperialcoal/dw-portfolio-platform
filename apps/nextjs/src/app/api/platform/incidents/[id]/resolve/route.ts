@@ -1,25 +1,33 @@
+// apps/nextjs/src/app/api/platform/incidents/[id]/resolve/route.ts
+//
+// Manual resolution endpoint — called from the platform dashboard Resolve button.
+// Admin-only. Resolves the Redis incident record AND closes the linked GitHub Issue.
+//
+// The GitHub Issue closure is fire-and-forget — if it fails (e.g. the issue was
+// already closed or GITHUB_TOKEN lacks write access), the Redis resolution still
+// completes and the response is still 200. The error is logged for observability.
+//
+// This is the platform → GitHub direction.
+// The inverse (GitHub → platform) is handled by /api/process/resolve via QStash
+// when the issues.closed webhook fires.
+
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { z } from "zod/v4";
 
-import type { IncidentStatus } from "@dw/contracts";
-import { getIncident, updateIncidentStatus } from "@dw/ai/memory";
-import { INCIDENT_STATUSES } from "@dw/contracts";
+// Import from the root package — subpath "@dw/ai/actions" doesn't resolve
+// correctly in the Next.js TypeScript context, causing no-unsafe-call errors.
+// The root index re-exports all actions including closeGithubIssue.
+import { closeGithubIssue, getIncident, updateIncidentStatus } from "@dw/ai";
 
 import { requireAdmin } from "~/auth/require-admin";
 
 export const runtime = "nodejs";
-
-const ResolveBody = z.object({
-  status: z.enum(INCIDENT_STATUSES as unknown as [string, ...string[]]),
-  note: z.string().max(500).optional(),
-});
+export const maxDuration = 30;
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
-  // Admin-only — uses Clerk auth
   try {
     await requireAdmin();
   } catch {
@@ -28,34 +36,70 @@ export async function POST(
 
   const { id } = await params;
 
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  if (!id) {
+    return NextResponse.json({ error: "Missing incident ID" }, { status: 400 });
   }
 
-  const parsed = ResolveBody.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Invalid body", issues: parsed.error.flatten() },
-      { status: 400 },
-    );
-  }
-
+  // 1. Fetch the current incident to get the GitHub issue number before resolving
   const incident = await getIncident(id);
+
   if (!incident) {
     return NextResponse.json({ error: "Incident not found" }, { status: 404 });
   }
 
-  const updated = await updateIncidentStatus(
-    id,
-    parsed.data.status as IncidentStatus,
-    {
-      resolvedBy: "manual",
-      resolutionNote: parsed.data.note,
-    },
+  if (incident.status === "resolved" || incident.status === "closed") {
+    return NextResponse.json(
+      { error: "Incident is already resolved" },
+      { status: 409 },
+    );
+  }
+
+  // 2. Resolve in Redis
+  const updated = await updateIncidentStatus(id, "resolved", {
+    resolvedBy: "manual",
+    resolutionNote: "Manually resolved via platform dashboard",
+  });
+
+  if (!updated) {
+    return NextResponse.json(
+      { error: "Failed to update incident status" },
+      { status: 500 },
+    );
+  }
+
+  // 3. Close the linked GitHub Issue if one exists
+  // Fire-and-forget — Redis resolution takes priority.
+  // supabase_advisory incidents don't have GitHub issues, so this only
+  // runs for ci_failure, sentry_error, and security_alert incidents.
+  if (incident.githubIssueNumber) {
+    void closeGithubIssue(incident.githubIssueNumber).catch((err: unknown) => {
+      console.error(
+        JSON.stringify({
+          level: "error",
+          route: "incidents/resolve",
+          incidentId: id,
+          githubIssueNumber: incident.githubIssueNumber,
+          error: String(err),
+        }),
+      );
+    });
+  }
+
+  console.log(
+    JSON.stringify({
+      level: "info",
+      route: "incidents/resolve",
+      incidentId: id,
+      type: incident.type,
+      githubIssueNumber: incident.githubIssueNumber ?? null,
+      githubClosureAttempted: !!incident.githubIssueNumber,
+    }),
   );
 
-  return NextResponse.json({ ok: true, incident: updated });
+  return NextResponse.json({
+    ok: true,
+    id,
+    status: "resolved",
+    githubIssueNumber: incident.githubIssueNumber ?? null,
+  });
 }

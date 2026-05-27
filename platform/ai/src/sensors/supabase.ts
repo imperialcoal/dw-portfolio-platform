@@ -1,14 +1,16 @@
+// platform/ai/src/sensors/supabase.ts
+//
 // Reads the Supabase Management API for database health metrics,
 // and queries the database directly for security advisories.
 //
 // Authentication:
-//   fetchDbHealth    → SUPABASE_ACCESS_TOKEN (Management API, account-scoped)
-//   fetchSupabaseAdvisories → DATABASE_URL via runtimeDb() (service_role, project-scoped)
+//   fetchDbHealth          → SUPABASE_ACCESS_TOKEN (Management API, account-scoped)
+//   fetchSupabaseAdvisories → DATABASE_URL via getDb() (service_role, project-scoped)
 //
 // The /lint Management API endpoint is unreliable from Vercel serverless
 // functions with Personal Access Tokens — it hangs without responding.
 // Security advisories are instead derived directly from Postgres system
-// tables, which mirrors exactly what the Supabase Security Advisor checks.
+// tables, mirroring the exact checks the Supabase Security Advisor runs.
 
 import type {
   DbHealthMetrics,
@@ -32,6 +34,10 @@ function getHeaders(): Record<string, string> {
 function getRef(): string {
   return config.supabase.SUPABASE_PROJECT_REF ?? "";
 }
+
+// ─────────────────────────────────────────────
+// Database health (Management API)
+// ─────────────────────────────────────────────
 
 export async function fetchDbHealth(): Promise<DbHealthMetrics | null> {
   if (!isSupabaseConfigured()) return null;
@@ -112,16 +118,32 @@ function parseSizeBytes(sizeStr: string): number {
 // ─────────────────────────────────────────────
 // Security Advisories — direct SQL via Drizzle
 //
-// Queries pg_tables and information_schema directly using the existing
-// DATABASE_URL / PgBouncer connection (service_role). This mirrors the
-// exact checks the Supabase Security Advisor runs:
+// Mirrors the two checks the Supabase Security Advisor (splinter/pglint) runs:
 //
 //   Check 1: RLS disabled on public tables  → ERROR
-//   Check 2: Anon role has table grants     → WARN
+//   Check 2: Anon role has data-access grants → WARN
 //
-// The SupabaseAdvisory shape is identical to what the /lint endpoint
-// returns, so the database page and sync route are unchanged.
+// IMPORTANT — privilege filter:
+// Postgres automatically grants REFERENCES and TRIGGER to all roles on
+// every table. These are structural grants (for FK constraints and trigger
+// definitions), not data access grants. The Supabase Security Advisor
+// only flags SELECT, INSERT, UPDATE, DELETE — the grants that allow
+// reading or modifying row data via PostgREST.
+//
+// Flagging REFERENCES and TRIGGER produces false positives that can never
+// be resolved without breaking Postgres internals. We filter them out to
+// match the actual advisor behavior.
 // ─────────────────────────────────────────────
+
+// The only privileges that represent actual data exposure via PostgREST.
+// REFERENCES and TRIGGER are structural Postgres grants — not data access.
+const DATA_ACCESS_PRIVILEGES = new Set([
+  "SELECT",
+  "INSERT",
+  "UPDATE",
+  "DELETE",
+  "TRUNCATE",
+]);
 
 export async function fetchSupabaseAdvisories(): Promise<SupabaseAdvisory[]> {
   if (!isSupabaseDbConfigured()) {
@@ -149,9 +171,9 @@ export async function fetchSupabaseAdvisories(): Promise<SupabaseAdvisory[]> {
   );
 
   try {
-    // ── Check 1: RLS disabled on public tables ──────────────────────────────
     const db = getDb();
 
+    // ── Check 1: RLS disabled on public tables ──────────────────────────────
     const rlsRows = (await db.execute(
       sql`SELECT schemaname, tablename FROM pg_tables WHERE schemaname = 'public' AND rowsecurity = false`,
     )) as { schemaname: string; tablename: string }[];
@@ -172,9 +194,20 @@ export async function fetchSupabaseAdvisories(): Promise<SupabaseAdvisory[]> {
       });
     }
 
-    // ── Check 2: Anon role has direct table grants ──────────────────────────
+    // ── Check 2: Anon role has data-access grants ──────────────────────────
+    //
+    // Filter to only SELECT, INSERT, UPDATE, DELETE, TRUNCATE.
+    // REFERENCES and TRIGGER are Postgres structural defaults — not data access.
+    // Including them would produce false positives that can never be resolved.
     const anonRows = (await db.execute(
-      sql`SELECT table_schema, table_name, privilege_type FROM information_schema.role_table_grants WHERE grantee = 'anon' AND table_schema = 'public' ORDER BY table_name, privilege_type`,
+      sql`
+        SELECT table_schema, table_name, privilege_type
+        FROM information_schema.role_table_grants
+        WHERE grantee = 'anon'
+          AND table_schema = 'public'
+          AND privilege_type IN ('SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE')
+        ORDER BY table_name, privilege_type
+      `,
     )) as {
       table_schema: string;
       table_name: string;
@@ -185,8 +218,11 @@ export async function fetchSupabaseAdvisories(): Promise<SupabaseAdvisory[]> {
     for (const row of anonRows) {
       const key = `${row.table_schema}.${row.table_name}`;
       const privs = anonTables.get(key) ?? [];
-      privs.push(row.privilege_type);
-      anonTables.set(key, privs);
+      // Belt-and-suspenders: also filter in JS in case DB returns unexpected values
+      if (DATA_ACCESS_PRIVILEGES.has(row.privilege_type)) {
+        privs.push(row.privilege_type);
+        anonTables.set(key, privs);
+      }
     }
 
     for (const [table, privs] of anonTables) {
@@ -225,6 +261,6 @@ export async function fetchSupabaseAdvisories(): Promise<SupabaseAdvisory[]> {
         error: String(err),
       }),
     );
-    throw err; // surface to database/page.tsx → renders yellow error banner
+    throw err;
   }
 }
