@@ -1,5 +1,3 @@
-// apps/nextjs/src/app/api/platform/incidents/[id]/resolve/route.ts
-//
 // Manual resolution endpoint — called from the platform dashboard Resolve button.
 // Admin-only. Resolves the Redis incident record AND closes the linked GitHub Issue.
 //

@@ -1,17 +1,24 @@
-// Fetches Supabase security advisories and creates supabase_advisory incidents
-// for any findings not already tracked in Redis.
+// Fetches current Supabase security advisories and performs a TRUE bidirectional sync:
 //
-// Called by:
-//   - A button on /platform/database (manual trigger)
-//   - Optionally: a cron job (add to vercel.json if desired)
+//   1. CREATE: any advisory not yet in Redis → creates a new supabase_advisory incident
+//   2. RESOLVE: any tracked advisory incident whose advisory no longer exists → resolves it
 //
-// Auth: requireAdmin() — admin session cookie, same as all /api/platform/* routes.
-// Idempotent: uses the advisory name as a stable dedup ID so re-runs are safe.
+// This means clicking "Sync to incidents" always reflects the current state of
+// Supabase — advisories that have been fixed are automatically resolved in Redis,
+// clearing them from the active incidents list and the Database Health advisory count.
+//
+// Auth: requireAdmin() — admin session cookie.
+// Idempotent: re-running produces no duplicate incidents.
 
 import { NextResponse } from "next/server";
 
 import type { SupabaseAdvisory } from "@dw/contracts";
-import { getIncidents, logIncident, markIncidentOpen } from "@dw/ai/memory";
+import {
+  getIncidents,
+  logIncident,
+  markIncidentOpen,
+  updateIncidentStatus,
+} from "@dw/ai/memory";
 import { fetchSupabaseAdvisories } from "@dw/ai/sensors";
 
 import { requireAdmin } from "~/auth/require-admin";
@@ -50,28 +57,51 @@ export async function POST(): Promise<NextResponse> {
     );
   }
 
-  if (advisories.length === 0) {
-    return NextResponse.json({
-      ok: true,
-      synced: 0,
-      message: "No advisories found",
-    });
-  }
-
-  // Load existing incidents to avoid duplicating advisories already tracked
+  // Load all existing advisory incidents from Redis
   const existing = await getIncidents(100).catch(() => []);
-  const existingAdvisoryIds = new Set(
-    existing.filter((i) => i.type === "supabase_advisory").map((i) => i.id),
+  const existingAdvisories = existing.filter(
+    (i) => i.type === "supabase_advisory",
   );
 
-  let synced = 0;
+  // Stable incident IDs derived from the current Supabase advisory names
+  const currentAdvisoryIds = new Set(
+    advisories.map(
+      (a) =>
+        `supabase-advisory-${a.name.replace(/[^a-z0-9]/gi, "-").toLowerCase()}`,
+    ),
+  );
 
+  const existingAdvisoryIds = new Set(existingAdvisories.map((i) => i.id));
+
+  let synced = 0;
+  let resolved = 0;
+
+  // ── 1. CREATE: new advisories not yet in Redis ─────────────────────────────
   for (const advisory of advisories) {
-    // Stable ID based on advisory name — same advisory won't create duplicate incidents
     const incidentId = `supabase-advisory-${advisory.name.replace(/[^a-z0-9]/gi, "-").toLowerCase()}`;
 
     if (existingAdvisoryIds.has(incidentId)) {
-      continue; // Already tracked
+      // Already tracked — check if it was previously resolved and re-open it
+      const existingRecord = existingAdvisories.find(
+        (i) => i.id === incidentId,
+      );
+      if (
+        existingRecord &&
+        (existingRecord.status === "resolved" ||
+          existingRecord.status === "closed")
+      ) {
+        await updateIncidentStatus(incidentId, "open");
+        synced++;
+        console.log(
+          JSON.stringify({
+            level: "info",
+            route: "advisories/sync",
+            event: "advisory_reopened",
+            incidentId,
+          }),
+        );
+      }
+      continue;
     }
 
     const supabaseRef = env.SUPABASE_PROJECT_REF ?? "";
@@ -115,19 +145,52 @@ export async function POST(): Promise<NextResponse> {
     synced++;
   }
 
+  // ── 2. RESOLVE: advisory incidents in Redis no longer detected in Supabase ──
+  //
+  // Only resolve open/investigating/monitoring incidents — already-resolved
+  // incidents are left alone to preserve history.
+  for (const existingAdvisory of existingAdvisories) {
+    if (currentAdvisoryIds.has(existingAdvisory.id)) continue;
+
+    if (
+      existingAdvisory.status === "open" ||
+      existingAdvisory.status === "investigating" ||
+      existingAdvisory.status === "monitoring"
+    ) {
+      await updateIncidentStatus(existingAdvisory.id, "resolved", {
+        resolvedBy: "manual",
+        resolutionNote:
+          "Advisory no longer detected in Supabase Security Advisor",
+      });
+      resolved++;
+
+      console.log(
+        JSON.stringify({
+          level: "info",
+          route: "advisories/sync",
+          event: "advisory_resolved",
+          incidentId: existingAdvisory.id,
+          reason: "no_longer_detected",
+        }),
+      );
+    }
+  }
+
   console.log(
     JSON.stringify({
       level: "info",
       route: "advisories/sync",
       event: "complete",
-      total: advisories.length,
-      synced,
+      currentAdvisories: advisories.length,
+      created: synced,
+      resolved,
     }),
   );
 
   return NextResponse.json({
     ok: true,
     synced,
+    resolved,
     total: advisories.length,
     skipped: advisories.length - synced,
   });
