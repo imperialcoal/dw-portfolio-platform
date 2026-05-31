@@ -1,9 +1,10 @@
 // Manual resolution endpoint — called from the platform dashboard Resolve button.
 // Admin-only. Resolves the Redis incident record AND closes the linked GitHub Issue.
 //
-// The GitHub Issue closure is fire-and-forget — if it fails (e.g. the issue was
-// already closed or GITHUB_TOKEN lacks write access), the Redis resolution still
-// completes and the response is still 200. The error is logged for observability.
+// GitHub Issue closure is now awaited (not fire-and-forget) so the close
+// completes before the function returns. This ensures the Vercel function
+// doesn't tear down before the GitHub API call completes, eliminating the
+// ~30-60s delay between platform resolve and GitHub issue close.
 //
 // This is the platform → GitHub direction.
 // The inverse (GitHub → platform) is handled by /api/process/resolve via QStash
@@ -12,9 +13,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-// Import from the root package — subpath "@dw/ai/actions" doesn't resolve
-// correctly in the Next.js TypeScript context, causing no-unsafe-call errors.
-// The root index re-exports all actions including closeGithubIssue.
 import { closeGithubIssue, getIncident, updateIncidentStatus } from "@dw/ai";
 
 import { requireAdmin } from "~/auth/require-admin";
@@ -65,12 +63,17 @@ export async function POST(
     );
   }
 
-  // 3. Close the linked GitHub Issue if one exists
-  // Fire-and-forget — Redis resolution takes priority.
-  // supabase_advisory incidents don't have GitHub issues, so this only
-  // runs for ci_failure, sentry_error, and security_alert incidents.
+  // 3. Close the linked GitHub Issue if one exists.
+  // Awaited synchronously — ensures the GitHub API call completes before the
+  // Vercel function returns and potentially tears down. Previously using
+  // void/fire-and-forget caused a ~30-60s delay because async execution raced
+  // against function teardown after the response was flushed.
+  // supabase_advisory incidents have no GitHub issue — this is a no-op for them.
   if (incident.githubIssueNumber) {
-    void closeGithubIssue(incident.githubIssueNumber).catch((err: unknown) => {
+    try {
+      await closeGithubIssue(incident.githubIssueNumber);
+    } catch (err: unknown) {
+      // Log but don't fail the response — Redis resolution already succeeded.
       console.error(
         JSON.stringify({
           level: "error",
@@ -80,7 +83,7 @@ export async function POST(
           error: String(err),
         }),
       );
-    });
+    }
   }
 
   console.log(
