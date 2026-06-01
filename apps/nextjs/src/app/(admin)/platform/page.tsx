@@ -1,4 +1,3 @@
-// apps/nextjs/src/app/(admin)/platform/page.tsx
 // Platform Intelligence — Health Overview
 //
 // CommandPalette is NO LONGER rendered here — it lives in layout.tsx which
@@ -109,8 +108,6 @@ function issueUrlLabel(incident: IncidentRecord): string {
     case "supabase_advisory":
       return "Supabase Advisor";
     case "sentry_error":
-      // issueUrl for sentry errors is always the GitHub tracking issue.
-      // The Sentry permalink is shown separately via sentryIssueUrl.
       return incident.githubIssueNumber !== undefined
         ? `GitHub Issue #${incident.githubIssueNumber}`
         : "GitHub Issue";
@@ -127,6 +124,201 @@ function issueUrlLabel(incident: IncidentRecord): string {
     default:
       return "View Issue";
   }
+}
+
+// ─────────────────────────────────────────────
+// External service deep-link helpers
+// ─────────────────────────────────────────────
+
+function buildServiceGroups(config: {
+  supabaseRef: string;
+  clerkAppId: string;
+  clerkInstanceId: string;
+  vercelTeam: string;
+  vercelProject: string;
+  sentryOrg: string;
+  sentryProject: string;
+  githubRepo: string;
+}) {
+  const {
+    supabaseRef,
+    clerkAppId,
+    clerkInstanceId,
+    vercelTeam,
+    vercelProject,
+    sentryOrg,
+    sentryProject,
+    githubRepo,
+  } = config;
+
+  const supabase = (path: string) =>
+    supabaseRef
+      ? `https://supabase.com/dashboard/project/${supabaseRef}/${path}`
+      : "https://supabase.com/dashboard";
+
+  const clerk = (path: string) =>
+    clerkAppId && clerkInstanceId
+      ? `https://dashboard.clerk.com/apps/${clerkAppId}/instances/${clerkInstanceId}/${path}`
+      : "https://dashboard.clerk.com";
+
+  const vercel = (path: string) => {
+    const team = vercelTeam ? `${vercelTeam}/` : "";
+    const project = vercelProject;
+    return `https://vercel.com/${team}${project}/${path}`;
+  };
+
+  const sentry = (path: string) =>
+    sentryOrg
+      ? `https://sentry.io/organizations/${sentryOrg}/${path}`
+      : "https://sentry.io";
+
+  const github = (path: string) => {
+    const repo = githubRepo;
+    return `https://github.com/${repo}/${path}`;
+  };
+
+  return [
+    {
+      label: "Infrastructure",
+      links: [
+        {
+          title: "Vercel Logs",
+          href: vercel("logs"),
+          sub: "Function & edge runtime logs",
+        },
+        {
+          title: "Vercel Deployments",
+          href: vercel("deployments"),
+          sub: "All deployments with build logs",
+        },
+        {
+          title: "Vercel Analytics",
+          href: vercel("analytics"),
+          sub: "Traffic, performance, web vitals",
+        },
+        {
+          title: "Upstash Redis",
+          href: "https://console.upstash.com/redis",
+          sub: "Incident data, keys, TTLs",
+        },
+        {
+          title: "Upstash QStash",
+          href: "https://console.upstash.com/qstash",
+          sub: "Job queue and delivery logs",
+        },
+        {
+          title: "Doppler Secrets",
+          href: "https://dashboard.doppler.com",
+          sub: "Environment variables",
+        },
+      ],
+    },
+    {
+      label: "Observability",
+      links: [
+        {
+          title: "Sentry Issues",
+          href: sentry(`issues/?project=${sentryProject}`),
+          sub: "Unresolved runtime errors",
+        },
+        {
+          title: "Sentry Performance",
+          href: sentry(`performance/?project=${sentryProject}`),
+          sub: "Traces and slowdowns",
+        },
+        {
+          title: "Sentry Alerts",
+          href: sentry(`alerts/rules/?project=${sentryProject}`),
+          sub: "Alert rules and history",
+        },
+        {
+          title: "GitHub Actions",
+          href: github("actions"),
+          sub: "CI workflow runs",
+        },
+        {
+          title: "GitHub Security",
+          href: github("security"),
+          sub: "Dependabot and code scanning",
+        },
+        {
+          title: "GitHub Issues",
+          href: github("issues?q=label%3Aplatform-agent+is%3Aopen"),
+          sub: "Platform-agent issues",
+        },
+      ],
+    },
+    {
+      label: "Data & Auth",
+      links: [
+        {
+          title: "SQL Editor",
+          href: supabase("sql/new"),
+          sub: "Run diagnostic queries",
+        },
+        {
+          title: "Table Editor",
+          href: supabase("editor"),
+          sub: "Browse and edit data",
+        },
+        {
+          title: "Security Advisor",
+          href: supabase("advisors/security"),
+          sub: "RLS and anon exposure checks",
+        },
+        {
+          title: "Clerk Users",
+          href: clerk("users"),
+          sub: "Full user list with roles",
+        },
+        {
+          title: "Active Sessions",
+          href: clerk("sessions"),
+          sub: "View and revoke sessions",
+        },
+        {
+          title: "Clerk Webhooks",
+          href: clerk("webhooks"),
+          sub: "Webhook delivery history",
+        },
+      ],
+    },
+    {
+      label: "Communications",
+      links: [
+        {
+          title: "Resend Logs",
+          href: "https://resend.com/emails",
+          sub: "Incident alert delivery logs",
+        },
+        {
+          title: "Resend Domains",
+          href: "https://resend.com/domains",
+          sub: "Domain verification",
+        },
+        {
+          title: "GitHub Webhooks",
+          href: github("settings/hooks"),
+          sub: "Webhook delivery and failures",
+        },
+        {
+          title: "GitHub PRs",
+          href: github("pulls"),
+          sub: "Open PRs including Dependabot",
+        },
+        {
+          title: "Clerk Audit Log",
+          href: clerk("audit-log"),
+          sub: "Auth event history",
+        },
+        {
+          title: "Vercel Settings",
+          href: vercel("settings"),
+          sub: "Env vars, domains, integrations",
+        },
+      ],
+    },
+  ];
 }
 
 // ─────────────────────────────────────────────
@@ -201,9 +393,9 @@ function ActiveIncidentRow({ incident }: { incident: IncidentRecord }) {
           >
             {incident.severity}
           </span>
-          <span className="text-[10px] text-zinc-600">{typeLabel}</span>
+          <span className="text-[10px] text-zinc-500">{typeLabel}</span>
           <span
-            className={`ml-auto rounded border px-1.5 py-0.5 text-[10px] font-semibold ${statusStyle.badge}`}
+            className={`ml-auto rounded border bg-transparent px-1.5 py-0.5 text-[10px] font-semibold ${statusStyle.badge}`}
           >
             {incident.status}
           </span>
@@ -214,39 +406,41 @@ function ActiveIncidentRow({ incident }: { incident: IncidentRecord }) {
             href={incident.issueUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-1 block text-[11px] text-zinc-600 transition-colors hover:text-zinc-400"
+            className="mt-1 text-xs text-zinc-500 transition-colors hover:text-zinc-300"
           >
             {issueUrlLabel(incident)} →
           </a>
         )}
       </div>
-      <span className="shrink-0 text-[11px] text-zinc-700">
-        {timeAgo(incident.timestamp)}
-      </span>
     </div>
   );
 }
 
 function DeployCard({ deploy }: { deploy: VercelDeployment }) {
-  const sha = deploy.meta.githubCommitSha?.slice(0, 7) ?? "—";
-  const msg = deploy.meta.githubCommitMessage ?? "—";
-  const branch = deploy.meta.githubBranch ?? deploy.target ?? "—";
+  const sha = deploy.meta.githubCommitSha?.slice(0, 7) ?? "unknown";
+  const msg =
+    deploy.meta.githubCommitMessage?.slice(0, 72) ??
+    deploy.meta.githubCommitMessage ??
+    deploy.id;
+  const branch = deploy.meta.githubBranch ?? deploy.target ?? "unknown";
+  const url = deploy.url
+    ? `https://${deploy.url}`
+    : `https://vercel.com/${deploy.id}`;
+
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-5">
-      <p className="mb-3 text-[10px] font-semibold tracking-widest text-zinc-600 uppercase">
+    <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+      <p className="mb-2 text-[10px] font-semibold tracking-widest text-zinc-600 uppercase">
         Last Production Deploy
       </p>
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <span className="rounded border border-white/10 bg-white/5 px-1.5 py-0.5 font-mono text-xs text-zinc-400">
-            {sha}
-          </span>
-          <p className="truncate text-sm text-zinc-300">{msg}</p>
-        </div>
+      <div className="flex items-start gap-3">
+        <code className="rounded bg-zinc-800 px-1.5 py-0.5 text-[11px] text-zinc-400">
+          {sha}
+        </code>
+        <p className="flex-1 truncate text-sm text-zinc-300">{msg}</p>
         <div className="flex shrink-0 items-center gap-3">
           <span className="text-xs text-zinc-600">{branch}</span>
           <a
-            href={`https://${deploy.url}`}
+            href={url}
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs text-zinc-500 transition-colors hover:text-zinc-300"
@@ -258,6 +452,10 @@ function DeployCard({ deploy }: { deploy: VercelDeployment }) {
     </div>
   );
 }
+
+// ─────────────────────────────────────────────
+// Nav items (internal platform pages)
+// ─────────────────────────────────────────────
 
 const NAV_ITEMS = [
   {
@@ -336,12 +534,21 @@ export default async function PlatformPage() {
   const currentEnv = env.NEXT_PUBLIC_APP_ENV;
   const docsBranch = currentEnv === "production" ? "main" : "dev";
 
+  const serviceGroups = buildServiceGroups({
+    supabaseRef: env.SUPABASE_PROJECT_REF ?? "",
+    clerkAppId: env.CLERK_APP_ID ?? "",
+    clerkInstanceId: env.CLERK_INSTANCE_ID ?? "",
+    vercelTeam: env.VERCEL_TEAM_ID ?? "",
+    vercelProject: env.VERCEL_PROJECT_ID ?? "",
+    sentryOrg: env.SENTRY_ORG ?? "",
+    sentryProject: env.SENTRY_PROJECT ?? "",
+    githubRepo: env.GITHUB_REPO ?? "",
+  });
+
   return (
-    // No bg/min-h here — layout.tsx owns the full-page background
-    // pt-6 accounts for the sticky command palette bar from the layout
     <div className="p-6 lg:p-10">
       <div className="mx-auto max-w-5xl space-y-8">
-        {/* Header — title + system status pill */}
+        {/* Header */}
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-white">
@@ -483,14 +690,13 @@ export default async function PlatformPage() {
                 No active incidents
               </p>
               <p className="mt-1 text-xs text-zinc-600">
-                {incidents.length > 0
-                  ? `${resolvedIncidents.length} resolved · ${monitoringIncidents.length} monitoring`
-                  : "No incidents recorded yet"}
+                {resolvedIncidents.length} resolved ·{" "}
+                {monitoringIncidents.length} monitoring
               </p>
             </div>
           ) : (
             <div className="space-y-3">
-              {activeIncidents.map((incident) => (
+              {activeIncidents.slice(0, 5).map((incident) => (
                 <ActiveIncidentRow
                   key={`${incident.type}-${incident.id}`}
                   incident={incident}
@@ -520,7 +726,7 @@ export default async function PlatformPage() {
           </div>
         )}
 
-        {/* Nav grid */}
+        {/* Internal platform nav grid */}
         <div className="grid grid-cols-2 gap-4 pt-2 lg:grid-cols-3">
           {NAV_ITEMS.map((item) => (
             <Link
@@ -552,6 +758,40 @@ export default async function PlatformPage() {
               Check production, preview, and API endpoints for availability
             </p>
             <RunHealthCheckButton />
+          </div>
+        </div>
+
+        {/* External Services */}
+        <div>
+          <p className="mb-4 text-[10px] font-semibold tracking-widest text-zinc-600 uppercase">
+            External Services
+          </p>
+          <div className="space-y-4">
+            {serviceGroups.map((group) => (
+              <div key={group.label}>
+                <p className="mb-2 text-[10px] font-medium tracking-wider text-zinc-600 uppercase">
+                  {group.label}
+                </p>
+                <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
+                  {group.links.map((link) => (
+                    <a
+                      key={link.href}
+                      href={link.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group rounded-lg border border-white/5 bg-white/3 p-3.5 transition-all hover:border-white/10 hover:bg-white/6"
+                    >
+                      <p className="text-xs font-medium text-zinc-300 transition-colors group-hover:text-white">
+                        {link.title}
+                      </p>
+                      <p className="mt-0.5 text-[10px] text-zinc-600">
+                        {link.sub}
+                      </p>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
