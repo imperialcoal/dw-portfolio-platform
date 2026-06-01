@@ -1,7 +1,5 @@
 "use client";
 
-import { ThemeToggle } from "@dw/ui/theme";
-
 import {
   Show,
   SignInButton,
@@ -19,7 +17,6 @@ export function AuthHeader() {
         <div className="h-10 w-10" />
       ) : (
         <>
-          <ThemeToggle />
           <Show when="signed-out">
             <SignInButton mode="modal">
               <button className="text-foreground hover:text-primary transition-colors">

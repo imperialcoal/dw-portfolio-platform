@@ -1,11 +1,13 @@
-// apps/nextjs/src/app/(admin)/platform/layout.tsx
-//
 // Shared layout for all /platform/* pages.
 // - Renders the sticky CommandPalette bar at the top
+// - Renders ThemeToggleMenu in the top-right of the command palette bar
 // - Renders a read-only demo banner when the session role is "viewer"
 //
-// Note: isReadOnly is derived from getPlatformAccessLevel(), which compares
-// the DB role string internally. No need to import ROLES here.
+// The root layout also renders a fixed ThemeToggleMenu at bottom-right,
+// so there are two access points on /platform/* — the inline one here
+// is more contextually visible within the platform chrome.
+
+import { ThemeToggleMenu } from "@dw/ui/theme";
 
 import { getPlatformAccessLevel } from "~/auth/require-viewer-or-admin";
 import { CommandPalette } from "./_components/command-palette";
@@ -24,9 +26,17 @@ export default async function PlatformLayout({
       {/* Read-only demo banner — visible only for viewer role */}
       {isReadOnly && <ViewerBanner />}
 
-      {/* Global platform chrome — command palette bar pinned to top */}
-      <div className="sticky top-0 z-40 border-b border-white/5 bg-zinc-950/80 px-6 py-3 backdrop-blur-sm lg:px-10">
-        <CommandPalette />
+      {/* Global platform chrome — command palette + theme toggle pinned to top */}
+      <div className="sticky top-0 z-40 flex items-center gap-3 border-b border-white/5 bg-zinc-950/80 px-6 py-3 backdrop-blur-sm lg:px-10">
+        <div className="flex-1">
+          <CommandPalette />
+        </div>
+        {/*
+         * ThemeToggleMenu styled for the dark zinc platform chrome.
+         * variant="ghost" + explicit zinc text so the button is visible
+         * against bg-zinc-950 without the default border/bg from "outline".
+         */}
+        <ThemeToggleMenu className="border-white/10 bg-white/5 text-zinc-400 hover:border-white/20 hover:bg-white/10 hover:text-zinc-200" />
       </div>
 
       {/* Page content */}
@@ -55,15 +65,6 @@ function ViewerBanner() {
         You&apos;re viewing live production data from the AI DevOps platform.
         Actions that modify system state are disabled.
       </p>
-
-      <a
-        href="https://github.com/imperialcoal/dw-portfolio-platform"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="ml-auto shrink-0 rounded border border-sky-500/30 px-2.5 py-1 text-[11px] font-medium text-sky-400 transition-colors hover:border-sky-400/60 hover:text-sky-300"
-      >
-        View source →
-      </a>
     </div>
   );
 }

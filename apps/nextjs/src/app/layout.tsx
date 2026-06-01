@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
 import { cn } from "@dw/ui";
-import { ThemeProvider } from "@dw/ui/theme";
+import { ThemeProvider, ThemeToggleMenu } from "@dw/ui/theme";
 import { Toaster } from "@dw/ui/toast";
 
 import { ClerkProvider } from "~/auth/client";
@@ -59,6 +59,16 @@ export default function RootLayout(props: { children: React.ReactNode }) {
         >
           <ThemeProvider>
             <TRPCReactProvider>{props.children}</TRPCReactProvider>
+            {/*
+             * Universal theme toggle — fixed bottom-right, visible on every
+             * route. Uses ThemeToggleMenu (dropdown) so Light / Dark / System
+             * options are always explicit. z-40 keeps it below modals (z-50).
+             * The platform layout renders its own inline toggle in the command
+             * palette bar — both use the same ThemeContext so state is shared.
+             */}
+            <div className="fixed right-4 bottom-4 z-40">
+              <ThemeToggleMenu />
+            </div>
             <Toaster />
           </ThemeProvider>
         </body>

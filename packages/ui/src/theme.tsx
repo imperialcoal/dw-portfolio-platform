@@ -152,22 +152,146 @@ export function useTheme() {
 }
 
 // ─────────────────────────────────────────────
-// ThemeToggle — compact single-button cycling toggle
+// ThemeIcon — the universal trigger icon
 //
-// Cycles: auto (system) → dark → light → auto
-// The sequence adapts to the user's system preference so the first
-// manual choice is always the opposite of what they're currently seeing.
-//
-// Use this in headers and nav bars where a one-click toggle is preferred.
-// The current mode is shown via icon with a smooth CSS scale transition —
-// Sun = light, Moon = dark, Desktop = system/auto.
+// A half-sun / half-moon split circle: the left half is a crescent moon,
+// the right half is a sun with rays. Immediately recognizable as a
+// "light/dark theme" control without needing a label. More distinct than
+// a standalone SunIcon, MoonIcon, or DesktopIcon in isolation.
 // ─────────────────────────────────────────────
+
+function ThemeIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 16 16"
+      fill="none"
+      className={className ?? "h-4 w-4"}
+      aria-hidden
+    >
+      {/* Left half — moon (dark) */}
+      <path
+        d="M8 2a6 6 0 0 0 0 12A6 6 0 0 1 8 2z"
+        fill="currentColor"
+        opacity="0.9"
+      />
+      {/* Right half — sun rays */}
+      <circle cx="8" cy="8" r="2.5" fill="currentColor" />
+      <line
+        x1="8"
+        y1="1"
+        x2="8"
+        y2="3"
+        stroke="currentColor"
+        strokeWidth="1.25"
+        strokeLinecap="round"
+      />
+      <line
+        x1="8"
+        y1="13"
+        x2="8"
+        y2="15"
+        stroke="currentColor"
+        strokeWidth="1.25"
+        strokeLinecap="round"
+      />
+      <line
+        x1="12.2"
+        y1="3.8"
+        x2="10.77"
+        y2="5.23"
+        stroke="currentColor"
+        strokeWidth="1.25"
+        strokeLinecap="round"
+      />
+      <line
+        x1="5.23"
+        y1="10.77"
+        x2="3.8"
+        y2="12.2"
+        stroke="currentColor"
+        strokeWidth="1.25"
+        strokeLinecap="round"
+      />
+      <line
+        x1="15"
+        y1="8"
+        x2="13"
+        y2="8"
+        stroke="currentColor"
+        strokeWidth="1.25"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
 
 const MODE_LABELS: Record<ThemeMode, string> = {
   light: "Light mode",
   dark: "Dark mode",
   auto: "System theme",
 };
+
+// ─────────────────────────────────────────────
+// ThemeToggleMenu — dropdown (primary component)
+//
+// Opens a dropdown with explicit Light / Dark / System options.
+// The trigger button shows the split sun/moon icon so users immediately
+// understand its purpose. Active mode is marked with a filled dot.
+//
+// Use this everywhere — headers, nav bars, fixed corners.
+// ─────────────────────────────────────────────
+
+export function ThemeToggleMenu({ className }: { className?: string }) {
+  const { themeMode, setTheme } = useTheme();
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label={`Theme — currently ${MODE_LABELS[themeMode]}`}
+          title="Change theme"
+          className={className}
+        >
+          <ThemeIcon />
+          <span className="sr-only">Toggle theme</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => setTheme("light")}>
+          <SunIcon className="mr-2 h-4 w-4 text-amber-500" />
+          Light
+          {themeMode === "light" && (
+            <span className="ml-auto h-1.5 w-1.5 rounded-full bg-current" />
+          )}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("dark")}>
+          <MoonIcon className="mr-2 h-4 w-4 text-indigo-400" />
+          Dark
+          {themeMode === "dark" && (
+            <span className="ml-auto h-1.5 w-1.5 rounded-full bg-current" />
+          )}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("auto")}>
+          <DesktopIcon className="mr-2 h-4 w-4 text-zinc-400" />
+          System
+          {themeMode === "auto" && (
+            <span className="ml-auto h-1.5 w-1.5 rounded-full bg-current" />
+          )}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+// ─────────────────────────────────────────────
+// ThemeToggle — compact single-button cycling toggle
+//
+// Cycles through modes on click. Use in space-constrained inline
+// contexts where a dropdown is too heavy. ThemeToggleMenu is preferred.
+// ─────────────────────────────────────────────
 
 export function ThemeToggle({ className }: { className?: string }) {
   const { themeMode, toggleMode } = useTheme();
@@ -186,79 +310,7 @@ export function ThemeToggle({ className }: { className?: string }) {
         .join(" ")
         .trim()}
     >
-      {/* Sun — light mode */}
-      <SunIcon
-        className={[
-          "absolute h-4 w-4 transition-all duration-200",
-          themeMode === "light" ? "scale-100 opacity-100" : "scale-0 opacity-0",
-        ].join(" ")}
-        aria-hidden
-      />
-      {/* Moon — dark mode */}
-      <MoonIcon
-        className={[
-          "absolute h-4 w-4 transition-all duration-200",
-          themeMode === "dark" ? "scale-100 opacity-100" : "scale-0 opacity-0",
-        ].join(" ")}
-        aria-hidden
-      />
-      {/* Desktop — system/auto */}
-      <DesktopIcon
-        className={[
-          "absolute h-4 w-4 transition-all duration-200",
-          themeMode === "auto" ? "scale-100 opacity-100" : "scale-0 opacity-0",
-        ].join(" ")}
-        aria-hidden
-      />
+      <ThemeIcon />
     </button>
-  );
-}
-
-// ─────────────────────────────────────────────
-// ThemeToggleMenu — dropdown variant
-//
-// Use this when you want explicit Light / Dark / System options
-// rather than a cycling toggle. Useful in settings panels or
-// any context where user intent should be unambiguous.
-// ─────────────────────────────────────────────
-
-export function ThemeToggleMenu({ className }: { className?: string }) {
-  const { themeMode, setTheme } = useTheme();
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="icon"
-          aria-label={`Theme — currently ${MODE_LABELS[themeMode]}`}
-          className={[
-            "[&>svg]:absolute [&>svg]:size-5 [&>svg]:scale-0",
-            className ?? "",
-          ]
-            .join(" ")
-            .trim()}
-        >
-          <SunIcon className="light:scale-100! auto:scale-0!" />
-          <MoonIcon className="auto:scale-0! dark:scale-100!" />
-          <DesktopIcon className="auto:scale-100!" />
-          <span className="sr-only">Toggle theme</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setTheme("light")}>
-          <SunIcon className="mr-2 h-4 w-4" />
-          Light
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")}>
-          <MoonIcon className="mr-2 h-4 w-4" />
-          Dark
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("auto")}>
-          <DesktopIcon className="mr-2 h-4 w-4" />
-          System
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
   );
 }
