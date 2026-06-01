@@ -1,4 +1,3 @@
-// apps/nextjs/src/app/api/platform/search/route.ts
 // Federated search — incidents, deployments, user activity, static deep-links.
 // Admin-only.
 
@@ -32,6 +31,11 @@ export interface SearchResult {
 const SUPABASE_REF = env.SUPABASE_PROJECT_REF ?? "";
 const CLERK_APP_ID = env.CLERK_APP_ID ?? "";
 const CLERK_INSTANCE_ID = env.CLERK_INSTANCE_ID ?? "";
+const VERCEL_TEAM = env.VERCEL_TEAM_ID ?? "";
+const VERCEL_PROJECT = env.VERCEL_PROJECT_ID ?? "";
+const SENTRY_ORG = env.SENTRY_ORG ?? "";
+const SENTRY_PROJECT_SLUG = env.SENTRY_PROJECT ?? "";
+const GITHUB_REPO = env.GITHUB_REPO ?? "";
 
 function clerkUrl(path: string): string {
   if (!CLERK_APP_ID || !CLERK_INSTANCE_ID) return "https://dashboard.clerk.com";
@@ -39,7 +43,24 @@ function clerkUrl(path: string): string {
 }
 
 function supabaseUrl(path: string): string {
+  if (!SUPABASE_REF) return "https://supabase.com/dashboard";
   return `https://supabase.com/dashboard/project/${SUPABASE_REF}/${path}`;
+}
+
+function vercelUrl(path: string): string {
+  const team = VERCEL_TEAM ? `${VERCEL_TEAM}/` : "";
+  const project = VERCEL_PROJECT;
+  return `https://vercel.com/${team}${project}/${path}`;
+}
+
+function sentryUrl(path: string): string {
+  if (!SENTRY_ORG) return "https://sentry.io";
+  return `https://sentry.io/organizations/${SENTRY_ORG}/${path}`;
+}
+
+function githubUrl(path: string): string {
+  const repo = GITHUB_REPO;
+  return `https://github.com/${repo}/${path}`;
 }
 
 const DEEPLINKS: SearchResult[] = [
@@ -53,18 +74,31 @@ const DEEPLINKS: SearchResult[] = [
   },
   {
     type: "deeplink",
-    id: "supabase-db-logs",
-    title: "Database Logs",
-    subtitle: "Supabase → View Postgres logs",
-    // Correct path: logs/postgres-logs (not database-logs)
-    externalHref: supabaseUrl("logs/postgres-logs"),
-  },
-  {
-    type: "deeplink",
     id: "supabase-table-editor",
     title: "Table Editor",
     subtitle: "Supabase → Browse or edit data",
     externalHref: supabaseUrl("editor"),
+  },
+  {
+    type: "deeplink",
+    id: "supabase-db-logs",
+    title: "Database Logs",
+    subtitle: "Supabase → View Postgres logs",
+    externalHref: supabaseUrl("logs/postgres-logs"),
+  },
+  {
+    type: "deeplink",
+    id: "supabase-security-advisor",
+    title: "Security Advisor",
+    subtitle: "Supabase → RLS, anon exposure, and linter checks",
+    externalHref: supabaseUrl("advisors/security"),
+  },
+  {
+    type: "deeplink",
+    id: "supabase-auth-settings",
+    title: "Auth Settings",
+    subtitle: "Supabase → JWT, providers, rate limits",
+    externalHref: supabaseUrl("auth/users"),
   },
   {
     type: "deeplink",
@@ -93,61 +127,160 @@ const DEEPLINKS: SearchResult[] = [
     type: "deeplink",
     id: "clerk-webhooks",
     title: "Clerk Webhooks",
-    subtitle: "Clerk → Debug webhook endpoints and signing secrets",
+    subtitle: "Clerk → Debug webhook deliveries and signing secrets",
     externalHref: clerkUrl("webhooks"),
   },
   {
     type: "deeplink",
     id: "clerk-audit-log",
-    title: "Clerk Audit Log",
-    subtitle: "Clerk → All authentication events",
-    externalHref: clerkUrl("logs"),
+    title: "Audit Log",
+    subtitle: "Clerk → Auth event history",
+    externalHref: clerkUrl("audit-log"),
+  },
+
+  // ── Sentry ─────────────────────────────────────────────────────────────
+  {
+    type: "deeplink",
+    id: "sentry-issues",
+    title: "Sentry Issues",
+    subtitle: "Sentry → Unresolved runtime errors",
+    externalHref: sentryUrl(`issues/?project=${SENTRY_PROJECT_SLUG}`),
   },
   {
     type: "deeplink",
-    id: "clerk-restrictions",
-    title: "Auth Restrictions",
-    subtitle: "Clerk → Sign-up/sign-in mode and restrictions",
-    externalHref: clerkUrl("user-authentication/restrictions"),
+    id: "sentry-performance",
+    title: "Sentry Performance",
+    subtitle: "Sentry → Transaction traces and slowdowns",
+    externalHref: sentryUrl(`performance/?project=${SENTRY_PROJECT_SLUG}`),
   },
   {
     type: "deeplink",
-    id: "clerk-allowlist",
-    title: "Allowlist",
-    subtitle: "Clerk → Approved sign-up emails and domains",
-    externalHref: clerkUrl("user-authentication/restrictions/allowlist"),
+    id: "sentry-alerts",
+    title: "Sentry Alerts",
+    subtitle: "Sentry → Alert rules and notification history",
+    externalHref: sentryUrl(`alerts/rules/?project=${SENTRY_PROJECT_SLUG}`),
   },
   {
     type: "deeplink",
-    id: "clerk-blocklist",
-    title: "Blocklist",
-    subtitle: "Clerk → Blocked emails and identifiers",
-    externalHref: clerkUrl("user-authentication/restrictions/blocklist"),
+    id: "sentry-releases",
+    title: "Sentry Releases",
+    subtitle: "Sentry → Deploy tracking and regression detection",
+    externalHref: sentryUrl(`releases/?project=${SENTRY_PROJECT_SLUG}`),
+  },
+
+  // ── Upstash ────────────────────────────────────────────────────────────
+  {
+    type: "deeplink",
+    id: "upstash-redis",
+    title: "Upstash Redis",
+    subtitle: "Upstash → Browse incident data, keys, and TTLs",
+    externalHref: "https://console.upstash.com/redis",
   },
   {
     type: "deeplink",
-    id: "clerk-email-templates",
-    title: "Email Templates",
-    subtitle: "Clerk → Magic link, verify, reset emails",
-    externalHref: clerkUrl("customization/email"),
+    id: "upstash-qstash",
+    title: "Upstash QStash",
+    subtitle: "Upstash → Job queue, delivery logs, and dead-letter queue",
+    externalHref: "https://console.upstash.com/qstash",
   },
 
   // ── Vercel ─────────────────────────────────────────────────────────────
   {
     type: "deeplink",
     id: "vercel-logs",
-    title: "Vercel Function Logs",
-    subtitle: "Vercel → Real-time serverless logs",
-    externalHref:
-      "https://vercel.com/imperial-coals-projects/dw-portfolio-platform/logs",
+    title: "Vercel Logs",
+    subtitle: "Vercel → Live function and edge runtime logs",
+    externalHref: vercelUrl("logs"),
+  },
+  {
+    type: "deeplink",
+    id: "vercel-deployments",
+    title: "Vercel Deployments",
+    subtitle: "Vercel → All deployments with build logs",
+    externalHref: vercelUrl("deployments"),
   },
   {
     type: "deeplink",
     id: "vercel-analytics",
     title: "Vercel Analytics",
     subtitle: "Vercel → Traffic, performance, and web vitals",
-    externalHref:
-      "https://vercel.com/imperial-coals-projects/dw-portfolio-platform/analytics",
+    externalHref: vercelUrl("analytics"),
+  },
+  {
+    type: "deeplink",
+    id: "vercel-functions",
+    title: "Vercel Functions",
+    subtitle: "Vercel → Serverless function invocations and errors",
+    externalHref: vercelUrl("functions"),
+  },
+  {
+    type: "deeplink",
+    id: "vercel-settings",
+    title: "Vercel Settings",
+    subtitle: "Vercel → Env vars, domains, and integrations",
+    externalHref: vercelUrl("settings"),
+  },
+
+  // ── GitHub ─────────────────────────────────────────────────────────────
+  {
+    type: "deeplink",
+    id: "github-issues",
+    title: "GitHub Issues",
+    subtitle: "GitHub → Platform-agent created issues",
+    externalHref: githubUrl("issues?q=label%3Aplatform-agent+is%3Aopen"),
+  },
+  {
+    type: "deeplink",
+    id: "github-actions",
+    title: "GitHub Actions",
+    subtitle: "GitHub → CI workflow runs",
+    externalHref: githubUrl("actions"),
+  },
+  {
+    type: "deeplink",
+    id: "github-security",
+    title: "GitHub Security",
+    subtitle: "GitHub → Dependabot alerts and code scanning",
+    externalHref: githubUrl("security"),
+  },
+  {
+    type: "deeplink",
+    id: "github-pulls",
+    title: "Pull Requests",
+    subtitle: "GitHub → Open PRs including Dependabot updates",
+    externalHref: githubUrl("pulls"),
+  },
+  {
+    type: "deeplink",
+    id: "github-webhooks",
+    title: "GitHub Webhooks",
+    subtitle: "GitHub → Webhook delivery history and failures",
+    externalHref: githubUrl("settings/hooks"),
+  },
+
+  // ── Resend ─────────────────────────────────────────────────────────────
+  {
+    type: "deeplink",
+    id: "resend-logs",
+    title: "Resend Email Logs",
+    subtitle: "Resend → Incident alert and contact form delivery logs",
+    externalHref: "https://resend.com/emails",
+  },
+  {
+    type: "deeplink",
+    id: "resend-domains",
+    title: "Resend Domains",
+    subtitle: "Resend → Domain verification and DNS records",
+    externalHref: "https://resend.com/domains",
+  },
+
+  // ── Doppler ────────────────────────────────────────────────────────────
+  {
+    type: "deeplink",
+    id: "doppler-secrets",
+    title: "Doppler Secrets",
+    subtitle: "Doppler → View and update environment variables",
+    externalHref: "https://dashboard.doppler.com",
   },
 
   // ── Internal platform pages ────────────────────────────────────────────
@@ -192,6 +325,13 @@ const DEEPLINKS: SearchResult[] = [
     title: "Dependencies",
     subtitle: "Platform → Dependabot PRs and security alerts",
     href: "/platform/dependencies",
+  },
+  {
+    type: "deeplink",
+    id: "platform-insights",
+    title: "AI Insights",
+    subtitle: "Platform → Pattern analysis and recommendations",
+    href: "/platform/insights",
   },
 ];
 
@@ -245,59 +385,48 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   results.push(...matchingIncidents);
 
   // 3. Deployments
-  const deployments = await fetchRecentDeployments(20).catch(() => []);
-  const matchingDeploys = deployments
+  const deploys = await fetchRecentDeployments(20).catch(() => []);
+  const matchingDeploys = deploys
     .filter(
       (d) =>
-        d.id.toLowerCase().startsWith(q) ||
-        (d.meta.githubCommitSha?.toLowerCase().startsWith(q) ?? false) ||
-        (d.meta.githubCommitMessage?.toLowerCase().includes(q) ?? false),
+        d.meta.githubCommitMessage?.toLowerCase().includes(q) ??
+        d.meta.githubCommitSha?.toLowerCase().startsWith(q) ??
+        d.meta.githubCommitAuthorName?.toLowerCase().includes(q),
     )
     .slice(0, 3)
     .map(
       (d): SearchResult => ({
         type: "deployment",
         id: d.id,
-        title: d.meta.githubCommitMessage?.slice(0, 72) ?? d.id,
-        subtitle: `${d.state} · ${d.meta.githubCommitSha?.slice(0, 7) ?? "—"} · ${d.meta.githubBranch ?? "—"}`,
+        title: d.meta.githubCommitMessage?.slice(0, 60) ?? d.id,
+        subtitle: `${d.state} · ${d.meta.githubCommitSha?.slice(0, 7) ?? ""}`,
         href: "/platform/deployments",
         timestamp: new Date(d.createdAt).toISOString(),
       }),
     );
   results.push(...matchingDeploys);
 
-  // 4. User activity
-  const activity = await getUserActivity(100).catch(() => []);
+  // 4. User activity — UserActivityRecord uses eventType, not event
+  const activity = await getUserActivity(50).catch(() => []);
   const matchingActivity = activity
     .filter(
       (a) =>
         (a.userEmail?.toLowerCase().includes(q) ?? false) ||
         a.userId.toLowerCase().includes(q) ||
-        (a.userName?.toLowerCase().includes(q) ?? false),
+        a.eventType.toLowerCase().includes(q),
     )
     .slice(0, 3)
     .map(
       (a): SearchResult => ({
         type: "user_activity",
-        id: a.id,
+        id: a.userId,
         title: a.userEmail ?? a.userId,
-        subtitle: `${a.eventType} · ${new Date(a.timestamp).toLocaleString()}`,
+        subtitle: `${a.eventType} · ${new Date(a.timestamp).toLocaleDateString()}`,
         href: "/platform/users",
         timestamp: a.timestamp,
       }),
     );
   results.push(...matchingActivity);
 
-  // 5. Clerk user profile deep-link for user IDs
-  if (q.startsWith("user_") || /^[a-z0-9_]{20,}$/.exec(q)) {
-    results.unshift({
-      type: "deeplink",
-      id: `clerk-user-${q}`,
-      title: `View in Clerk: ${q}`,
-      subtitle: "Clerk → Open user profile, check status, lock account",
-      externalHref: clerkUrl(`users/${q}`),
-    });
-  }
-
-  return NextResponse.json({ results: results.slice(0, 15) });
+  return NextResponse.json({ results: results.slice(0, 12) });
 }
