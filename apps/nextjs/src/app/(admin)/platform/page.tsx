@@ -20,18 +20,6 @@ import { RunDocsAgentButton } from "./_components/run-docs-agent-button";
 import { RunHealthCheckButton } from "./_components/run-health-check-button";
 
 // ─────────────────────────────────────────────
-// Vercel slug constants
-//
-// Vercel dashboard URLs use human-readable slugs, NOT the team_xxx / prj_xxx
-// IDs stored in VERCEL_TEAM_ID / VERCEL_PROJECT_ID (those are API-only).
-// These values are stable, non-secret, and only change if the team or project
-// is renamed in the Vercel dashboard.
-// ─────────────────────────────────────────────
-
-const VERCEL_TEAM_SLUG = "imperialcoals-projects";
-const VERCEL_PROJECT_SLUG = "dw-portfolio-platform";
-
-// ─────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────
 
@@ -140,164 +128,6 @@ function issueUrlLabel(incident: IncidentRecord): string {
     default:
       return "View Issue";
   }
-}
-
-// ─────────────────────────────────────────────
-// External service deep-link builder
-//
-// Design principle: the home page External Services section is a "jump
-// anywhere fast" escape hatch for services that have NO corresponding
-// internal platform page. Services that do have an internal page
-// (Supabase → Database Health, Clerk → User Activity) surface their
-// deep links there, in context, alongside live data. Duplicating them
-// here creates navigation confusion and dilutes the signal.
-//
-// Groups:
-//   Infrastructure  — Vercel, Upstash, Doppler (hosting + infra layer)
-//   Observability   — Sentry, GitHub CI/security (error tracking + code)
-//   Communications  — Resend, GitHub webhooks/PRs (delivery + collaboration)
-// ─────────────────────────────────────────────
-
-interface ServiceLink {
-  title: string;
-  href: string;
-  sub: string;
-}
-
-interface ServiceGroup {
-  label: string;
-  links: ServiceLink[];
-}
-
-function buildServiceGroups(config: {
-  sentryOrg: string;
-  sentryProject: string;
-  githubRepo: string;
-}): ServiceGroup[] {
-  const { sentryOrg, sentryProject, githubRepo } = config;
-
-  // Vercel: use slug-based URLs — dashboard uses human-readable names,
-  // not the team_xxx / prj_xxx IDs stored in env vars.
-  const vercel = (path: string) =>
-    `https://vercel.com/${VERCEL_TEAM_SLUG}/${VERCEL_PROJECT_SLUG}/${path}`;
-
-  const sentry = (path: string) =>
-    sentryOrg
-      ? `https://sentry.io/organizations/${sentryOrg}/${path}`
-      : "https://sentry.io";
-
-  const github = (path: string) =>
-    githubRepo
-      ? `https://github.com/${githubRepo}/${path}`
-      : "https://github.com";
-
-  return [
-    {
-      label: "Infrastructure",
-      links: [
-        {
-          title: "Vercel Logs",
-          href: vercel("logs"),
-          sub: "Runtime and function logs",
-        },
-        {
-          title: "Vercel Deployments",
-          href: vercel("deployments"),
-          sub: "All deployments with build logs",
-        },
-        {
-          title: "Vercel Analytics",
-          href: vercel("analytics"),
-          sub: "Traffic, performance, web vitals",
-        },
-        {
-          title: "Vercel Functions",
-          href: vercel("functions"),
-          sub: "Serverless invocations and errors",
-        },
-        {
-          title: "Vercel Settings",
-          href: vercel("settings"),
-          sub: "Env vars, domains, integrations",
-        },
-        {
-          title: "Upstash Redis",
-          href: "https://console.upstash.com",
-          sub: "Incident data, keys, TTLs",
-        },
-        {
-          title: "Upstash QStash",
-          href: "https://console.upstash.com/qstash",
-          sub: "Job queue and delivery logs",
-        },
-        {
-          title: "Doppler Secrets",
-          href: "https://dashboard.doppler.com",
-          sub: "Environment variables",
-        },
-      ],
-    },
-    {
-      label: "Observability",
-      links: [
-        {
-          title: "Sentry Issues",
-          href: sentry(`issues/?project=${sentryProject}`),
-          sub: "Unresolved runtime errors",
-        },
-        {
-          title: "Sentry Performance",
-          href: sentry(`performance/?project=${sentryProject}`),
-          sub: "Traces and slowdowns",
-        },
-        {
-          title: "Sentry Alerts",
-          href: sentry(`alerts/rules/?project=${sentryProject}`),
-          sub: "Alert rules and history",
-        },
-        {
-          title: "GitHub Actions",
-          href: github("actions"),
-          sub: "CI workflow runs",
-        },
-        {
-          title: "GitHub Security",
-          href: github("security"),
-          sub: "Dependabot and code scanning",
-        },
-        {
-          title: "GitHub Issues",
-          href: github("issues?q=label%3Aplatform-agent+is%3Aopen"),
-          sub: "Platform-agent created issues",
-        },
-      ],
-    },
-    {
-      label: "Communications",
-      links: [
-        {
-          title: "Resend Email Logs",
-          href: "https://resend.com/emails",
-          sub: "Incident alert delivery logs",
-        },
-        {
-          title: "Resend Domains",
-          href: "https://resend.com/domains",
-          sub: "Domain verification and DNS",
-        },
-        {
-          title: "GitHub Webhooks",
-          href: github("settings/hooks"),
-          sub: "Webhook delivery and failures",
-        },
-        {
-          title: "GitHub PRs",
-          href: github("pulls"),
-          sub: "Open PRs including Dependabot",
-        },
-      ],
-    },
-  ];
 }
 
 // ─────────────────────────────────────────────
@@ -420,10 +250,16 @@ function DeployCard({ deploy }: { deploy: VercelDeployment }) {
 }
 
 // ─────────────────────────────────────────────
-// Internal nav cards
+// Nav items
+//
+// Internal platform pages come first, followed by dedicated external service
+// pages. Each service group (Vercel, Observability, Infrastructure,
+// Communications) gets its own page with contextual live data and a quick
+// access grid — the same pattern as Database Health and User Activity.
 // ─────────────────────────────────────────────
 
 const NAV_ITEMS = [
+  // ── Internal platform pages ──────────────────────────────────────────
   {
     href: "/platform/incidents",
     label: "Incident History",
@@ -431,8 +267,8 @@ const NAV_ITEMS = [
   },
   {
     href: "/platform/deployments",
-    label: "Deployments",
-    desc: "Deploy history with incident correlation and one-click rollback",
+    label: "Deployments & Rollback",
+    desc: "Incident-correlated deploy history with one-click rollback and migration risk analysis",
   },
   {
     href: "/platform/insights",
@@ -454,7 +290,28 @@ const NAV_ITEMS = [
     label: "Database Health",
     desc: "Supabase table sizes, connections, and security advisories",
   },
-];
+  // ── External service pages ────────────────────────────────────────────
+  {
+    href: "/platform/vercel",
+    label: "Vercel Dashboard",
+    desc: "Logs, analytics, functions, domains, environment variables, and settings",
+  },
+  {
+    href: "/platform/observability",
+    label: "Observability",
+    desc: "Sentry error tracking and GitHub CI, security, and issues",
+  },
+  {
+    href: "/platform/infrastructure",
+    label: "Infrastructure",
+    desc: "Upstash Redis job queue and Doppler secrets management",
+  },
+  {
+    href: "/platform/communications",
+    label: "Communications",
+    desc: "Resend email delivery and GitHub webhooks and PRs",
+  },
+] as const;
 
 // ─────────────────────────────────────────────
 // Page
@@ -499,14 +356,6 @@ export default async function PlatformPage() {
 
   const currentEnv = env.NEXT_PUBLIC_APP_ENV;
   const docsBranch = currentEnv === "production" ? "main" : "dev";
-
-  // External service groups — only services with no internal platform page.
-  // Supabase links live on /platform/database; Clerk links on /platform/users.
-  const serviceGroups = buildServiceGroups({
-    sentryOrg: env.SENTRY_ORG ?? "",
-    sentryProject: env.SENTRY_PROJECT ?? "",
-    githubRepo: env.GITHUB_REPO ?? "",
-  });
 
   return (
     <div className="p-6 lg:p-10">
@@ -681,82 +530,38 @@ export default async function PlatformPage() {
           </div>
         )}
 
-        {/* Internal nav cards */}
-        <div>
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-            {NAV_ITEMS.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="group rounded-xl border border-white/10 bg-white/5 p-5 transition-all hover:border-white/20"
-              >
-                <p className="text-sm font-semibold text-zinc-200 transition-colors group-hover:text-white">
-                  {item.label}
-                </p>
-                <p className="mt-1 text-xs text-zinc-600">{item.desc}</p>
-              </Link>
-            ))}
+        {/* Nav grid — internal pages + external service pages */}
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+          {NAV_ITEMS.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="group rounded-xl border border-white/10 bg-white/5 p-5 transition-all hover:border-white/20"
+            >
+              <p className="text-sm font-semibold text-zinc-200 transition-colors group-hover:text-white">
+                {item.label}
+              </p>
+              <p className="mt-1 text-xs text-zinc-600">{item.desc}</p>
+            </Link>
+          ))}
 
-            {/* Documentation — manual trigger */}
-            <div className="rounded-xl border border-white/10 bg-white/5 p-5">
-              <p className="text-sm font-semibold text-zinc-200">
-                Documentation
-              </p>
-              <p className="mt-1 text-xs text-zinc-600">
-                Detect drift and append changelogs to ARCHITECTURE, OPERATIONS,
-                and PLAYBOOKS
-              </p>
-              <RunDocsAgentButton branch={docsBranch} />
-            </div>
-
-            {/* Uptime — manual trigger */}
-            <div className="rounded-xl border border-white/10 bg-white/5 p-5">
-              <p className="text-sm font-semibold text-zinc-200">Uptime</p>
-              <p className="mt-1 text-xs text-zinc-600">
-                Check production, preview, and API endpoints for availability
-              </p>
-              <RunHealthCheckButton />
-            </div>
+          {/* Documentation — manual trigger */}
+          <div className="rounded-xl border border-white/10 bg-white/5 p-5">
+            <p className="text-sm font-semibold text-zinc-200">Documentation</p>
+            <p className="mt-1 text-xs text-zinc-600">
+              Detect drift and append changelogs to ARCHITECTURE, OPERATIONS,
+              and PLAYBOOKS
+            </p>
+            <RunDocsAgentButton branch={docsBranch} />
           </div>
-        </div>
 
-        {/* External Services
-            ─────────────────────────────────────────────────────────────
-            Only services with no corresponding internal platform page live
-            here. Supabase links → /platform/database. Clerk links →
-            /platform/users. This keeps each service's deep links in
-            context, next to the live data they relate to.
-            ──────────────────────────────────────────────────────────── */}
-        <div>
-          <p className="mb-4 text-[10px] font-semibold tracking-widest text-zinc-600 uppercase">
-            External Services
-          </p>
-          <div className="space-y-4">
-            {serviceGroups.map((group) => (
-              <div key={group.label}>
-                <p className="mb-2 text-[10px] font-medium tracking-wider text-zinc-600 uppercase">
-                  {group.label}
-                </p>
-                <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-                  {group.links.map((link) => (
-                    <a
-                      key={link.href}
-                      href={link.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group rounded-lg border border-white/5 bg-white/3 p-3.5 transition-all hover:border-white/10 hover:bg-white/6"
-                    >
-                      <p className="text-xs font-medium text-zinc-300 transition-colors group-hover:text-white">
-                        {link.title}
-                      </p>
-                      <p className="mt-0.5 text-[10px] text-zinc-600">
-                        {link.sub}
-                      </p>
-                    </a>
-                  ))}
-                </div>
-              </div>
-            ))}
+          {/* Uptime — manual trigger */}
+          <div className="rounded-xl border border-white/10 bg-white/5 p-5">
+            <p className="text-sm font-semibold text-zinc-200">Uptime</p>
+            <p className="mt-1 text-xs text-zinc-600">
+              Check production, preview, and API endpoints for availability
+            </p>
+            <RunHealthCheckButton />
           </div>
         </div>
 
