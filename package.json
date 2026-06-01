@@ -42,7 +42,8 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "postinstall": "pnpm lint:ws",
-    "dw": "pnpm exec dw"
+    "dw": "pnpm exec dw",
+    "bundle-repo": "pnpm dlx repomix --style xml"
   },
   "devDependencies": {
     "@dw/cli": "workspace:*",
