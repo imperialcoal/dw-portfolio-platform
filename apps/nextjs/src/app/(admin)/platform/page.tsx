@@ -20,6 +20,18 @@ import { RunDocsAgentButton } from "./_components/run-docs-agent-button";
 import { RunHealthCheckButton } from "./_components/run-health-check-button";
 
 // ─────────────────────────────────────────────
+// Vercel slug constants
+//
+// Vercel dashboard URLs use human-readable slugs, NOT the team_xxx / prj_xxx
+// IDs stored in VERCEL_TEAM_ID / VERCEL_PROJECT_ID (those are API-only).
+// These values are stable, non-secret, and only change if the team or project
+// is renamed in the Vercel dashboard.
+// ─────────────────────────────────────────────
+
+const VERCEL_TEAM_SLUG = "imperialcoals-projects";
+const VERCEL_PROJECT_SLUG = "dw-portfolio-platform";
+
+// ─────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────
 
@@ -110,6 +122,10 @@ function issueUrlLabel(incident: IncidentRecord): string {
     case "sentry_error":
       return incident.githubIssueNumber !== undefined
         ? `GitHub Issue #${incident.githubIssueNumber}`
+        : "Sentry Issue";
+    case "clerk_event":
+      return incident.githubIssueNumber !== undefined
+        ? `GitHub Issue #${incident.githubIssueNumber}`
         : "GitHub Issue";
     case "security_alert":
       return incident.githubIssueNumber !== undefined
@@ -127,55 +143,53 @@ function issueUrlLabel(incident: IncidentRecord): string {
 }
 
 // ─────────────────────────────────────────────
-// External service deep-link helpers
+// External service deep-link builder
+//
+// Design principle: the home page External Services section is a "jump
+// anywhere fast" escape hatch for services that have NO corresponding
+// internal platform page. Services that do have an internal page
+// (Supabase → Database Health, Clerk → User Activity) surface their
+// deep links there, in context, alongside live data. Duplicating them
+// here creates navigation confusion and dilutes the signal.
+//
+// Groups:
+//   Infrastructure  — Vercel, Upstash, Doppler (hosting + infra layer)
+//   Observability   — Sentry, GitHub CI/security (error tracking + code)
+//   Communications  — Resend, GitHub webhooks/PRs (delivery + collaboration)
 // ─────────────────────────────────────────────
 
+interface ServiceLink {
+  title: string;
+  href: string;
+  sub: string;
+}
+
+interface ServiceGroup {
+  label: string;
+  links: ServiceLink[];
+}
+
 function buildServiceGroups(config: {
-  supabaseRef: string;
-  clerkAppId: string;
-  clerkInstanceId: string;
-  vercelTeam: string;
-  vercelProject: string;
   sentryOrg: string;
   sentryProject: string;
   githubRepo: string;
-}) {
-  const {
-    supabaseRef,
-    clerkAppId,
-    clerkInstanceId,
-    vercelTeam,
-    vercelProject,
-    sentryOrg,
-    sentryProject,
-    githubRepo,
-  } = config;
+}): ServiceGroup[] {
+  const { sentryOrg, sentryProject, githubRepo } = config;
 
-  const supabase = (path: string) =>
-    supabaseRef
-      ? `https://supabase.com/dashboard/project/${supabaseRef}/${path}`
-      : "https://supabase.com/dashboard";
-
-  const clerk = (path: string) =>
-    clerkAppId && clerkInstanceId
-      ? `https://dashboard.clerk.com/apps/${clerkAppId}/instances/${clerkInstanceId}/${path}`
-      : "https://dashboard.clerk.com";
-
-  const vercel = (path: string) => {
-    const team = vercelTeam ? `${vercelTeam}/` : "";
-    const project = vercelProject;
-    return `https://vercel.com/${team}${project}/${path}`;
-  };
+  // Vercel: use slug-based URLs — dashboard uses human-readable names,
+  // not the team_xxx / prj_xxx IDs stored in env vars.
+  const vercel = (path: string) =>
+    `https://vercel.com/${VERCEL_TEAM_SLUG}/${VERCEL_PROJECT_SLUG}/${path}`;
 
   const sentry = (path: string) =>
     sentryOrg
       ? `https://sentry.io/organizations/${sentryOrg}/${path}`
       : "https://sentry.io";
 
-  const github = (path: string) => {
-    const repo = githubRepo;
-    return `https://github.com/${repo}/${path}`;
-  };
+  const github = (path: string) =>
+    githubRepo
+      ? `https://github.com/${githubRepo}/${path}`
+      : "https://github.com";
 
   return [
     {
@@ -184,7 +198,7 @@ function buildServiceGroups(config: {
         {
           title: "Vercel Logs",
           href: vercel("logs"),
-          sub: "Function & edge runtime logs",
+          sub: "Runtime and function logs",
         },
         {
           title: "Vercel Deployments",
@@ -197,8 +211,18 @@ function buildServiceGroups(config: {
           sub: "Traffic, performance, web vitals",
         },
         {
+          title: "Vercel Functions",
+          href: vercel("functions"),
+          sub: "Serverless invocations and errors",
+        },
+        {
+          title: "Vercel Settings",
+          href: vercel("settings"),
+          sub: "Env vars, domains, integrations",
+        },
+        {
           title: "Upstash Redis",
-          href: "https://console.upstash.com/redis",
+          href: "https://console.upstash.com",
           sub: "Incident data, keys, TTLs",
         },
         {
@@ -244,42 +268,7 @@ function buildServiceGroups(config: {
         {
           title: "GitHub Issues",
           href: github("issues?q=label%3Aplatform-agent+is%3Aopen"),
-          sub: "Platform-agent issues",
-        },
-      ],
-    },
-    {
-      label: "Data & Auth",
-      links: [
-        {
-          title: "SQL Editor",
-          href: supabase("sql/new"),
-          sub: "Run diagnostic queries",
-        },
-        {
-          title: "Table Editor",
-          href: supabase("editor"),
-          sub: "Browse and edit data",
-        },
-        {
-          title: "Security Advisor",
-          href: supabase("advisors/security"),
-          sub: "RLS and anon exposure checks",
-        },
-        {
-          title: "Clerk Users",
-          href: clerk("users"),
-          sub: "Full user list with roles",
-        },
-        {
-          title: "Active Sessions",
-          href: clerk("sessions"),
-          sub: "View and revoke sessions",
-        },
-        {
-          title: "Clerk Webhooks",
-          href: clerk("webhooks"),
-          sub: "Webhook delivery history",
+          sub: "Platform-agent created issues",
         },
       ],
     },
@@ -287,14 +276,14 @@ function buildServiceGroups(config: {
       label: "Communications",
       links: [
         {
-          title: "Resend Logs",
+          title: "Resend Email Logs",
           href: "https://resend.com/emails",
           sub: "Incident alert delivery logs",
         },
         {
           title: "Resend Domains",
           href: "https://resend.com/domains",
-          sub: "Domain verification",
+          sub: "Domain verification and DNS",
         },
         {
           title: "GitHub Webhooks",
@@ -305,16 +294,6 @@ function buildServiceGroups(config: {
           title: "GitHub PRs",
           href: github("pulls"),
           sub: "Open PRs including Dependabot",
-        },
-        {
-          title: "Clerk Audit Log",
-          href: clerk("audit-log"),
-          sub: "Auth event history",
-        },
-        {
-          title: "Vercel Settings",
-          href: vercel("settings"),
-          sub: "Env vars, domains, integrations",
         },
       ],
     },
@@ -418,43 +397,30 @@ function ActiveIncidentRow({ incident }: { incident: IncidentRecord }) {
 
 function DeployCard({ deploy }: { deploy: VercelDeployment }) {
   const sha = deploy.meta.githubCommitSha?.slice(0, 7) ?? "unknown";
-  const msg =
-    deploy.meta.githubCommitMessage?.slice(0, 72) ??
-    deploy.meta.githubCommitMessage ??
-    deploy.id;
-  const branch = deploy.meta.githubBranch ?? deploy.target ?? "unknown";
-  const url = deploy.url
-    ? `https://${deploy.url}`
-    : `https://vercel.com/${deploy.id}`;
-
+  const msg = deploy.meta.githubCommitMessage ?? "No commit message";
+  const branch = deploy.meta.githubBranch ?? deploy.target ?? "main";
+  const deployUrl = `https://${deploy.url}`;
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
-      <p className="mb-2 text-[10px] font-semibold tracking-widest text-zinc-600 uppercase">
-        Last Production Deploy
-      </p>
-      <div className="flex items-start gap-3">
-        <code className="rounded bg-zinc-800 px-1.5 py-0.5 text-[11px] text-zinc-400">
-          {sha}
-        </code>
-        <p className="flex-1 truncate text-sm text-zinc-300">{msg}</p>
-        <div className="flex shrink-0 items-center gap-3">
-          <span className="text-xs text-zinc-600">{branch}</span>
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-zinc-500 transition-colors hover:text-zinc-300"
-          >
-            View deploy →
-          </a>
-        </div>
-      </div>
+    <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+      <span className="rounded bg-zinc-800 px-1.5 py-0.5 font-mono text-[11px] text-zinc-400">
+        {sha}
+      </span>
+      <p className="min-w-0 flex-1 truncate text-sm text-zinc-300">{msg}</p>
+      <span className="shrink-0 text-xs text-zinc-600">{branch}</span>
+      <a
+        href={deployUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="shrink-0 text-xs text-zinc-500 transition-colors hover:text-zinc-300"
+      >
+        View deploy →
+      </a>
     </div>
   );
 }
 
 // ─────────────────────────────────────────────
-// Nav items (internal platform pages)
+// Internal nav cards
 // ─────────────────────────────────────────────
 
 const NAV_ITEMS = [
@@ -488,7 +454,7 @@ const NAV_ITEMS = [
     label: "Database Health",
     desc: "Supabase table sizes, connections, and security advisories",
   },
-] as const;
+];
 
 // ─────────────────────────────────────────────
 // Page
@@ -534,12 +500,9 @@ export default async function PlatformPage() {
   const currentEnv = env.NEXT_PUBLIC_APP_ENV;
   const docsBranch = currentEnv === "production" ? "main" : "dev";
 
+  // External service groups — only services with no internal platform page.
+  // Supabase links live on /platform/database; Clerk links on /platform/users.
   const serviceGroups = buildServiceGroups({
-    supabaseRef: env.SUPABASE_PROJECT_REF ?? "",
-    clerkAppId: env.CLERK_APP_ID ?? "",
-    clerkInstanceId: env.CLERK_INSTANCE_ID ?? "",
-    vercelTeam: env.VERCEL_TEAM_ID ?? "",
-    vercelProject: env.VERCEL_PROJECT_ID ?? "",
     sentryOrg: env.SENTRY_ORG ?? "",
     sentryProject: env.SENTRY_PROJECT ?? "",
     githubRepo: env.GITHUB_REPO ?? "",
@@ -564,35 +527,34 @@ export default async function PlatformPage() {
             <StatusDot severity={health.recentSeverity} />
             {health.recentSeverity === "healthy"
               ? "All systems healthy"
-              : `${health.recentSeverity.toUpperCase()} severity active`}
+              : `${health.recentSeverity} severity`}
           </div>
         </div>
 
-        {/* Stats */}
+        {/* Incident status summary */}
         <div>
           <p className="mb-3 text-[10px] font-semibold tracking-widest text-zinc-600 uppercase">
             Incident Status
           </p>
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <StatCard
               label="Active"
               value={activeIncidents.length}
               sub="open + investigating"
               severity={
-                activeIncidents.length === 0 ? "healthy" : health.recentSeverity
+                activeIncidents.length > 0 ? health.recentSeverity : undefined
               }
             />
             <StatCard
               label="Monitoring"
               value={monitoringIncidents.length}
               sub="watching for recurrence"
-              severity={monitoringIncidents.length > 0 ? "medium" : "healthy"}
+              severity={monitoringIncidents.length > 0 ? "medium" : undefined}
             />
             <StatCard
               label="Resolved (30d)"
               value={resolvedIncidents.length}
               sub="resolved + closed"
-              severity="healthy"
             />
             <StatCard
               label="Last Deploy"
@@ -604,22 +566,21 @@ export default async function PlatformPage() {
 
         {/* Alert banners */}
         {activeSecurityAlerts.length > 0 && (
-          <div className="flex items-center gap-3 rounded-xl border border-purple-500/20 bg-purple-500/5 px-4 py-3">
+          <div className="flex items-center gap-3 rounded-xl border border-orange-500/20 bg-orange-500/5 px-4 py-3">
             <span className="relative flex h-2.5 w-2.5 shrink-0">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-purple-400 opacity-50" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-purple-400" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-50" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-orange-400" />
             </span>
-            <p className="text-sm font-medium text-purple-300">
-              {activeSecurityAlerts.length} active security{" "}
-              {activeSecurityAlerts.length === 1
-                ? "vulnerability"
-                : "vulnerabilities"}
+            <p className="text-sm font-medium text-orange-300">
+              {activeSecurityAlerts.length} security{" "}
+              {activeSecurityAlerts.length === 1 ? "alert" : "alerts"} require
+              attention
             </p>
             <Link
-              href="/platform/incidents"
-              className="ml-auto text-xs text-purple-400 transition-colors hover:text-purple-200"
+              href="/platform/dependencies"
+              className="ml-auto text-xs text-orange-400 transition-colors hover:text-orange-200"
             >
-              View →
+              View dependencies →
             </Link>
           </div>
         )}
@@ -631,7 +592,7 @@ export default async function PlatformPage() {
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-orange-400" />
             </span>
             <p className="text-sm font-medium text-orange-300">
-              {activeAuthAlerts.length} auth security{" "}
+              {activeAuthAlerts.length} auth{" "}
               {activeAuthAlerts.length === 1 ? "signal" : "signals"} — possible
               brute force
             </p>
@@ -685,7 +646,7 @@ export default async function PlatformPage() {
             </Link>
           </div>
           {activeIncidents.length === 0 ? (
-            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-6 text-center">
+            <div className="rounded-xl border border-white/5 bg-white/3 px-5 py-8 text-center">
               <p className="text-sm font-medium text-emerald-400">
                 No active incidents
               </p>
@@ -696,11 +657,8 @@ export default async function PlatformPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {activeIncidents.slice(0, 5).map((incident) => (
-                <ActiveIncidentRow
-                  key={`${incident.type}-${incident.id}`}
-                  incident={incident}
-                />
+              {activeIncidents.map((incident) => (
+                <ActiveIncidentRow key={incident.id} incident={incident} />
               ))}
             </div>
           )}
@@ -709,59 +667,66 @@ export default async function PlatformPage() {
         {/* Monitoring */}
         {monitoringIncidents.length > 0 && (
           <div>
-            <h2 className="mb-4 text-sm font-semibold tracking-widest text-zinc-500 uppercase">
+            <p className="mb-3 text-[10px] font-semibold tracking-widest text-zinc-600 uppercase">
               Monitoring
-              <span className="ml-2 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs text-blue-400">
+              <span className="ml-2 rounded-full bg-blue-500/10 px-1.5 py-0.5 text-blue-400">
                 {monitoringIncidents.length}
               </span>
-            </h2>
+            </p>
             <div className="space-y-3">
               {monitoringIncidents.map((incident) => (
-                <ActiveIncidentRow
-                  key={`${incident.type}-${incident.id}`}
-                  incident={incident}
-                />
+                <ActiveIncidentRow key={incident.id} incident={incident} />
               ))}
             </div>
           </div>
         )}
 
-        {/* Internal platform nav grid */}
-        <div className="grid grid-cols-2 gap-4 pt-2 lg:grid-cols-3">
-          {NAV_ITEMS.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="group rounded-xl border border-white/10 bg-white/5 p-5 transition-all hover:border-white/20"
-            >
-              <p className="text-sm font-semibold text-zinc-200 transition-colors group-hover:text-white">
-                {item.label}
+        {/* Internal nav cards */}
+        <div>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+            {NAV_ITEMS.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="group rounded-xl border border-white/10 bg-white/5 p-5 transition-all hover:border-white/20"
+              >
+                <p className="text-sm font-semibold text-zinc-200 transition-colors group-hover:text-white">
+                  {item.label}
+                </p>
+                <p className="mt-1 text-xs text-zinc-600">{item.desc}</p>
+              </Link>
+            ))}
+
+            {/* Documentation — manual trigger */}
+            <div className="rounded-xl border border-white/10 bg-white/5 p-5">
+              <p className="text-sm font-semibold text-zinc-200">
+                Documentation
               </p>
-              <p className="mt-1 text-xs text-zinc-600">{item.desc}</p>
-            </Link>
-          ))}
+              <p className="mt-1 text-xs text-zinc-600">
+                Detect drift and append changelogs to ARCHITECTURE, OPERATIONS,
+                and PLAYBOOKS
+              </p>
+              <RunDocsAgentButton branch={docsBranch} />
+            </div>
 
-          {/* Documentation — manual trigger */}
-          <div className="rounded-xl border border-white/10 bg-white/5 p-5">
-            <p className="text-sm font-semibold text-zinc-200">Documentation</p>
-            <p className="mt-1 text-xs text-zinc-600">
-              Detect drift and append changelogs to ARCHITECTURE, OPERATIONS,
-              and PLAYBOOKS
-            </p>
-            <RunDocsAgentButton branch={docsBranch} />
-          </div>
-
-          {/* Uptime — manual trigger */}
-          <div className="rounded-xl border border-white/10 bg-white/5 p-5">
-            <p className="text-sm font-semibold text-zinc-200">Uptime</p>
-            <p className="mt-1 text-xs text-zinc-600">
-              Check production, preview, and API endpoints for availability
-            </p>
-            <RunHealthCheckButton />
+            {/* Uptime — manual trigger */}
+            <div className="rounded-xl border border-white/10 bg-white/5 p-5">
+              <p className="text-sm font-semibold text-zinc-200">Uptime</p>
+              <p className="mt-1 text-xs text-zinc-600">
+                Check production, preview, and API endpoints for availability
+              </p>
+              <RunHealthCheckButton />
+            </div>
           </div>
         </div>
 
-        {/* External Services */}
+        {/* External Services
+            ─────────────────────────────────────────────────────────────
+            Only services with no corresponding internal platform page live
+            here. Supabase links → /platform/database. Clerk links →
+            /platform/users. This keeps each service's deep links in
+            context, next to the live data they relate to.
+            ──────────────────────────────────────────────────────────── */}
         <div>
           <p className="mb-4 text-[10px] font-semibold tracking-widest text-zinc-600 uppercase">
             External Services
@@ -772,7 +737,7 @@ export default async function PlatformPage() {
                 <p className="mb-2 text-[10px] font-medium tracking-wider text-zinc-600 uppercase">
                   {group.label}
                 </p>
-                <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
+                <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
                   {group.links.map((link) => (
                     <a
                       key={link.href}
@@ -795,7 +760,7 @@ export default async function PlatformPage() {
           </div>
         </div>
 
-        {/* Maintenance Mode */}
+        {/* Operations */}
         <div>
           <p className="mb-3 text-[10px] font-semibold tracking-widest text-zinc-600 uppercase">
             Operations
