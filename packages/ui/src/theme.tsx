@@ -151,8 +151,79 @@ export function useTheme() {
   return context;
 }
 
-export function ThemeToggle() {
-  const { setTheme } = useTheme();
+// ─────────────────────────────────────────────
+// ThemeToggle — compact single-button cycling toggle
+//
+// Cycles: auto (system) → dark → light → auto
+// The sequence adapts to the user's system preference so the first
+// manual choice is always the opposite of what they're currently seeing.
+//
+// Use this in headers and nav bars where a one-click toggle is preferred.
+// The current mode is shown via icon with a smooth CSS scale transition —
+// Sun = light, Moon = dark, Desktop = system/auto.
+// ─────────────────────────────────────────────
+
+const MODE_LABELS: Record<ThemeMode, string> = {
+  light: "Light mode",
+  dark: "Dark mode",
+  auto: "System theme",
+};
+
+export function ThemeToggle({ className }: { className?: string }) {
+  const { themeMode, toggleMode } = useTheme();
+
+  return (
+    <button
+      onClick={toggleMode}
+      aria-label={`Switch theme — currently ${MODE_LABELS[themeMode]}`}
+      title={MODE_LABELS[themeMode]}
+      className={[
+        "relative flex h-8 w-8 items-center justify-center rounded-md",
+        "text-muted-foreground hover:text-foreground hover:bg-accent",
+        "focus-visible:ring-ring transition-colors focus-visible:ring-2 focus-visible:outline-none",
+        className ?? "",
+      ]
+        .join(" ")
+        .trim()}
+    >
+      {/* Sun — light mode */}
+      <SunIcon
+        className={[
+          "absolute h-4 w-4 transition-all duration-200",
+          themeMode === "light" ? "scale-100 opacity-100" : "scale-0 opacity-0",
+        ].join(" ")}
+        aria-hidden
+      />
+      {/* Moon — dark mode */}
+      <MoonIcon
+        className={[
+          "absolute h-4 w-4 transition-all duration-200",
+          themeMode === "dark" ? "scale-100 opacity-100" : "scale-0 opacity-0",
+        ].join(" ")}
+        aria-hidden
+      />
+      {/* Desktop — system/auto */}
+      <DesktopIcon
+        className={[
+          "absolute h-4 w-4 transition-all duration-200",
+          themeMode === "auto" ? "scale-100 opacity-100" : "scale-0 opacity-0",
+        ].join(" ")}
+        aria-hidden
+      />
+    </button>
+  );
+}
+
+// ─────────────────────────────────────────────
+// ThemeToggleMenu — dropdown variant
+//
+// Use this when you want explicit Light / Dark / System options
+// rather than a cycling toggle. Useful in settings panels or
+// any context where user intent should be unambiguous.
+// ─────────────────────────────────────────────
+
+export function ThemeToggleMenu({ className }: { className?: string }) {
+  const { themeMode, setTheme } = useTheme();
 
   return (
     <DropdownMenu>
@@ -160,7 +231,13 @@ export function ThemeToggle() {
         <Button
           variant="outline"
           size="icon"
-          className="[&>svg]:absolute [&>svg]:size-5 [&>svg]:scale-0"
+          aria-label={`Theme — currently ${MODE_LABELS[themeMode]}`}
+          className={[
+            "[&>svg]:absolute [&>svg]:size-5 [&>svg]:scale-0",
+            className ?? "",
+          ]
+            .join(" ")
+            .trim()}
         >
           <SunIcon className="light:scale-100! auto:scale-0!" />
           <MoonIcon className="auto:scale-0! dark:scale-100!" />
@@ -170,12 +247,15 @@ export function ThemeToggle() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={() => setTheme("light")}>
+          <SunIcon className="mr-2 h-4 w-4" />
           Light
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme("dark")}>
+          <MoonIcon className="mr-2 h-4 w-4" />
           Dark
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme("auto")}>
+          <DesktopIcon className="mr-2 h-4 w-4" />
           System
         </DropdownMenuItem>
       </DropdownMenuContent>
