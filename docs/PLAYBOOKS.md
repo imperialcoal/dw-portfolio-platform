@@ -333,8 +333,10 @@ If a third-party service is down, the platform degrades gracefully:
 
 ---
 
-## Documentation Drift — 2026-04-03
+---
+
+## Documentation Drift — 2026-06-02
 
 > Auto-detected by platform-agent · Review and update the sections above · Remove this block when resolved
 
-• New AI agent `deps` discovered without response playbook → Add **7. Dependencies Agent Failures** section to **Common Failure Scenarios** → Include troubleshooting steps for deps-agent.ts analysis failures, dependency scanning errors, and vulnerability detection issues
+• New agent `deps` detected without response playbook → Add new subsection under "Common Failure Scenarios" → Create "7. Dependencies Agent Failures" with troubleshooting steps for `platform/ai/src/analyzers/deps-agent.ts`
