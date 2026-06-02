@@ -397,26 +397,32 @@ sequenceDiagram
 
 ---
 
-## Documentation Drift — 2026-04-03
+---
+
+## Documentation Drift — 2026-06-02
 
 > Auto-detected by platform-agent · Review and update the sections above · Remove this block when resolved
 
-• New cron job endpoint `/api/cron/docs-agent` added → Update **External Integrations** section → Add documentation agent automation endpoint details
+• New cron API routes added → **External Integrations** section → Add `/api/cron/docs-agent`, `/api/cron/health-check`, `/api/cron/perf-baseline` endpoints with their automation purposes
 
-• New dependency analysis endpoint `/api/platform/deps/analyze` added → Update **System Architecture Diagram** section → Add dependency analysis service endpoint
+• New platform advisory sync endpoint → **External Integrations** section → Add `/api/platform/advisories/sync` route for security advisory synchronization
 
-• New dependency merge endpoint `/api/platform/deps/merge` added → Update **System Architecture Diagram** section → Add dependency merge service endpoint
+• New dependency management API suite → **Primary Data Flow** section → Add `/api/platform/deps`, `/api/platform/deps/analyze`, `/api/platform/deps/merge` endpoints for dependency analysis workflow
 
-• New dependency management endpoint `/api/platform/deps` added → Update **System Architecture Diagram** section → Add main dependency management endpoint
+• New platform documentation trigger → **External Integrations** section → Add `/api/platform/docs/trigger` endpoint for automated documentation updates
 
-• New documentation trigger endpoint `/api/platform/docs/trigger` added → Update **External Integrations** section → Add documentation generation trigger endpoint
+• New health check trigger endpoint → **System Architecture Diagram** section → Add `/api/platform/health-check/trigger` to monitoring components
 
-• New incident resolution endpoint `/api/platform/incidents/[id]/resolve` added → Update **Primary Data Flow** section → Add incident management resolution flow
+• New incident resolution API → **Primary Data Flow** section → Add `/api/platform/incidents/[id]/resolve` endpoint to incident management workflow
 
-• New rollback execution endpoint `/api/platform/rollback/execute` added → Update **System Architecture Diagram** section → Add deployment rollback execution endpoint
+• New maintenance mode endpoint → **System Architecture Diagram** section → Add `/api/platform/maintenance` route to operational controls
 
-• New rollback preflight endpoint `/api/platform/rollback/preflight` added → Update **System Architecture Diagram** section → Add rollback validation endpoint
+• New rollback API suite → **Primary Data Flow** section → Add `/api/platform/rollback/execute` and `/api/platform/rollback/preflight` endpoints to deployment workflow
 
-• New tRPC handler endpoint `/api/trpc/[trpc]` added → Update **Tech Stack** section → Add tRPC API layer configuration
+• New platform search endpoint → **Primary Data Flow** section → Add `/api/platform/search` route to data query flows
 
-• New Clerk webhook endpoint `/api/webhooks/clerk` added → Update **External Integrations** section → Add Clerk authentication webhook handler
+• New error testing endpoint → **External Integrations** section → Add `/api/test-sentry-error` route for Sentry integration testing
+
+• TRPC API integration → **Tech Stack** section → Add tRPC mention and `/api/trpc/[trpc]` endpoint reference
+
+• Clerk webhook integration → **External Integrations** section → Add `/api/webhooks/clerk` endpoint for authentication event handling
