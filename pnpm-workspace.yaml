@@ -9,10 +9,10 @@ packages:
   - platform/testing
 
 allowBuilds:
-  '@clerk/shared': set this to true or false
-  '@sentry/cli': set this to true or false
-  esbuild: set this to true or false
-  sharp: set this to true or false
+  '@clerk/shared': true
+  '@sentry/cli': true
+  esbuild: true
+  sharp: true
 
 catalog:
   '@clerk/backend': ^3.4.12
