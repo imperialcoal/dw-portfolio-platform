@@ -2,8 +2,10 @@ import Link from "next/link";
 
 import { cn } from "@dw/ui";
 
+import { ContactForm } from "./contact-form";
+
 // ─────────────────────────────────────────────
-// Tech stack data
+// Data
 // ─────────────────────────────────────────────
 
 const STACK = [
@@ -84,6 +86,12 @@ export function HomeContent() {
           DW Portfolio
         </span>
         <div className="flex items-center gap-4">
+          <Link
+            href="/admin"
+            className="text-muted-foreground hover:text-foreground text-xs transition-colors"
+          >
+            Auth Demo →
+          </Link>
           <a
             href="https://github.com/imperialcoal/dw-portfolio-platform"
             target="_blank"
@@ -130,6 +138,12 @@ export function HomeContent() {
             className="bg-foreground text-background rounded-lg px-5 py-2.5 text-sm font-medium transition-opacity hover:opacity-80"
           >
             Open Dashboard
+          </Link>
+          <Link
+            href="/admin"
+            className="border-border bg-muted/40 text-foreground hover:bg-muted/70 rounded-lg border px-5 py-2.5 text-sm font-medium transition-colors"
+          >
+            Auth Demo
           </Link>
           <a
             href="https://github.com/imperialcoal/dw-portfolio-platform"
@@ -186,22 +200,21 @@ export function HomeContent() {
         </div>
       </section>
 
-      {/* CTA */}
+      {/* Contact — Resend showcase */}
       <section className="border-border border-t">
-        <div className="mx-auto max-w-2xl px-6 py-16 text-center lg:px-10">
-          <h2 className="text-foreground text-2xl font-bold tracking-tight">
-            Ready to explore?
-          </h2>
-          <p className="text-muted-foreground mt-3">
-            The platform dashboard is live with real incident data, deployment
-            history, and AI-generated analysis. No setup required.
-          </p>
-          <Link
-            href="/platform"
-            className="bg-foreground text-background mt-6 inline-flex rounded-lg px-6 py-2.5 text-sm font-medium transition-opacity hover:opacity-80"
-          >
-            Open Platform Dashboard →
-          </Link>
+        <div className="mx-auto max-w-xl px-6 py-16 lg:px-10">
+          <div className="mb-8 text-center">
+            <h2 className="text-foreground text-2xl font-bold tracking-tight">
+              Get in touch
+            </h2>
+            <p className="text-muted-foreground mt-3 text-sm">
+              Interested in the project? This form sends via{" "}
+              <span className="text-foreground font-medium">Resend</span> —
+              transactional email is one of the live services powering this
+              platform.
+            </p>
+          </div>
+          <ContactForm />
         </div>
       </section>
     </div>
