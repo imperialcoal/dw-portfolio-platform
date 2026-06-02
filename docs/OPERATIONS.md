@@ -410,21 +410,31 @@ All secrets are stored in **Doppler** under project `dw-portfolio-platform`.
 
 ---
 
-## Documentation Drift — 2026-04-03
+---
+
+## Documentation Drift — 2026-06-02
 
 > Auto-detected by platform-agent · Review and update the sections above · Remove this block when resolved
 
-• Route `/api/cron/docs-agent` added → update **Cron Jobs** section → document cron endpoint for documentation agent automation
-• Route `/api/platform/deps/analyze` added → update **API Endpoints** section → document dependency analysis endpoint for platform management
-• Route `/api/platform/deps/merge` added → update **API Endpoints** section → document dependency merge endpoint for platform management
-• Route `/api/platform/deps` added → update **API Endpoints** section → document main dependency management endpoint
-• Route `/api/platform/docs/trigger` added → update **API Endpoints** section → document documentation trigger endpoint for manual doc generation
-• Route `/api/platform/incidents/[id]/resolve` added → update **API Endpoints** section → document incident resolution endpoint with ID parameter
-• Route `/api/platform/rollback/execute` added → update **API Endpoints** section → document rollback execution endpoint for deployment reversals
-• Route `/api/platform/rollback/preflight` added → update **API Endpoints** section → document rollback preflight check endpoint
-• Route `/api/trpc/[trpc]` added → update **API Endpoints** section → document tRPC API handler endpoint
-• Environment variable `CRON_SECRET` added → update **Environment Variables > Core Application** section → add CRON_SECRET for authenticating cron job requests
-• Environment variable `VERCEL_TEAM_ID` added → update **Environment Variables > Observability (Sentry + Vercel API)** section → add VERCEL_TEAM_ID for Vercel API team identification
-• Webhook `/api/webhooks/clerk` added → update **Webhooks** section → document Clerk authentication webhook handler
-• Webhook `/api/webhooks/github` added → update **Webhooks** section → document GitHub integration webhook handler
-• Webhook `/api/webhooks/sentry` added → update **Webhooks** section → document Sentry error tracking webhook handler
+• Added cron route `/api/cron/docs-agent` → Update "Build and Deployment Pipeline" section → Add docs agent automated scheduling details
+• Added cron route `/api/cron/health-check` → Update "Build and Deployment Pipeline" section → Add health check cron schedule and monitoring
+• Added cron route `/api/cron/perf-baseline` → Update "Build and Deployment Pipeline" section → Add performance baseline collection schedule
+• Added platform route `/api/platform/advisories/sync` → Update "Infrastructure Overview" section → Add security advisory synchronization endpoint
+• Added platform route `/api/platform/deps/analyze` → Update "Infrastructure Overview" section → Add dependency analysis endpoint
+• Added platform route `/api/platform/deps/merge` → Update "Infrastructure Overview" section → Add dependency merge endpoint
+• Added platform route `/api/platform/deps` → Update "Infrastructure Overview" section → Add dependency management endpoint
+• Added platform route `/api/platform/docs/trigger` → Update "Infrastructure Overview" section → Add documentation trigger endpoint
+• Added platform route `/api/platform/health-check/trigger` → Update "Infrastructure Overview" section → Add manual health check trigger
+• Added platform route `/api/platform/incidents/[id]/resolve` → Update "Infrastructure Overview" section → Add incident resolution endpoint
+• Added platform route `/api/platform/maintenance` → Update "Infrastructure Overview" section → Add maintenance mode management
+• Added platform route `/api/platform/rollback/execute` → Update "Infrastructure Overview" section → Add rollback execution endpoint
+• Added platform route `/api/platform/rollback/preflight` → Update "Infrastructure Overview" section → Add rollback preflight checks
+• Added platform route `/api/platform/search` → Update "Infrastructure Overview" section → Add platform search functionality
+• Added test route `/api/test-sentry-error` → Update "Infrastructure Overview" section → Add Sentry error testing endpoint
+• Added tRPC route `/api/trpc/[trpc]` → Update "Infrastructure Overview" section → Add tRPC API handler documentation
+• Added webhook `/api/webhooks/clerk` → Update "Infrastructure Overview" section → Add Clerk authentication webhook handler
+• Added webhook `/api/webhooks/github` → Update "Infrastructure Overview" section → Add GitHub webhook integration
+• Added webhook `/api/webhooks/sentry` → Update "Infrastructure Overview" section → Add Sentry webhook handler
+• Added environment variables `CLERK_APP_ID`, `CLERK_INSTANCE_ID` → Update "Authentication (Clerk)" section → Add required Clerk configuration variables
+• Added environment variable `CRON_SECRET` → Update "Build and Deployment Pipeline" section → Add cron job authentication secret
+• Added environment variables `VERCEL_TEAM_ID`, `VERCEL_DOMAIN` → Update "Observability (Sentry + Vercel API)" section → Add Vercel integration configuration
