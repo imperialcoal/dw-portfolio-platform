@@ -1,10 +1,4 @@
 // apps/nextjs/src/app/(admin)/platform/infrastructure/page.tsx
-//
-// Infrastructure service page — Upstash Redis (incident storage), Upstash
-// QStash (job queue), and Doppler (secrets management).
-//
-// No live data fetch — all links open external dashboards directly.
-
 import Link from "next/link";
 
 const UPSTASH_LINKS = [
@@ -67,20 +61,19 @@ export default function InfrastructurePage() {
   return (
     <div className="p-6 lg:p-10">
       <div className="mx-auto max-w-5xl space-y-8">
-        {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4">
             <Link
               href="/platform"
-              className="text-xs text-zinc-600 transition-colors hover:text-zinc-400"
+              className="text-muted-foreground hover:text-foreground text-xs transition-colors"
             >
               ← Platform
             </Link>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-white">
+              <h1 className="text-foreground text-2xl font-bold tracking-tight">
                 Infrastructure
               </h1>
-              <p className="mt-0.5 text-sm text-zinc-500">
+              <p className="text-muted-foreground mt-0.5 text-sm">
                 Upstash Redis · Upstash QStash · Doppler
               </p>
             </div>
@@ -90,7 +83,7 @@ export default function InfrastructurePage() {
               href="https://console.upstash.com/redis"
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:text-zinc-200"
+              className="border-border bg-muted/40 text-muted-foreground hover:text-foreground rounded border px-3 py-1.5 text-xs transition-colors"
             >
               Upstash Redis →
             </a>
@@ -98,16 +91,15 @@ export default function InfrastructurePage() {
               href="https://console.upstash.com/qstash"
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:text-zinc-200"
+              className="border-border bg-muted/40 text-muted-foreground hover:text-foreground rounded border px-3 py-1.5 text-xs transition-colors"
             >
               QStash →
             </a>
           </div>
         </div>
 
-        {/* Context */}
-        <div className="rounded-xl border border-white/10 bg-white/5 px-5 py-4">
-          <p className="text-sm text-zinc-400">
+        <div className="border-border bg-muted/40 rounded-xl border px-5 py-4">
+          <p className="text-muted-foreground text-sm">
             Upstash Redis stores all incident records, user activity, and
             performance baselines with a 30-day TTL. QStash is the job queue
             that delivers webhook payloads to the AI agent processors with
@@ -116,25 +108,24 @@ export default function InfrastructurePage() {
           </p>
           <div className="mt-3 grid grid-cols-3 gap-4 text-xs">
             <div>
-              <p className="text-zinc-600">Redis TTL</p>
-              <p className="mt-0.5 font-medium text-zinc-400">30 days</p>
+              <p className="text-muted-foreground">Redis TTL</p>
+              <p className="text-foreground mt-0.5 font-medium">30 days</p>
             </div>
             <div>
-              <p className="text-zinc-600">QStash retries</p>
-              <p className="mt-0.5 font-medium text-zinc-400">3 attempts</p>
+              <p className="text-muted-foreground">QStash retries</p>
+              <p className="text-foreground mt-0.5 font-medium">3 attempts</p>
             </div>
             <div>
-              <p className="text-zinc-600">Secrets source</p>
-              <p className="mt-0.5 font-medium text-zinc-400">
+              <p className="text-muted-foreground">Secrets source</p>
+              <p className="text-foreground mt-0.5 font-medium">
                 Doppler → Vercel
               </p>
             </div>
           </div>
         </div>
 
-        {/* Upstash quick access */}
         <div>
-          <h2 className="mb-3 text-[10px] font-semibold tracking-widest text-zinc-600 uppercase">
+          <h2 className="text-muted-foreground mb-3 text-[10px] font-semibold tracking-widest uppercase">
             Upstash Quick Access
           </h2>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
@@ -144,20 +135,21 @@ export default function InfrastructurePage() {
                 href={link.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-xl border border-white/10 bg-white/5 p-4 transition-colors hover:border-white/20 hover:bg-white/10"
+                className="border-border bg-muted/40 hover:bg-muted/60 rounded-xl border p-4 transition-colors"
               >
-                <p className="text-sm font-medium text-zinc-200">
+                <p className="text-foreground text-sm font-medium">
                   {link.label}
                 </p>
-                <p className="mt-0.5 text-xs text-zinc-600">{link.desc}</p>
+                <p className="text-muted-foreground mt-0.5 text-xs">
+                  {link.desc}
+                </p>
               </a>
             ))}
           </div>
         </div>
 
-        {/* Doppler quick access */}
         <div>
-          <h2 className="mb-3 text-[10px] font-semibold tracking-widest text-zinc-600 uppercase">
+          <h2 className="text-muted-foreground mb-3 text-[10px] font-semibold tracking-widest uppercase">
             Doppler Quick Access
           </h2>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -167,12 +159,14 @@ export default function InfrastructurePage() {
                 href={link.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-xl border border-white/10 bg-white/5 p-4 transition-colors hover:border-white/20 hover:bg-white/10"
+                className="border-border bg-muted/40 hover:bg-muted/60 rounded-xl border p-4 transition-colors"
               >
-                <p className="text-sm font-medium text-zinc-200">
+                <p className="text-foreground text-sm font-medium">
                   {link.label}
                 </p>
-                <p className="mt-0.5 text-xs text-zinc-600">{link.desc}</p>
+                <p className="text-muted-foreground mt-0.5 text-xs">
+                  {link.desc}
+                </p>
               </a>
             ))}
           </div>

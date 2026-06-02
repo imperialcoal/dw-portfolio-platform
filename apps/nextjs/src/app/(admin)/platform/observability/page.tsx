@@ -1,38 +1,21 @@
 // apps/nextjs/src/app/(admin)/platform/observability/page.tsx
-//
-// Observability service page — Sentry error tracking and GitHub CI, security,
-// and issue management. No live data fetch; all links open external dashboards.
-//
-// Follows the same pattern as /platform/database and /platform/users:
-// contextual summary at the top, quick access grid at the bottom.
-
 import Link from "next/link";
 
 import { env } from "~/env";
 
-// ─────────────────────────────────────────────
-// URL builders
-// ─────────────────────────────────────────────
-
-function sentryUrl(path: string, org: string): string {
-  if (!org) return "https://sentry.io";
-  return `https://sentry.io/organizations/${org}/${path}`;
+function sentryUrl(path: string, org: string) {
+  return org
+    ? `https://sentry.io/organizations/${org}/${path}`
+    : "https://sentry.io";
 }
-
-function githubUrl(path: string, repo: string): string {
-  if (!repo) return "https://github.com";
-  return `https://github.com/${repo}/${path}`;
+function githubUrl(path: string, repo: string) {
+  return repo ? `https://github.com/${repo}/${path}` : "https://github.com";
 }
-
-// ─────────────────────────────────────────────
-// Page
-// ─────────────────────────────────────────────
 
 export default function ObservabilityPage() {
   const sentryOrg = env.SENTRY_ORG ?? "";
   const sentryProject = env.SENTRY_PROJECT ?? "";
   const githubRepo = env.GITHUB_REPO ?? "";
-
   const sentry = (path: string) => sentryUrl(path, sentryOrg);
   const github = (path: string) => githubUrl(path, githubRepo);
 
@@ -105,20 +88,19 @@ export default function ObservabilityPage() {
   return (
     <div className="p-6 lg:p-10">
       <div className="mx-auto max-w-5xl space-y-8">
-        {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4">
             <Link
               href="/platform"
-              className="text-xs text-zinc-600 transition-colors hover:text-zinc-400"
+              className="text-muted-foreground hover:text-foreground text-xs transition-colors"
             >
               ← Platform
             </Link>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-white">
+              <h1 className="text-foreground text-2xl font-bold tracking-tight">
                 Observability
               </h1>
-              <p className="mt-0.5 text-sm text-zinc-500">
+              <p className="text-muted-foreground mt-0.5 text-sm">
                 Sentry error tracking · GitHub CI and security
               </p>
             </div>
@@ -128,7 +110,7 @@ export default function ObservabilityPage() {
               href={sentry(`issues/?project=${sentryProject}`)}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:text-zinc-200"
+              className="border-border bg-muted/40 text-muted-foreground hover:text-foreground rounded border px-3 py-1.5 text-xs transition-colors"
             >
               Sentry Issues →
             </a>
@@ -136,46 +118,44 @@ export default function ObservabilityPage() {
               href={github("actions")}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:text-zinc-200"
+              className="border-border bg-muted/40 text-muted-foreground hover:text-foreground rounded border px-3 py-1.5 text-xs transition-colors"
             >
               GitHub Actions →
             </a>
           </div>
         </div>
 
-        {/* Context */}
-        <div className="rounded-xl border border-white/10 bg-white/5 px-5 py-4">
-          <p className="text-sm text-zinc-400">
+        <div className="border-border bg-muted/40 rounded-xl border px-5 py-4">
+          <p className="text-muted-foreground text-sm">
             Sentry captures runtime errors, performance traces, and session
             replays from the Next.js application. GitHub Actions runs CI on
             every push; Dependabot monitors all dependencies for security
             vulnerabilities and automatically opens PRs for fixes.
           </p>
-          <div className="mt-3 flex flex-wrap gap-4 text-xs text-zinc-600">
+          <div className="text-muted-foreground mt-3 flex flex-wrap gap-4 text-xs">
             <span>
               Sentry org:{" "}
-              <code className="text-zinc-400">
+              <code className="text-foreground">
                 {sentryOrg || "not configured"}
               </code>
             </span>
             <span>
               Sentry project:{" "}
-              <code className="text-zinc-400">
+              <code className="text-foreground">
                 {sentryProject || "not configured"}
               </code>
             </span>
             <span>
               GitHub repo:{" "}
-              <code className="text-zinc-400">
+              <code className="text-foreground">
                 {githubRepo || "not configured"}
               </code>
             </span>
           </div>
         </div>
 
-        {/* Sentry quick access */}
         <div>
-          <h2 className="mb-3 text-[10px] font-semibold tracking-widest text-zinc-600 uppercase">
+          <h2 className="text-muted-foreground mb-3 text-[10px] font-semibold tracking-widest uppercase">
             Sentry Quick Access
           </h2>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
@@ -185,20 +165,21 @@ export default function ObservabilityPage() {
                 href={link.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-xl border border-white/10 bg-white/5 p-4 transition-colors hover:border-white/20 hover:bg-white/10"
+                className="border-border bg-muted/40 hover:bg-muted/60 rounded-xl border p-4 transition-colors"
               >
-                <p className="text-sm font-medium text-zinc-200">
+                <p className="text-foreground text-sm font-medium">
                   {link.label}
                 </p>
-                <p className="mt-0.5 text-xs text-zinc-600">{link.desc}</p>
+                <p className="text-muted-foreground mt-0.5 text-xs">
+                  {link.desc}
+                </p>
               </a>
             ))}
           </div>
         </div>
 
-        {/* GitHub quick access */}
         <div>
-          <h2 className="mb-3 text-[10px] font-semibold tracking-widest text-zinc-600 uppercase">
+          <h2 className="text-muted-foreground mb-3 text-[10px] font-semibold tracking-widest uppercase">
             GitHub Quick Access
           </h2>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
@@ -208,12 +189,14 @@ export default function ObservabilityPage() {
                 href={link.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-xl border border-white/10 bg-white/5 p-4 transition-colors hover:border-white/20 hover:bg-white/10"
+                className="border-border bg-muted/40 hover:bg-muted/60 rounded-xl border p-4 transition-colors"
               >
-                <p className="text-sm font-medium text-zinc-200">
+                <p className="text-foreground text-sm font-medium">
                   {link.label}
                 </p>
-                <p className="mt-0.5 text-xs text-zinc-600">{link.desc}</p>
+                <p className="text-muted-foreground mt-0.5 text-xs">
+                  {link.desc}
+                </p>
               </a>
             ))}
           </div>

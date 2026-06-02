@@ -40,7 +40,7 @@ const EVENT_STYLES: Record<
     icon: "→",
   },
   "session.ended": {
-    badge: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+    badge: "bg-muted text-muted-foreground border-border",
     label: "Session Ended",
     icon: "←",
   },
@@ -55,11 +55,6 @@ const EVENT_STYLES: Record<
     icon: "⛓",
   },
 };
-
-// ─────────────────────────────────────────────
-// Clerk deep-link builder
-// URL format confirmed: /apps/{APP_ID}/instances/{INSTANCE_ID}/{path}
-// ─────────────────────────────────────────────
 
 function clerkUrl(path: string, appId: string, instanceId: string): string {
   if (!appId || !instanceId) return "https://dashboard.clerk.com";
@@ -77,9 +72,8 @@ function ActivityRow({
 }) {
   const style = EVENT_STYLES[record.eventType];
   const hasClerkIds = !!clerkAppId && !!clerkInstanceId;
-
   return (
-    <div className="flex items-start gap-4 border-b border-white/5 py-3 last:border-0">
+    <div className="border-border flex items-start gap-4 border-b py-3 last:border-0">
       <span
         className={`mt-0.5 rounded border px-1.5 py-0.5 font-mono text-[10px] font-bold ${style.badge}`}
       >
@@ -93,16 +87,18 @@ function ActivityRow({
             {style.label}
           </span>
           {record.userEmail && (
-            <span className="truncate text-xs text-zinc-300">
+            <span className="text-foreground truncate text-xs">
               {record.userEmail}
             </span>
           )}
           {record.userName && (
-            <span className="text-xs text-zinc-600">{record.userName}</span>
+            <span className="text-muted-foreground text-xs">
+              {record.userName}
+            </span>
           )}
         </div>
         <div className="mt-1 flex items-center gap-3">
-          <span className="font-mono text-[10px] text-zinc-600">
+          <span className="text-muted-foreground font-mono text-[10px]">
             {record.userId}
           </span>
           {record.metadata.isOwner && (
@@ -113,7 +109,7 @@ function ActivityRow({
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-3">
-        <span className="text-[11px] text-zinc-600">
+        <span className="text-muted-foreground text-[11px]">
           {timeAgo(record.timestamp)}
         </span>
         {hasClerkIds && (
@@ -125,8 +121,7 @@ function ActivityRow({
             )}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-zinc-500 transition-colors hover:text-zinc-300"
-            title="View in Clerk"
+            className="border-border bg-muted/40 text-muted-foreground hover:text-foreground rounded border px-2 py-0.5 text-[10px] transition-colors"
           >
             Clerk →
           </a>
@@ -140,7 +135,6 @@ export default async function UsersPage() {
   const activity = await getUserActivity(100).catch(
     () => [] as UserActivityRecord[],
   );
-
   const clerkAppId = config.clerk.CLERK_APP_ID ?? "";
   const clerkInstanceId = config.clerk.CLERK_INSTANCE_ID ?? "";
 
@@ -154,7 +148,6 @@ export default async function UsersPage() {
     (a) => a.eventType === "session.created",
   ).length;
 
-  // Clerk quick-access links — using confirmed URL format
   const clerkLinks = [
     {
       label: "All Users",
@@ -211,33 +204,31 @@ export default async function UsersPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-zinc-950 p-6 text-zinc-100 lg:p-10">
+    <div className="p-6 lg:p-10">
       <div className="mx-auto max-w-4xl space-y-8">
-        {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4">
             <Link
               href="/platform"
-              className="text-xs text-zinc-600 transition-colors hover:text-zinc-400"
+              className="text-muted-foreground hover:text-foreground text-xs transition-colors"
             >
               ← Platform
             </Link>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-white">
+              <h1 className="text-foreground text-2xl font-bold tracking-tight">
                 User Activity
               </h1>
-              <p className="mt-0.5 text-sm text-zinc-500">
+              <p className="text-muted-foreground mt-0.5 text-sm">
                 Auth events · Last 30 days · {activity.length} events
               </p>
             </div>
           </div>
-          {/* Clerk quick-access header buttons */}
           <div className="flex shrink-0 gap-2">
             <a
               href={clerkUrl("users", clerkAppId, clerkInstanceId)}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:text-zinc-200"
+              className="border-border bg-muted/40 text-muted-foreground hover:text-foreground rounded border px-3 py-1.5 text-xs transition-colors"
             >
               Clerk Users →
             </a>
@@ -245,63 +236,61 @@ export default async function UsersPage() {
               href={clerkUrl("webhooks", clerkAppId, clerkInstanceId)}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:text-zinc-200"
+              className="border-border bg-muted/40 text-muted-foreground hover:text-foreground rounded border px-3 py-1.5 text-xs transition-colors"
             >
               Webhooks →
             </a>
           </div>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-3 gap-4">
-          <div className="rounded-xl border border-white/10 bg-white/5 p-5">
-            <p className="mb-1 text-[10px] font-semibold tracking-widest text-zinc-500 uppercase">
+          <div className="border-border bg-muted/40 rounded-xl border p-5">
+            <p className="text-muted-foreground mb-1 text-[10px] font-semibold tracking-widest uppercase">
               New Users
             </p>
             <p className="text-3xl font-bold text-green-400 tabular-nums">
               {createdCount}
             </p>
-            <p className="mt-1 text-xs text-zinc-600">in window</p>
+            <p className="text-muted-foreground mt-1 text-xs">in window</p>
           </div>
-          <div className="rounded-xl border border-white/10 bg-white/5 p-5">
-            <p className="mb-1 text-[10px] font-semibold tracking-widest text-zinc-500 uppercase">
+          <div className="border-border bg-muted/40 rounded-xl border p-5">
+            <p className="text-muted-foreground mb-1 text-[10px] font-semibold tracking-widest uppercase">
               Sign-ins
             </p>
-            <p className="text-3xl font-bold text-white tabular-nums">
+            <p className="text-foreground text-3xl font-bold tabular-nums">
               {sessionCount}
             </p>
-            <p className="mt-1 text-xs text-zinc-600">successful sessions</p>
+            <p className="text-muted-foreground mt-1 text-xs">
+              successful sessions
+            </p>
           </div>
           <div
-            className={`rounded-xl border p-5 ${
-              deletedCount > 0
-                ? "border-red-500/20 bg-red-500/5"
-                : "border-white/10 bg-white/5"
-            }`}
+            className={`rounded-xl border p-5 ${deletedCount > 0 ? "border-red-500/20 bg-red-500/5" : "border-border bg-muted/40"}`}
           >
-            <p className="mb-1 text-[10px] font-semibold tracking-widest text-zinc-500 uppercase">
+            <p className="text-muted-foreground mb-1 text-[10px] font-semibold tracking-widest uppercase">
               Deleted
             </p>
             <p
-              className={`text-3xl font-bold tabular-nums ${
-                deletedCount > 0 ? "text-red-400" : "text-white"
-              }`}
+              className={`text-3xl font-bold tabular-nums ${deletedCount > 0 ? "text-red-400" : "text-foreground"}`}
             >
               {deletedCount}
             </p>
-            <p className="mt-1 text-xs text-zinc-600">accounts removed</p>
+            <p className="text-muted-foreground mt-1 text-xs">
+              accounts removed
+            </p>
           </div>
         </div>
 
-        {/* Activity timeline */}
-        <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-          <h2 className="mb-4 text-sm font-semibold tracking-widest text-zinc-500 uppercase">
+        <div className="border-border bg-muted/40 rounded-xl border p-6">
+          <h2 className="text-muted-foreground mb-4 text-sm font-semibold tracking-widest uppercase">
             Activity Timeline
           </h2>
           {activity.length === 0 ? (
             <div className="py-8 text-center">
-              <p className="text-sm text-zinc-500">No activity recorded yet.</p>
-              <p className="mt-1 text-xs text-zinc-700">
+              <p className="text-muted-foreground text-sm">
+                No activity recorded yet.
+              </p>
+              <p className="text-muted-foreground mt-1 text-xs">
                 Events will appear here as users sign in or are created.
               </p>
             </div>
@@ -319,9 +308,8 @@ export default async function UsersPage() {
           )}
         </div>
 
-        {/* Clerk Quick Access grid */}
         <div>
-          <h2 className="mb-3 text-[10px] font-semibold tracking-widest text-zinc-600 uppercase">
+          <h2 className="text-muted-foreground mb-3 text-[10px] font-semibold tracking-widest uppercase">
             Clerk Quick Access
           </h2>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -331,12 +319,14 @@ export default async function UsersPage() {
                 href={link.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-xl border border-white/10 bg-white/5 p-4 transition-colors hover:border-white/20 hover:bg-white/10"
+                className="border-border bg-muted/40 hover:border-border hover:bg-muted/60 rounded-xl border p-4 transition-colors"
               >
-                <p className="text-sm font-medium text-zinc-200">
+                <p className="text-foreground text-sm font-medium">
                   {link.label}
                 </p>
-                <p className="mt-0.5 text-xs text-zinc-600">{link.desc}</p>
+                <p className="text-muted-foreground mt-0.5 text-xs">
+                  {link.desc}
+                </p>
               </a>
             ))}
           </div>

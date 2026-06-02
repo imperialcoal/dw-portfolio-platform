@@ -1,17 +1,10 @@
 // apps/nextjs/src/app/(admin)/platform/communications/page.tsx
-//
-// Communications service page — Resend email delivery logs and domain
-// management, plus GitHub webhook delivery history, PRs, and audit trail.
-//
-// No live data fetch — all links open external dashboards directly.
-
 import Link from "next/link";
 
 import { env } from "~/env";
 
-function githubUrl(path: string, repo: string): string {
-  if (!repo) return "https://github.com";
-  return `https://github.com/${repo}/${path}`;
+function githubUrl(path: string, repo: string) {
+  return repo ? `https://github.com/${repo}/${path}` : "https://github.com";
 }
 
 export default function CommunicationsPage() {
@@ -77,20 +70,19 @@ export default function CommunicationsPage() {
   return (
     <div className="p-6 lg:p-10">
       <div className="mx-auto max-w-5xl space-y-8">
-        {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4">
             <Link
               href="/platform"
-              className="text-xs text-zinc-600 transition-colors hover:text-zinc-400"
+              className="text-muted-foreground hover:text-foreground text-xs transition-colors"
             >
               ← Platform
             </Link>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-white">
+              <h1 className="text-foreground text-2xl font-bold tracking-tight">
                 Communications
               </h1>
-              <p className="mt-0.5 text-sm text-zinc-500">
+              <p className="text-muted-foreground mt-0.5 text-sm">
                 Resend email delivery · GitHub webhooks and PRs
               </p>
             </div>
@@ -100,7 +92,7 @@ export default function CommunicationsPage() {
               href="https://resend.com/emails"
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:text-zinc-200"
+              className="border-border bg-muted/40 text-muted-foreground hover:text-foreground rounded border px-3 py-1.5 text-xs transition-colors"
             >
               Resend Logs →
             </a>
@@ -108,16 +100,15 @@ export default function CommunicationsPage() {
               href={github("pulls")}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:text-zinc-200"
+              className="border-border bg-muted/40 text-muted-foreground hover:text-foreground rounded border px-3 py-1.5 text-xs transition-colors"
             >
               GitHub PRs →
             </a>
           </div>
         </div>
 
-        {/* Context */}
-        <div className="rounded-xl border border-white/10 bg-white/5 px-5 py-4">
-          <p className="text-sm text-zinc-400">
+        <div className="border-border bg-muted/40 rounded-xl border px-5 py-4">
+          <p className="text-muted-foreground text-sm">
             Resend delivers incident alert emails and contact form submissions.
             GitHub webhooks receive workflow run events, issue state changes,
             and Dependabot vulnerability alerts — all of which trigger the AI
@@ -125,15 +116,14 @@ export default function CommunicationsPage() {
             Dependabot security and version updates.
           </p>
           {githubRepo && (
-            <div className="mt-3 text-xs text-zinc-600">
-              GitHub repo: <code className="text-zinc-400">{githubRepo}</code>
+            <div className="text-muted-foreground mt-3 text-xs">
+              GitHub repo: <code className="text-foreground">{githubRepo}</code>
             </div>
           )}
         </div>
 
-        {/* Resend quick access */}
         <div>
-          <h2 className="mb-3 text-[10px] font-semibold tracking-widest text-zinc-600 uppercase">
+          <h2 className="text-muted-foreground mb-3 text-[10px] font-semibold tracking-widest uppercase">
             Resend Quick Access
           </h2>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -143,20 +133,21 @@ export default function CommunicationsPage() {
                 href={link.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-xl border border-white/10 bg-white/5 p-4 transition-colors hover:border-white/20 hover:bg-white/10"
+                className="border-border bg-muted/40 hover:bg-muted/60 rounded-xl border p-4 transition-colors"
               >
-                <p className="text-sm font-medium text-zinc-200">
+                <p className="text-foreground text-sm font-medium">
                   {link.label}
                 </p>
-                <p className="mt-0.5 text-xs text-zinc-600">{link.desc}</p>
+                <p className="text-muted-foreground mt-0.5 text-xs">
+                  {link.desc}
+                </p>
               </a>
             ))}
           </div>
         </div>
 
-        {/* GitHub quick access */}
         <div>
-          <h2 className="mb-3 text-[10px] font-semibold tracking-widest text-zinc-600 uppercase">
+          <h2 className="text-muted-foreground mb-3 text-[10px] font-semibold tracking-widest uppercase">
             GitHub Quick Access
           </h2>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
@@ -166,12 +157,14 @@ export default function CommunicationsPage() {
                 href={link.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-xl border border-white/10 bg-white/5 p-4 transition-colors hover:border-white/20 hover:bg-white/10"
+                className="border-border bg-muted/40 hover:bg-muted/60 rounded-xl border p-4 transition-colors"
               >
-                <p className="text-sm font-medium text-zinc-200">
+                <p className="text-foreground text-sm font-medium">
                   {link.label}
                 </p>
-                <p className="mt-0.5 text-xs text-zinc-600">{link.desc}</p>
+                <p className="text-muted-foreground mt-0.5 text-xs">
+                  {link.desc}
+                </p>
               </a>
             ))}
           </div>

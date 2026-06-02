@@ -11,10 +11,6 @@ import { fetchLiveDeploymentId, fetchRecentDeployments } from "@dw/ai/sensors";
 import { env } from "~/env";
 import { RollbackButton } from "./_components/rollback-button";
 
-// ─────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────
-
 function timeAgo(ts: string): string {
   const diff = Date.now() - new Date(ts).getTime();
   const m = Math.floor(diff / 60_000);
@@ -38,22 +34,18 @@ function findCorrelatedIncidents(
   incidents: IncidentRecord[],
 ): IncidentRecord[] {
   const deployTime = deploy.createdAt;
-  const windowEnd = deployTime + 1000 * 60 * 60 * 2; // 2h window
+  const windowEnd = deployTime + 1000 * 60 * 60 * 2;
   return incidents.filter((incident) => {
     const incidentTime = new Date(incident.timestamp).getTime();
     return incidentTime >= deployTime && incidentTime <= windowEnd;
   });
 }
 
-// ─────────────────────────────────────────────
-// Styles
-// ─────────────────────────────────────────────
-
 const STATE_STYLES: Record<string, { badge: string }> = {
   READY: { badge: "bg-green-500/10 text-green-400 border-green-500/20" },
   ERROR: { badge: "bg-red-500/10 text-red-400 border-red-500/20" },
   BUILDING: { badge: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
-  CANCELED: { badge: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20" },
+  CANCELED: { badge: "bg-muted text-muted-foreground border-border" },
 };
 
 const SEVERITY_COLOR: Record<IncidentRecord["severity"], string> = {
@@ -68,54 +60,39 @@ const STATUS_BADGE: Record<string, string> = {
   investigating: "bg-orange-500/10 text-orange-400 border-orange-500/20",
   monitoring: "bg-blue-500/10 text-blue-400 border-blue-500/20",
   resolved: "bg-green-500/10 text-green-400 border-green-500/20",
-  closed: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+  closed: "bg-muted text-muted-foreground border-border",
 };
 
-const RISK_STYLES: Record<
-  RollbackRecord["riskLevel"],
-  { text: string; bg: string; border: string }
-> = {
+const RISK_STYLES = {
   safe: {
-    text: "text-green-400",
-    bg: "bg-green-500/10",
+    bg: "bg-green-500/5",
     border: "border-green-500/20",
+    text: "text-green-400",
   },
   risky: {
-    text: "text-yellow-400",
-    bg: "bg-yellow-500/10",
+    bg: "bg-yellow-500/5",
     border: "border-yellow-500/20",
+    text: "text-yellow-400",
   },
   destructive: {
-    text: "text-red-400",
-    bg: "bg-red-500/10",
+    bg: "bg-red-500/5",
     border: "border-red-500/20",
+    text: "text-red-400",
   },
-};
-
-const ROLLBACK_STATUS_STYLES: Record<
-  RollbackRecord["status"],
-  { label: string; text: string }
-> = {
-  executing: { label: "Executing", text: "text-blue-400" },
-  success: { label: "Rolled back", text: "text-green-400" },
-  failed: { label: "Failed", text: "text-red-400" },
-  pending: { label: "Pending", text: "text-zinc-400" },
-};
-
-// ─────────────────────────────────────────────
-// Components
-// ─────────────────────────────────────────────
+} as const;
 
 function RollbackAuditRow({ record }: { record: RollbackRecord }) {
   const risk = RISK_STYLES[record.riskLevel];
-  const statusStyle = ROLLBACK_STATUS_STYLES[record.status];
-
+  const statusStyle = {
+    pending: { text: "text-muted-foreground", label: "Pending" },
+    executing: { text: "text-blue-400", label: "Executing…" },
+    success: { text: "text-green-400", label: "Succeeded" },
+    failed: { text: "text-red-400", label: "Failed" },
+  }[record.status];
   return (
-    <div className={`rounded-lg border ${risk.border} ${risk.bg} px-4 py-3`}>
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[10px] font-semibold tracking-widest text-zinc-500 uppercase">
-          Rollback
-        </span>
+    <div className={`rounded-lg border p-3 ${risk.bg} ${risk.border}`}>
+      <div className="flex flex-wrap items-center gap-2 text-[11px]">
+        <span className="text-muted-foreground font-medium">Rollback</span>
         <span
           className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase ${risk.bg} ${risk.border} ${risk.text}`}
         >
@@ -124,10 +101,10 @@ function RollbackAuditRow({ record }: { record: RollbackRecord }) {
         <span className={`text-[11px] font-medium ${statusStyle.text}`}>
           {statusStyle.label}
         </span>
-        <span className="font-mono text-[10px] text-zinc-500">
+        <span className="text-muted-foreground font-mono text-[10px]">
           → {record.rollbackToSha.slice(0, 7)}
         </span>
-        <span className="ml-auto text-[10px] text-zinc-600">
+        <span className="text-muted-foreground ml-auto text-[10px]">
           {timeAgo(record.initiatedAt)}
         </span>
       </div>
@@ -142,11 +119,6 @@ function RollbackAuditRow({ record }: { record: RollbackRecord }) {
       )}
       {record.status === "failed" && record.error && (
         <p className="mt-1.5 text-[11px] text-red-400">{record.error}</p>
-      )}
-      {record.status === "success" && record.newDeploymentId && (
-        <p className="mt-1 text-[10px] text-zinc-600">
-          New deployment: {record.newDeploymentId}
-        </p>
       )}
     </div>
   );
@@ -165,34 +137,24 @@ function DeployRow({
   rollbackRecord: RollbackRecord | null;
   isCurrentLive: boolean;
 }) {
-  const style = STATE_STYLES[deploy.state] ??
-    STATE_STYLES.CANCELED ?? {
-      badge: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
-    };
+  const style = STATE_STYLES[deploy.state] ?? {
+    badge: "bg-muted text-muted-foreground border-border",
+  };
   const commitSha = deploy.meta.githubCommitSha ?? null;
   const commitMessage = deploy.meta.githubCommitMessage ?? null;
   const branch = deploy.meta.githubBranch ?? null;
-
   const activeCorrelated = correlated.filter(
     (i) => i.status === "open" || i.status === "investigating",
   );
   const resolvedCorrelated = correlated.filter(
     (i) => i.status === "resolved" || i.status === "closed",
   );
-
-  // Rollback is available on READY deployments that are not the current live one.
-  // Rolling back to the currently-live deployment is a no-op — Vercel would
-  // just create a new deployment identical to what's already running.
   const canRollback =
     deploy.state === "READY" && commitSha !== null && !isCurrentLive;
 
   return (
     <div
-      className={`space-y-3 rounded-xl border p-5 ${
-        isCurrentLive
-          ? "border-emerald-500/20 bg-emerald-500/5"
-          : "border-white/10 bg-white/5"
-      }`}
+      className={`space-y-3 rounded-xl border p-5 ${isCurrentLive ? "border-emerald-500/20 bg-emerald-500/5" : "border-border bg-muted/40"}`}
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex flex-wrap items-center gap-2">
@@ -206,26 +168,28 @@ function DeployRow({
               LIVE
             </span>
           )}
-          <span className="rounded border border-white/10 bg-white/5 px-1.5 py-0.5 text-[11px] text-zinc-500">
+          <span className="border-border bg-muted/40 text-muted-foreground rounded border px-1.5 py-0.5 text-[11px]">
             {currentEnv}
           </span>
           {branch !== null && (
-            <span className="font-mono text-xs text-zinc-400">{branch}</span>
+            <span className="text-muted-foreground font-mono text-xs">
+              {branch}
+            </span>
           )}
         </div>
-        <span className="shrink-0 text-xs text-zinc-600">
+        <span className="text-muted-foreground shrink-0 text-xs">
           {formatDate(deploy.createdAt)}
         </span>
       </div>
 
       <div className="flex items-center gap-4">
         {commitSha !== null && (
-          <span className="rounded border border-white/10 bg-white/5 px-1.5 py-0.5 font-mono text-xs text-zinc-400">
+          <span className="border-border bg-muted/40 text-muted-foreground rounded border px-1.5 py-0.5 font-mono text-xs">
             {commitSha.slice(0, 7)}
           </span>
         )}
         {commitMessage !== null && (
-          <p className="truncate text-sm text-zinc-300">{commitMessage}</p>
+          <p className="text-foreground truncate text-sm">{commitMessage}</p>
         )}
         <div className="ml-auto flex shrink-0 items-center gap-2">
           {canRollback && (
@@ -240,7 +204,7 @@ function DeployRow({
             href={`https://${deploy.url}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-zinc-500 transition-colors hover:text-zinc-300"
+            className="text-muted-foreground hover:text-foreground text-xs transition-colors"
           >
             View →
           </a>
@@ -248,14 +212,14 @@ function DeployRow({
       </div>
 
       {rollbackRecord !== null && (
-        <div className="border-t border-white/10 pt-3">
+        <div className="border-border border-t pt-3">
           <RollbackAuditRow record={rollbackRecord} />
         </div>
       )}
 
       {correlated.length > 0 && (
-        <div className="border-t border-white/10 pt-3">
-          <p className="mb-2 text-[10px] font-semibold tracking-widest text-zinc-600 uppercase">
+        <div className="border-border border-t pt-3">
+          <p className="text-muted-foreground mb-2 text-[10px] font-semibold tracking-widest uppercase">
             Incidents within 2h of deploy
             {activeCorrelated.length > 0 && (
               <span className="ml-2 text-red-400">
@@ -284,10 +248,10 @@ function DeployRow({
                 >
                   {incident.status}
                 </span>
-                <span className="truncate text-xs text-zinc-400">
+                <span className="text-muted-foreground truncate text-xs">
                   {incident.summary}
                 </span>
-                <span className="ml-auto shrink-0 text-[10px] text-zinc-600">
+                <span className="text-muted-foreground ml-auto shrink-0 text-[10px]">
                   {timeAgo(incident.timestamp)}
                 </span>
                 {incident.issueUrl !== undefined && (
@@ -295,7 +259,7 @@ function DeployRow({
                     href={incident.issueUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="shrink-0 text-[10px] text-zinc-600 transition-colors hover:text-zinc-400"
+                    className="text-muted-foreground hover:text-foreground shrink-0 text-[10px] transition-colors"
                   >
                     →
                   </a>
@@ -309,10 +273,6 @@ function DeployRow({
   );
 }
 
-// ─────────────────────────────────────────────
-// Page
-// ─────────────────────────────────────────────
-
 export default async function DeploymentsPage() {
   const [deploys, incidents, liveDeploymentId] = await Promise.all([
     fetchRecentDeployments(20),
@@ -323,13 +283,8 @@ export default async function DeploymentsPage() {
   const rollbackRecords = await Promise.all(
     deploys.map((d) => getRollbackRecord(d.id).catch(() => null)),
   );
-
   const currentEnv = env.NEXT_PUBLIC_APP_ENV;
 
-  // Use the alias-resolved deployment as the live one.
-  // After a rollback the alias points at an older deployment, so we cannot
-  // rely on createdAt ordering — we ask Vercel which deployment the alias
-  // currently resolves to. Falls back to newest READY if the alias lookup fails.
   const currentLiveId =
     liveDeploymentId ??
     deploys
@@ -337,96 +292,77 @@ export default async function DeploymentsPage() {
       .sort((a, b) => b.createdAt - a.createdAt)[0]?.id ??
     null;
 
-  // Collect unique incident IDs across all deployment correlation windows.
-  // A single incident that falls within multiple deploy windows must count once
   const uniqueActiveIncidentIds = new Set<string>();
   const uniqueAnyIncidentIds = new Set<string>();
-
   for (const deploy of deploys) {
     const correlated = findCorrelatedIncidents(deploy, incidents);
     for (const incident of correlated) {
       uniqueAnyIncidentIds.add(incident.id);
-      if (incident.status === "open" || incident.status === "investigating") {
+      if (incident.status === "open" || incident.status === "investigating")
         uniqueActiveIncidentIds.add(incident.id);
-      }
     }
   }
-
   const uniqueActiveIncidentCount = uniqueActiveIncidentIds.size;
   const uniqueResolvedIncidentCount =
     uniqueAnyIncidentIds.size - uniqueActiveIncidentIds.size;
   const deploysWithRollbacks = rollbackRecords.filter((r) => r !== null).length;
 
   return (
-    <div className="min-h-screen bg-zinc-950 p-6 text-zinc-100 lg:p-10">
+    <div className="p-6 lg:p-10">
       <div className="mx-auto max-w-5xl space-y-8">
-        {/* Header */}
         <div className="flex items-center gap-4">
           <Link
             href="/platform"
-            className="text-xs text-zinc-600 transition-colors hover:text-zinc-400"
+            className="text-muted-foreground hover:text-foreground text-xs transition-colors"
           >
             ← Platform
           </Link>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-white">
-              Deployments
+            <h1 className="text-foreground text-2xl font-bold tracking-tight">
+              Deployments & Rollback
             </h1>
-            <p className="mt-0.5 text-sm text-zinc-500">
+            <p className="text-muted-foreground mt-0.5 text-sm">
               {deploys.length} recent {currentEnv} deployments · correlated with
               incident history
             </p>
           </div>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-3 gap-4">
-          <div className="rounded-xl border border-white/10 bg-white/5 p-5">
-            <p className="mb-1 text-xs font-medium tracking-widest text-zinc-500 uppercase">
+          <div className="border-border bg-muted/40 rounded-xl border p-5">
+            <p className="text-muted-foreground mb-1 text-xs font-medium tracking-widest uppercase">
               {currentEnv === "production" ? "Production" : "Preview"}
             </p>
-            <p className="text-3xl font-bold text-white tabular-nums">
+            <p className="text-foreground text-3xl font-bold tabular-nums">
               {deploys.length}
             </p>
           </div>
-          <div className="rounded-xl border border-white/10 bg-white/5 p-5">
-            <p className="mb-1 text-xs font-medium tracking-widest text-zinc-500 uppercase">
+          <div className="border-border bg-muted/40 rounded-xl border p-5">
+            <p className="text-muted-foreground mb-1 text-xs font-medium tracking-widest uppercase">
               Successful
             </p>
-            <p className="text-3xl font-bold text-white tabular-nums">
+            <p className="text-foreground text-3xl font-bold tabular-nums">
               {deploys.filter((d) => d.state === "READY").length}
             </p>
           </div>
           <div
-            className={`rounded-xl border p-5 ${
-              uniqueActiveIncidentCount > 0
-                ? "border-red-500/20 bg-red-500/5"
-                : uniqueAnyIncidentIds.size > 0
-                  ? "border-orange-500/20 bg-orange-500/5"
-                  : "border-white/10 bg-white/5"
-            }`}
+            className={`rounded-xl border p-5 ${uniqueActiveIncidentCount > 0 ? "border-red-500/20 bg-red-500/5" : uniqueAnyIncidentIds.size > 0 ? "border-orange-500/20 bg-orange-500/5" : "border-border bg-muted/40"}`}
           >
-            <p className="mb-1 text-xs font-medium tracking-widest text-zinc-500 uppercase">
+            <p className="text-muted-foreground mb-1 text-xs font-medium tracking-widest uppercase">
               Active Incidents
             </p>
             <p
-              className={`text-3xl font-bold tabular-nums ${
-                uniqueActiveIncidentCount > 0
-                  ? "text-red-400"
-                  : uniqueAnyIncidentIds.size > 0
-                    ? "text-orange-400"
-                    : "text-white"
-              }`}
+              className={`text-3xl font-bold tabular-nums ${uniqueActiveIncidentCount > 0 ? "text-red-400" : uniqueAnyIncidentIds.size > 0 ? "text-orange-400" : "text-foreground"}`}
             >
               {uniqueActiveIncidentCount}
             </p>
             {uniqueResolvedIncidentCount > 0 && (
-              <p className="mt-1 text-xs text-zinc-600">
+              <p className="text-muted-foreground mt-1 text-xs">
                 {uniqueResolvedIncidentCount} resolved
               </p>
             )}
             {deploysWithRollbacks > 0 && (
-              <p className="mt-1 text-xs text-zinc-600">
+              <p className="text-muted-foreground mt-1 text-xs">
                 {deploysWithRollbacks} rollback
                 {deploysWithRollbacks === 1 ? "" : "s"} in window
               </p>
@@ -435,14 +371,12 @@ export default async function DeploymentsPage() {
         </div>
 
         {deploys.length === 0 ? (
-          <div className="rounded-xl border border-white/10 bg-white/5 p-12 text-center">
-            <p className="text-zinc-500">No deployments found.</p>
-            <p className="mt-1 text-xs text-zinc-700">
-              Add{" "}
-              <code className="font-mono text-zinc-600">VERCEL_API_TOKEN</code>{" "}
-              and{" "}
-              <code className="font-mono text-zinc-600">VERCEL_PROJECT_ID</code>{" "}
-              to Doppler to enable deployment tracking.
+          <div className="border-border bg-muted/40 rounded-xl border p-12 text-center">
+            <p className="text-muted-foreground">No deployments found.</p>
+            <p className="text-muted-foreground mt-1 text-xs">
+              Add <code className="font-mono">VERCEL_API_TOKEN</code> and{" "}
+              <code className="font-mono">VERCEL_PROJECT_ID</code> to Doppler to
+              enable deployment tracking.
             </p>
           </div>
         ) : (

@@ -8,6 +8,12 @@ packages:
   - platform/standards/*
   - platform/testing
 
+allowBuilds:
+  '@clerk/shared': set this to true or false
+  '@sentry/cli': set this to true or false
+  esbuild: set this to true or false
+  sharp: set this to true or false
+
 catalog:
   '@clerk/backend': ^3.4.12
   '@clerk/nextjs': ^7.4.1
@@ -43,6 +49,10 @@ catalogs:
 
 linkWorkspacePackages: true
 
+minimumReleaseAgeExclude:
+  - react-dom@19.2.7
+  - react@19.2.7
+
 onlyBuiltDependencies:
   - '@tailwindcss/oxide'
   - esbuild
@@ -52,7 +62,7 @@ overrides:
   esbuild: ^0.28.0
   lightningcss: 1.32.0
   js-cookie: ^3.0.7
-  
+
 publicHoistPattern:
   - '@ianvs/prettier-plugin-sort-imports'
   - 'prettier-plugin-tailwindcss'
