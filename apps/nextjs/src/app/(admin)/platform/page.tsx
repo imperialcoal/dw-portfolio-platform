@@ -32,36 +32,39 @@ function timeAgo(ts: string): string {
   return `${Math.floor(h / 24)}d ago`;
 }
 
+// ─────────────────────────────────────────────
+// Severity / status style maps
+//
+// Color-coded classes (red, orange, yellow, green, emerald) are kept as-is —
+// they work in both light and dark since they're semantically meaningful.
+// Only the neutral zinc/white-opacity classes are swapped for tokens.
+// ─────────────────────────────────────────────
+
 const SEVERITY_STYLES = {
   critical: {
     bg: "bg-red-500/10",
     text: "text-red-400",
     border: "border-red-500/20",
-    dot: "bg-red-400",
   },
   high: {
     bg: "bg-orange-500/10",
     text: "text-orange-400",
     border: "border-orange-500/20",
-    dot: "bg-orange-400",
   },
   medium: {
     bg: "bg-yellow-500/10",
     text: "text-yellow-400",
     border: "border-yellow-500/20",
-    dot: "bg-yellow-400",
   },
   low: {
     bg: "bg-green-500/10",
     text: "text-green-400",
     border: "border-green-500/20",
-    dot: "bg-green-400",
   },
   healthy: {
     bg: "bg-emerald-500/10",
     text: "text-emerald-400",
     border: "border-emerald-500/20",
-    dot: "bg-emerald-400",
   },
 } as const;
 
@@ -89,8 +92,8 @@ const STATUS_STYLES = {
     dot: "bg-green-400",
   },
   closed: {
-    badge: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
-    dot: "bg-zinc-600",
+    badge: "bg-muted text-muted-foreground border-border",
+    dot: "bg-muted-foreground",
   },
 };
 
@@ -169,19 +172,24 @@ function StatCard({
   severity?: string;
 }) {
   const color = severity ? severityColor(severity) : SEVERITY_STYLES.healthy;
+  const isColored = severity && severity !== "healthy";
   return (
     <div
-      className={`rounded-xl border p-5 ${severity && severity !== "healthy" ? `${color.border} ${color.bg}` : "border-white/10 bg-white/5"}`}
+      className={`rounded-xl border p-5 ${
+        isColored ? `${color.border} ${color.bg}` : "border-border bg-muted/40"
+      }`}
     >
-      <p className="mb-1 text-[10px] font-semibold tracking-widest text-zinc-500 uppercase">
+      <p className="text-muted-foreground mb-1 text-[10px] font-semibold tracking-widest uppercase">
         {label}
       </p>
       <p
-        className={`text-2xl font-bold tabular-nums ${severity && severity !== "healthy" ? color.text : "text-white"}`}
+        className={`text-2xl font-bold tabular-nums ${
+          isColored ? color.text : "text-foreground"
+        }`}
       >
         {value}
       </p>
-      <p className="mt-0.5 text-[11px] text-zinc-600">{sub}</p>
+      <p className="text-muted-foreground mt-0.5 text-[11px]">{sub}</p>
     </div>
   );
 }
@@ -202,20 +210,22 @@ function ActiveIncidentRow({ incident }: { incident: IncidentRecord }) {
           >
             {incident.severity}
           </span>
-          <span className="text-[10px] text-zinc-500">{typeLabel}</span>
+          <span className="text-muted-foreground text-[10px]">{typeLabel}</span>
           <span
             className={`ml-auto rounded border bg-transparent px-1.5 py-0.5 text-[10px] font-semibold ${statusStyle.badge}`}
           >
             {incident.status}
           </span>
         </div>
-        <p className="text-sm font-medium text-zinc-200">{incident.summary}</p>
+        <p className="text-foreground text-sm font-medium">
+          {incident.summary}
+        </p>
         {incident.issueUrl && (
           <a
             href={incident.issueUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-1 text-xs text-zinc-500 transition-colors hover:text-zinc-300"
+            className="text-muted-foreground hover:text-foreground mt-1 text-xs transition-colors"
           >
             {issueUrlLabel(incident)} →
           </a>
@@ -231,17 +241,17 @@ function DeployCard({ deploy }: { deploy: VercelDeployment }) {
   const branch = deploy.meta.githubBranch ?? deploy.target ?? "main";
   const deployUrl = `https://${deploy.url}`;
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
-      <span className="rounded bg-zinc-800 px-1.5 py-0.5 font-mono text-[11px] text-zinc-400">
+    <div className="border-border bg-muted/40 flex items-center gap-3 rounded-xl border px-4 py-3">
+      <span className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 font-mono text-[11px]">
         {sha}
       </span>
-      <p className="min-w-0 flex-1 truncate text-sm text-zinc-300">{msg}</p>
-      <span className="shrink-0 text-xs text-zinc-600">{branch}</span>
+      <p className="text-foreground min-w-0 flex-1 truncate text-sm">{msg}</p>
+      <span className="text-muted-foreground shrink-0 text-xs">{branch}</span>
       <a
         href={deployUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="shrink-0 text-xs text-zinc-500 transition-colors hover:text-zinc-300"
+        className="text-muted-foreground hover:text-foreground shrink-0 text-xs transition-colors"
       >
         View deploy →
       </a>
@@ -251,15 +261,9 @@ function DeployCard({ deploy }: { deploy: VercelDeployment }) {
 
 // ─────────────────────────────────────────────
 // Nav items
-//
-// Internal platform pages come first, followed by dedicated external service
-// pages. Each service group (Vercel, Observability, Infrastructure,
-// Communications) gets its own page with contextual live data and a quick
-// access grid — the same pattern as Database Health and User Activity.
 // ─────────────────────────────────────────────
 
 const NAV_ITEMS = [
-  // ── Internal platform pages ──────────────────────────────────────────
   {
     href: "/platform/incidents",
     label: "Incident History",
@@ -290,7 +294,6 @@ const NAV_ITEMS = [
     label: "Database Health",
     desc: "Supabase table sizes, connections, and security advisories",
   },
-  // ── External service pages ────────────────────────────────────────────
   {
     href: "/platform/vercel",
     label: "Vercel Dashboard",
@@ -363,10 +366,10 @@ export default async function PlatformPage() {
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-white">
+            <h1 className="text-foreground text-2xl font-bold tracking-tight">
               Platform Intelligence
             </h1>
-            <p className="mt-1 text-sm text-zinc-500">
+            <p className="text-muted-foreground mt-1 text-sm">
               AI DevOps control center
             </p>
           </div>
@@ -382,7 +385,7 @@ export default async function PlatformPage() {
 
         {/* Incident status summary */}
         <div>
-          <p className="mb-3 text-[10px] font-semibold tracking-widest text-zinc-600 uppercase">
+          <p className="text-muted-foreground mb-3 text-[10px] font-semibold tracking-widest uppercase">
             Incident Status
           </p>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -420,14 +423,14 @@ export default async function PlatformPage() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-50" />
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-orange-400" />
             </span>
-            <p className="text-sm font-medium text-orange-300">
+            <p className="text-sm font-medium text-orange-700 dark:text-orange-300">
               {activeSecurityAlerts.length} security{" "}
               {activeSecurityAlerts.length === 1 ? "alert" : "alerts"} require
               attention
             </p>
             <Link
               href="/platform/dependencies"
-              className="ml-auto text-xs text-orange-400 transition-colors hover:text-orange-200"
+              className="ml-auto text-xs text-orange-600 transition-colors hover:text-orange-800 dark:text-orange-400 dark:hover:text-orange-200"
             >
               View dependencies →
             </Link>
@@ -440,14 +443,14 @@ export default async function PlatformPage() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-50" />
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-orange-400" />
             </span>
-            <p className="text-sm font-medium text-orange-300">
+            <p className="text-sm font-medium text-orange-700 dark:text-orange-300">
               {activeAuthAlerts.length} auth{" "}
               {activeAuthAlerts.length === 1 ? "signal" : "signals"} — possible
               brute force
             </p>
             <Link
               href="/platform/users"
-              className="ml-auto text-xs text-orange-400 transition-colors hover:text-orange-200"
+              className="ml-auto text-xs text-orange-600 transition-colors hover:text-orange-800 dark:text-orange-400 dark:hover:text-orange-200"
             >
               View users →
             </Link>
@@ -460,14 +463,14 @@ export default async function PlatformPage() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-50" />
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-400" />
             </span>
-            <p className="text-sm font-medium text-red-300">
+            <p className="text-sm font-medium text-red-700 dark:text-red-300">
               {uptimeIncidents.length}{" "}
               {uptimeIncidents.length === 1 ? "service is" : "services are"}{" "}
               unreachable
             </p>
             <Link
               href="/platform/incidents"
-              className="ml-auto text-xs text-red-400 transition-colors hover:text-red-200"
+              className="ml-auto text-xs text-red-600 transition-colors hover:text-red-800 dark:text-red-400 dark:hover:text-red-200"
             >
               View →
             </Link>
@@ -479,27 +482,27 @@ export default async function PlatformPage() {
         {/* Active Incidents */}
         <div>
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-sm font-semibold tracking-widest text-zinc-500 uppercase">
+            <h2 className="text-muted-foreground text-sm font-semibold tracking-widest uppercase">
               Active Incidents
               {activeIncidents.length > 0 && (
-                <span className="ml-2 rounded-full bg-red-500/10 px-2 py-0.5 text-xs text-red-400">
+                <span className="ml-2 rounded-full bg-red-500/10 px-2 py-0.5 text-xs text-red-500">
                   {activeIncidents.length}
                 </span>
               )}
             </h2>
             <Link
               href="/platform/incidents"
-              className="text-xs text-zinc-500 transition-colors hover:text-zinc-300"
+              className="text-muted-foreground hover:text-foreground text-xs transition-colors"
             >
               View all →
             </Link>
           </div>
           {activeIncidents.length === 0 ? (
-            <div className="rounded-xl border border-white/5 bg-white/3 px-5 py-8 text-center">
-              <p className="text-sm font-medium text-emerald-400">
+            <div className="border-border bg-muted/30 rounded-xl border px-5 py-8 text-center">
+              <p className="text-sm font-medium text-emerald-500">
                 No active incidents
               </p>
-              <p className="mt-1 text-xs text-zinc-600">
+              <p className="text-muted-foreground mt-1 text-xs">
                 {resolvedIncidents.length} resolved ·{" "}
                 {monitoringIncidents.length} monitoring
               </p>
@@ -516,9 +519,9 @@ export default async function PlatformPage() {
         {/* Monitoring */}
         {monitoringIncidents.length > 0 && (
           <div>
-            <p className="mb-3 text-[10px] font-semibold tracking-widest text-zinc-600 uppercase">
+            <p className="text-muted-foreground mb-3 text-[10px] font-semibold tracking-widest uppercase">
               Monitoring
-              <span className="ml-2 rounded-full bg-blue-500/10 px-1.5 py-0.5 text-blue-400">
+              <span className="ml-2 rounded-full bg-blue-500/10 px-1.5 py-0.5 text-blue-500">
                 {monitoringIncidents.length}
               </span>
             </p>
@@ -530,25 +533,27 @@ export default async function PlatformPage() {
           </div>
         )}
 
-        {/* Nav grid — internal pages + external service pages */}
+        {/* Nav grid */}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
           {NAV_ITEMS.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="group rounded-xl border border-white/10 bg-white/5 p-5 transition-all hover:border-white/20"
+              className="group border-border bg-muted/40 hover:border-border hover:bg-muted/70 rounded-xl border p-5 transition-all"
             >
-              <p className="text-sm font-semibold text-zinc-200 transition-colors group-hover:text-white">
+              <p className="text-foreground text-sm font-semibold transition-colors">
                 {item.label}
               </p>
-              <p className="mt-1 text-xs text-zinc-600">{item.desc}</p>
+              <p className="text-muted-foreground mt-1 text-xs">{item.desc}</p>
             </Link>
           ))}
 
           {/* Documentation — manual trigger */}
-          <div className="rounded-xl border border-white/10 bg-white/5 p-5">
-            <p className="text-sm font-semibold text-zinc-200">Documentation</p>
-            <p className="mt-1 text-xs text-zinc-600">
+          <div className="border-border bg-muted/40 rounded-xl border p-5">
+            <p className="text-foreground text-sm font-semibold">
+              Documentation
+            </p>
+            <p className="text-muted-foreground mt-1 text-xs">
               Detect drift and append changelogs to ARCHITECTURE, OPERATIONS,
               and PLAYBOOKS
             </p>
@@ -556,9 +561,9 @@ export default async function PlatformPage() {
           </div>
 
           {/* Uptime — manual trigger */}
-          <div className="rounded-xl border border-white/10 bg-white/5 p-5">
-            <p className="text-sm font-semibold text-zinc-200">Uptime</p>
-            <p className="mt-1 text-xs text-zinc-600">
+          <div className="border-border bg-muted/40 rounded-xl border p-5">
+            <p className="text-foreground text-sm font-semibold">Uptime</p>
+            <p className="text-muted-foreground mt-1 text-xs">
               Check production, preview, and API endpoints for availability
             </p>
             <RunHealthCheckButton />
@@ -567,7 +572,7 @@ export default async function PlatformPage() {
 
         {/* Operations */}
         <div>
-          <p className="mb-3 text-[10px] font-semibold tracking-widest text-zinc-600 uppercase">
+          <p className="text-muted-foreground mb-3 text-[10px] font-semibold tracking-widest uppercase">
             Operations
           </p>
           <MaintenanceToggle initial={maintenanceMode} />
