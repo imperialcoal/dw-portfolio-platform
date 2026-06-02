@@ -166,8 +166,8 @@ importers:
         specifier: ~15.0.8
         version: 15.0.11(expo@54.0.35)(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.16)(react@19.2.6))
       nativewind:
-        specifier: 5.0.0-preview.3
-        version: 5.0.0-preview.3(react-native-css@3.0.7(@expo/metro-config@54.0.16(expo@54.0.35))(lightningcss@1.32.0)(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.16)(react@19.2.6))(react@19.2.6))(tailwindcss@4.3.0)
+        specifier: 5.0.0-preview.4
+        version: 5.0.0-preview.4(react-native-css@3.0.7(@expo/metro-config@54.0.16(expo@54.0.35))(lightningcss@1.32.0)(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.16)(react@19.2.6))(react@19.2.6))(tailwindcss@4.3.0)
       react:
         specifier: catalog:react19
         version: 19.2.6
@@ -6265,8 +6265,8 @@ packages:
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
-  nativewind@5.0.0-preview.3:
-    resolution: {integrity: sha512-cbl1GzzY55NL2IG35AaAVfrL4+bCh77sa39aST5/o7xy3TLPthAtzhNPstnrCn+DtIglTnXOlOJGFrX2WdhI6w==}
+  nativewind@5.0.0-preview.4:
+    resolution: {integrity: sha512-eLsFGczxIsWADoD18EbEyt01aWgw4uP1/t/O7JIsp/OEbSgVYVobW97e2DDTOxxiiqSu0RexC1KSo5d7tes9uQ==}
     engines: {node: '>=20'}
     peerDependencies:
       react-native-css: ^3.0.1
@@ -13401,7 +13401,7 @@ snapshots:
 
   nanoid@3.3.12: {}
 
-  nativewind@5.0.0-preview.3(react-native-css@3.0.7(@expo/metro-config@54.0.16(expo@54.0.35))(lightningcss@1.32.0)(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.16)(react@19.2.6))(react@19.2.6))(tailwindcss@4.3.0):
+  nativewind@5.0.0-preview.4(react-native-css@3.0.7(@expo/metro-config@54.0.16(expo@54.0.35))(lightningcss@1.32.0)(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.16)(react@19.2.6))(react@19.2.6))(tailwindcss@4.3.0):
     dependencies:
       react-native-css: 3.0.7(@expo/metro-config@54.0.16(expo@54.0.35))(lightningcss@1.32.0)(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.16)(react@19.2.6))(react@19.2.6)
       tailwindcss: 4.3.0
