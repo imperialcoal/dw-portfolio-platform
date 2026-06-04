@@ -12,7 +12,7 @@ import { clerkClient } from "~/auth/server";
 import { handleClerkWebhook } from "./handler";
 
 export async function POST(req: Request) {
-  if (config.app.APP_ENV !== "production") {
+  if (config.app.APP_ENV === "local") {
     await bootstrapInfra(); // optional: verifies local dev infra
   }
 
