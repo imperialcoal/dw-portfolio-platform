@@ -1,0 +1,286 @@
+name: Terraform
+
+on:
+  pull_request:
+    branches: ["main", "dev"]
+    paths:
+      - "platform/infra/terraform/**"
+      - ".github/workflows/terraform.yml"
+  push:
+    branches: ["main", "dev"]
+    paths:
+      - "platform/infra/terraform/**"
+  # Drift detection — runs daily against production state
+  schedule:
+    - cron: "0 9 * * *"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to plan against"
+        required: true
+        default: "production"
+        type: choice
+        options:
+          - production
+          - preview
+
+concurrency:
+  group: terraform-${{ github.ref }}
+  cancel-in-progress: false # never cancel terraform jobs mid-run
+
+env:
+  TF_WORKING_DIR: platform/infra/terraform
+  # Terraform version must match required_version in terraform.tf
+  TF_VERSION: "1.15.0"
+
+jobs:
+  # ── Format check ────────────────────────────────────────────────────────────
+  # No credentials needed — purely a local syntax check.
+  # Runs on every PR touching infra, regardless of environment.
+  fmt:
+    name: Format Check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: terraform fmt
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform fmt -check -recursive
+        # Fix locally with: cd platform/infra/terraform && terraform fmt -recursive
+
+  # ── Validate ────────────────────────────────────────────────────────────────
+  # Validates HCL syntax and provider configuration.
+  # Requires providers to be initialized but does NOT contact cloud APIs.
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure R2 backend (preview — validate only, no real state needed)
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+        run: |
+          terraform init \
+            -backend-config="environments/preview/backend.hcl" \
+            -backend-config="access_key=${R2_ACCESS_KEY_ID}" \
+            -backend-config="secret_key=${R2_SECRET_ACCESS_KEY}" \
+            -backend-config="endpoints={s3=\"${R2_ENDPOINT}\"}" \
+            -reconfigure
+
+      - name: terraform validate
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform validate
+
+  # ── Plan (PR) ───────────────────────────────────────────────────────────────
+  # Full plan against both environments on PRs to main/dev.
+  # Posts the plan output as a PR comment so reviewers can see what changes.
+  plan:
+    name: Plan (${{ matrix.environment }})
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    needs: [fmt, validate]
+
+    strategy:
+      matrix:
+        environment: [preview, production]
+      fail-fast: false
+
+    environment: ${{ matrix.environment }}
+
+    permissions:
+      pull-requests: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Init (${{ matrix.environment }})
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+        run: |
+          terraform init \
+            -backend-config="environments/${{ matrix.environment }}/backend.hcl" \
+            -backend-config="access_key=${R2_ACCESS_KEY_ID}" \
+            -backend-config="secret_key=${R2_SECRET_ACCESS_KEY}" \
+            -backend-config="endpoints={s3=\"${R2_ENDPOINT}\"}" \
+            -reconfigure
+
+      - name: Plan (${{ matrix.environment }})
+        id: plan
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        env:
+          # Provider credentials — injected from GitHub environment secrets
+          TF_VAR_cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          TF_VAR_vercel_api_token: ${{ secrets.VERCEL_API_TOKEN }}
+          TF_VAR_upstash_api_key: ${{ secrets.UPSTASH_API_KEY }}
+          TF_VAR_supabase_access_token: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          TF_VAR_supabase_db_password: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          TF_VAR_doppler_token: ${{ secrets.DOPPLER_TOKEN }}
+        run: |
+          terraform plan \
+            -var-file="environments/${{ matrix.environment }}.tfvars" \
+            -no-color \
+            -out=tfplan 2>&1 | tee plan_output.txt
+          echo "exitcode=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+        continue-on-error: true
+
+      - name: Post plan as PR comment
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        env:
+          PLAN_OUTPUT: ${{ steps.plan.outputs.stdout }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const planOutput = fs.readFileSync(
+              '${{ env.TF_WORKING_DIR }}/plan_output.txt',
+              'utf8'
+            );
+            const maxLength = 65000;
+            const truncated = planOutput.length > maxLength
+              ? planOutput.slice(0, maxLength) + '\n\n... [truncated — full plan exceeds comment limit]'
+              : planOutput;
+
+            const status = '${{ steps.plan.outputs.exitcode }}' === '0'
+              ? '✅ No changes'
+              : '${{ steps.plan.outputs.exitcode }}' === '2'
+              ? '⚠️ Changes detected'
+              : '❌ Plan failed';
+
+            const body = [
+              `## Terraform Plan — \`${{ matrix.environment }}\` ${status}`,
+              '',
+              '<details><summary>Show plan</summary>',
+              '',
+              '```hcl',
+              truncated,
+              '```',
+              '',
+              '</details>',
+              '',
+              `_Triggered by commit \`${{ github.sha }}\`_`,
+            ].join('\n');
+
+            // Find and update existing comment, or create new one
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const marker = `Terraform Plan — \`${{ matrix.environment }}\``;
+            const existing = comments.find(c => c.body?.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+      - name: Fail if plan errored
+        if: steps.plan.outputs.exitcode == '1'
+        run: exit 1
+
+  # ── Drift detection ─────────────────────────────────────────────────────────
+  # Runs daily at 09:00 UTC against production state.
+  # If plan detects changes (exit code 2), it means cloud state has drifted
+  # from what Terraform expects — someone changed something outside Terraform.
+  # Also runs on workflow_dispatch for manual spot-checks.
+  drift:
+    name: Drift Detection (${{ github.event.inputs.environment || 'production' }})
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+
+    environment: ${{ github.event.inputs.environment || 'production' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Set environment
+        id: env
+        run: |
+          ENV="${{ github.event.inputs.environment || 'production' }}"
+          echo "name=${ENV}" >> $GITHUB_OUTPUT
+
+      - name: Init
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+        run: |
+          terraform init \
+            -backend-config="environments/${{ steps.env.outputs.name }}/backend.hcl" \
+            -backend-config="access_key=${R2_ACCESS_KEY_ID}" \
+            -backend-config="secret_key=${R2_SECRET_ACCESS_KEY}" \
+            -backend-config="endpoints={s3=\"${R2_ENDPOINT}\"}" \
+            -reconfigure
+
+      - name: Plan (drift check)
+        id: drift
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        env:
+          TF_VAR_cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          TF_VAR_vercel_api_token: ${{ secrets.VERCEL_API_TOKEN }}
+          TF_VAR_upstash_api_key: ${{ secrets.UPSTASH_API_KEY }}
+          TF_VAR_supabase_access_token: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          TF_VAR_supabase_db_password: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          TF_VAR_doppler_token: ${{ secrets.DOPPLER_TOKEN }}
+        run: |
+          set +e
+          terraform plan \
+            -var-file="environments/${{ steps.env.outputs.name }}.tfvars" \
+            -detailed-exitcode \
+            -no-color 2>&1 | tee drift_output.txt
+          echo "exitcode=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+
+      - name: Report drift
+        if: steps.drift.outputs.exitcode == '2'
+        run: |
+          echo "::warning::Terraform drift detected in ${{ steps.env.outputs.name }}!"
+          echo "Cloud state has diverged from Terraform state."
+          echo "Run: APP_ENV=${{ steps.env.outputs.name }} pnpm dw infra tf.plan"
+          cat drift_output.txt
+          exit 1
+
+      - name: Confirm no drift
+        if: steps.drift.outputs.exitcode == '0'
+        run: echo "✅ No drift detected in ${{ steps.env.outputs.name }}"

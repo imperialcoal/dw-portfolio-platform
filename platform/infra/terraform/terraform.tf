@@ -1,7 +1,7 @@
 # Required providers and backend
 
 terraform {
-  required_version = "~> 1.14.6"
+  required_version = "~> 1.15.0"
 
   required_providers {
     cloudflare = {
@@ -10,7 +10,7 @@ terraform {
     }
     vercel = {
       source  = "vercel/vercel"
-      version = "~> 4.7.1"
+      version = "~> 5.3.0"
     }
     upstash = {
       source  = "upstash/upstash"
@@ -18,12 +18,12 @@ terraform {
     }
     doppler = {
       source  = "DopplerHQ/doppler"
-      version = "~> 1.21.1"
+      version = "~> 1.21.3"
     }
     supabase = {
       source  = "supabase/supabase"
       version = "~> 1.9.1"
-    }    
+    }
   }
 
   # Terraform state stored in Cloudflare R2

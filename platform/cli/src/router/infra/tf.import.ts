@@ -22,7 +22,7 @@ export const RESOURCES = {
   cloudflare_tunnel: "module.cloudflare.cloudflare_dns_record.tunnel[0]",
   cloudflare_spf: "module.cloudflare.cloudflare_dns_record.spf[0]",
   cloudflare_dmarc: "module.cloudflare.cloudflare_dns_record.dmarc[0]",
-  // Doppler secrets
+  // Doppler secrets — auto-imported, no ID needed
   doppler_upstash_url: "module.doppler.doppler_secret.upstash_rest_url",
   doppler_upstash_token: "module.doppler.doppler_secret.upstash_rest_token",
   doppler_database_url: "module.doppler.doppler_secret.database_url",
@@ -52,7 +52,65 @@ export const DOPPLER_SECRET_IDS: Partial<
     `${DOPPLER_PROJECT}.${c}.SUPABASE_SECRET_DEFAULT_KEY`,
 };
 
-// Which resources belong to which environment
+// Known resource IDs — pre-filled defaults for each resource.
+// Non-sensitive identifiers; safe to commit.
+// Format for Cloudflare: zone_id/record_id
+// Format for Vercel:     team_id/project_id/domain
+//
+// Retrieve Cloudflare record IDs:
+//   doppler run --config=prd -- bash -c '
+//     curl -s "https://api.cloudflare.com/client/v4/zones/145e64e1bd9e74d45fd610490d6d91fe/dns_records" \
+//       -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | \
+//       jq -r ".result[] | [.type, .name, .id] | @tsv"
+//   '
+const KNOWN_RESOURCE_IDS: Partial<Record<ResourceKey, string>> = {
+  // ── Vercel ──────────────────────────────────────────────────────────────
+  vercel_preview:
+    "team_Jmi4R7XA5pi7uK4Br6j9IJkg/prj_gruPExJp4p2E5qiNpplYS8CPrn4c/dev.dw-portfolio.dev",
+  vercel_production:
+    "team_Jmi4R7XA5pi7uK4Br6j9IJkg/prj_gruPExJp4p2E5qiNpplYS8CPrn4c/dw-portfolio.dev",
+  vercel_www:
+    "team_Jmi4R7XA5pi7uK4Br6j9IJkg/prj_gruPExJp4p2E5qiNpplYS8CPrn4c/www.dw-portfolio.dev",
+  // ── Cloudflare DNS records (zone: 145e64e1bd9e74d45fd610490d6d91fe) ────
+  // A       dw-portfolio.dev
+  cloudflare_apex:
+    "145e64e1bd9e74d45fd610490d6d91fe/9f4af4b8284ae30e061d7920c63210d5",
+  // CNAME   www.dw-portfolio.dev
+  cloudflare_www:
+    "145e64e1bd9e74d45fd610490d6d91fe/c2b1216dc786ab098f7eebf9cff8a174",
+  // CNAME   dev.dw-portfolio.dev
+  cloudflare_preview:
+    "145e64e1bd9e74d45fd610490d6d91fe/afe5068fcb715b56d42039d2564af312",
+  // CNAME   tunnel.dw-portfolio.dev
+  cloudflare_tunnel:
+    "145e64e1bd9e74d45fd610490d6d91fe/62ac12fab3cb495dd2aa6ab8d8c669e0",
+  // TXT     send.dw-portfolio.dev (SPF)
+  cloudflare_spf:
+    "145e64e1bd9e74d45fd610490d6d91fe/94fa4dd05fbeca2a41217797ae703c54",
+  // TXT     _dmarc.dw-portfolio.dev
+  cloudflare_dmarc:
+    "145e64e1bd9e74d45fd610490d6d91fe/4c2ef94ac0de51f83a17405e15f591f2",
+};
+
+// Human-readable hints shown above each prompt for context.
+const RESOURCE_ID_HINTS: Partial<Record<ResourceKey, string>> = {
+  upstash:
+    "Upstash dashboard → Redis → your DB → Database ID  (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)",
+  supabase:
+    "Supabase dashboard → Settings → General → Reference ID  (16-char alphanumeric)",
+  vercel_preview: "Format: team_id/project_id/domain",
+  vercel_production: "Format: team_id/project_id/domain",
+  vercel_www: "Format: team_id/project_id/domain",
+  cloudflare_apex: "Format: zone_id/record_id",
+  cloudflare_www: "Format: zone_id/record_id",
+  cloudflare_preview: "Format: zone_id/record_id",
+  cloudflare_tunnel: "Format: zone_id/record_id",
+  cloudflare_spf: "Format: zone_id/record_id",
+  cloudflare_dmarc: "Format: zone_id/record_id",
+};
+
+// Which resources belong to which environment.
+// Preview does not manage DNS or production domains.
 const ENVIRONMENT_RESOURCES: Record<string, ResourceKey[]> = {
   preview: [
     "upstash",
@@ -129,7 +187,6 @@ async function importResource(
 const command: CLICommand = async () => {
   const env = process.env.APP_ENV === "production" ? "production" : "preview";
   const dopplerConfig = env === "production" ? "prd" : "stg";
-  const dopplerConfigShort = env === "production" ? "prd" : "stg";
   const resources = ENVIRONMENT_RESOURCES[env];
 
   if (!resources) {
@@ -149,7 +206,7 @@ const command: CLICommand = async () => {
 
     // Doppler secrets have deterministic IDs — no prompt needed
     if (autoIdFn) {
-      const id = autoIdFn(dopplerConfigShort);
+      const id = autoIdFn(dopplerConfig);
       console.log(`\nAuto-importing ${key}...`);
       try {
         await importResource(dopplerConfig, env, address, id);
@@ -160,8 +217,6 @@ const command: CLICommand = async () => {
           message.includes("already managed") ||
           message.includes("already exists")
         ) {
-          // Verify it's actually in state by checking if plan would show it as create
-          // If we get here, it's genuinely already imported — safe to skip
           console.log(`  ✓ ${key} already in state — skipping`);
         } else {
           console.error(`  ✗ ${key} failed: ${message}`);
@@ -176,8 +231,24 @@ const command: CLICommand = async () => {
       continue;
     }
 
-    // Infrastructure resources require manual ID entry
-    const id = await prompt(`ID for ${key} (${address}): `);
+    // Infrastructure resources require manual ID entry.
+    // Print the format hint and pre-filled ID (if known) before prompting.
+    const hint = RESOURCE_ID_HINTS[key];
+    const knownId = KNOWN_RESOURCE_IDS[key];
+
+    if (hint) {
+      console.log(`\n  ℹ ${key}: ${hint}`);
+    }
+    if (knownId) {
+      console.log(`  ✦ Known ID: ${knownId}`);
+    }
+
+    const promptText = knownId
+      ? `ID for ${key} (Enter to use known ID, or paste to override): `
+      : `ID for ${key} (Enter to skip): `;
+
+    const input = await prompt(promptText);
+    const id = (input || knownId) ?? "";
 
     if (!id) {
       console.log(`Skipping ${key}`);
