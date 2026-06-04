@@ -1,6 +1,6 @@
 output "rest_url" {
   description = "Upstash Redis REST URL"
-  value       = upstash_redis_database.main.endpoint
+  value       = "https://${upstash_redis_database.main.endpoint}"
 }
 
 output "rest_token" {
