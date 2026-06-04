@@ -31,14 +31,16 @@
 --
 -- After this migration:
 --   ✓ public.user  — RLS enabled, anon blocked, service_role full access
---   ✓ public.post  — RLS enabled, anon can SELECT published posts only,
---                    service_role full access for tRPC mutations
+--   ✓ public.post  — RLS enabled, anon blocked, service_role full access
 --   ✓ Security Advisor advisories will resolve on next scan
+--
+-- NOTE: anon and authenticated roles have NO direct access to either table.
+--   All reads and writes go through tRPC → Drizzle → service_role.
+--   PostgREST direct access is not a supported path for this app.
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
 -- STEP 1: Enable RLS on both tables
--- This alone blocks all access until policies are added — order matters.
 -- We add policies before enabling to avoid a window of total lockout.
 -- -----------------------------------------------------------------------------
 
@@ -46,11 +48,8 @@
 -- TABLE: public.user
 -- =============================================================================
 
--- ── Policies ─────────────────────────────────────────────────────────────────
-
 -- service_role can do everything (Drizzle ORM, Clerk webhook sync,
 -- ensureUserProvisioned, lastSeenAt updates, role changes, ban checks).
--- This covers every server-side operation that touches the user table.
 CREATE POLICY "service_role_all_user"
   ON public."user"
   AS PERMISSIVE
@@ -60,14 +59,10 @@ CREATE POLICY "service_role_all_user"
   WITH CHECK (true);
 
 -- anon role: no access at all.
--- PostgREST anon requests must not be able to read or enumerate users.
 -- (No explicit DENY policy needed — with RLS enabled and no anon policy,
 --  the default is DENY for any role not explicitly granted.)
 
--- ── Enable RLS ───────────────────────────────────────────────────────────────
 ALTER TABLE public."user" ENABLE ROW LEVEL SECURITY;
-
--- Force RLS even for the table owner (prevents accidental owner bypass).
 ALTER TABLE public."user" FORCE ROW LEVEL SECURITY;
 
 
@@ -75,12 +70,14 @@ ALTER TABLE public."user" FORCE ROW LEVEL SECURITY;
 -- TABLE: public.post
 -- =============================================================================
 
--- ── Policies ─────────────────────────────────────────────────────────────────
-
 -- service_role full access — covers all tRPC mutations:
 --   post.create (adminProcedure → INSERT)
 --   post.delete (adminProcedure → DELETE)
 --   post.all / post.byId cache misses (publicProcedure → SELECT via Drizzle)
+--
+-- anon role: no direct access.
+--   post.all and post.byId are publicProcedure but go through
+--   Drizzle + PgBouncer (service_role) — never direct PostgREST.
 CREATE POLICY "service_role_all_post"
   ON public.post
   AS PERMISSIVE
@@ -89,57 +86,23 @@ CREATE POLICY "service_role_all_post"
   USING (true)
   WITH CHECK (true);
 
--- anon role: SELECT only, no filter.
--- post.all and post.byId are publicProcedure — they run without a user
--- session. However, these queries go through Drizzle + PgBouncer which
--- authenticates as service_role, so this policy is belt-and-suspenders.
--- It does mean that if PostgREST is hit directly by anon, only SELECT
--- is permitted — no INSERT, UPDATE, DELETE via the REST API.
-CREATE POLICY "anon_select_post"
-  ON public.post
-  AS PERMISSIVE
-  FOR SELECT
-  TO anon
-  USING (true);
-
--- authenticated role: SELECT only (same as anon for reads).
--- Logged-in users browsing via PostgREST directly can read posts.
--- Mutations go through adminProcedure → service_role, never authenticated role.
-CREATE POLICY "authenticated_select_post"
-  ON public.post
-  AS PERMISSIVE
-  FOR SELECT
-  TO authenticated
-  USING (true);
-
--- ── Enable RLS ───────────────────────────────────────────────────────────────
 ALTER TABLE public.post ENABLE ROW LEVEL SECURITY;
-
 ALTER TABLE public.post FORCE ROW LEVEL SECURITY;
 
 
 -- =============================================================================
--- STEP 2: Revoke anon grants on public.user
+-- STEP 2: Revoke all anon and authenticated grants on both tables
 --
 -- Supabase grants broad privileges to anon and authenticated roles on
--- newly-created tables in the public schema by default. Revoking these
--- removes the "Exposed to Anon Role" Security Advisor warnings.
--- The RLS policies above already block access at the row level; these
--- REVOKE statements remove the table-level grants as defence in depth.
+-- newly-created tables by default. Revoking these removes the
+-- "Exposed to Anon Role" Security Advisor warnings as defence in depth
+-- on top of the RLS policies above.
 -- =============================================================================
 
 REVOKE ALL ON public."user" FROM anon;
 REVOKE ALL ON public."user" FROM authenticated;
-
--- Re-grant only what authenticated users need via PostgREST (nothing for user
--- table — all user reads go through Drizzle service_role, not PostgREST).
--- If you ever add a public profile endpoint via PostgREST, selectively
--- re-grant SELECT here and add a restrictive RLS policy.
-
--- Keep SELECT on post for anon/authenticated (powers any direct PostgREST
--- reads if you ever use the Supabase JS client on the frontend for posts).
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.post FROM anon;
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.post FROM authenticated;
+REVOKE ALL ON public.post FROM anon;
+REVOKE ALL ON public.post FROM authenticated;
 
 
 -- =============================================================================
@@ -153,7 +116,7 @@ REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.post FROM authenticated;
 -- WHERE relname IN ('user', 'post')
 --   AND relnamespace = 'public'::regnamespace;
 --
--- Expected: 4 policies visible
+-- Expected: 2 policies visible (service_role_all_user, service_role_all_post)
 --
 -- SELECT schemaname, tablename, policyname, roles, cmd, qual
 -- FROM pg_policies

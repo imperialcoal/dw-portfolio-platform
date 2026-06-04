@@ -7,6 +7,8 @@
 // works identically here as on every other route. No inline toggle needed —
 // the universal one in the root layout covers /platform/* automatically.
 
+import Link from "next/link";
+
 import { getPlatformAccessLevel } from "~/auth/require-viewer-or-admin";
 import { CommandPalette } from "./_components/command-palette";
 
@@ -21,9 +23,19 @@ export default async function PlatformLayout({
     <div className="bg-background text-foreground min-h-screen">
       {isReadOnly && <ViewerBanner />}
 
-      {/* Sticky command palette bar */}
+      {/* Sticky command palette bar and home link*/}
       <div className="bg-background/80 sticky top-0 z-40 border-b border-black/5 px-6 py-3 backdrop-blur-sm lg:px-10 dark:border-white/5">
-        <CommandPalette />
+        <div className="flex items-center gap-4">
+          <Link
+            href="/"
+            className="text-muted-foreground hover:text-foreground shrink-0 text-xs transition-colors"
+          >
+            ← Home
+          </Link>
+          <div className="flex-1">
+            <CommandPalette />
+          </div>
+        </div>
       </div>
 
       {children}
