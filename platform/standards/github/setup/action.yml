@@ -5,12 +5,20 @@ runs:
   using: composite
   steps:
     - uses: pnpm/action-setup@v4
+      with:
+        version: 11.5.0
+
     - uses: actions/setup-node@v6
       with:
         node-version-file: ".nvmrc"
+        cache: "pnpm"
+
+    - name: Add pnpm global bin to PATH
+      shell: bash
+      run: echo "$(pnpm root -g)/../.bin" >> $GITHUB_PATH
 
     - shell: bash
       run: pnpm add -g turbo
 
     - shell: bash
-      run: pnpm install
+      run: pnpm install --frozen-lockfile
