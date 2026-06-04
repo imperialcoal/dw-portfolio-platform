@@ -23,11 +23,11 @@ export async function runtimeEntry() {
 
   loadEnv();
 
-  // Bootstrap (infra verification) only runs in Node.js runtime
-  // and only in non-production environments.
-  // Edge functions skip this entirely — they have no access to
-  // Postgres or Redis directly.
-  if (isNodeRuntime() && process.env.APP_ENV !== "production") {
+  // Bootstrap (infra verification) only runs locally against Docker.
+  // Vercel environments (preview/production) skip this — cloud infra
+  // is always available and does not need startup verification.
+  // Tests use their own mocked infra setup via vitest.setup.ts.
+  if (isNodeRuntime() && process.env.APP_ENV === "local") {
     await bootstrapInfra();
   }
 }
