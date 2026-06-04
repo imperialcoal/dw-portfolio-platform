@@ -9,6 +9,7 @@
     "emitDeclarationOnly": false,
     "noEmit": false,
     "module": "NodeNext",
-    "moduleResolution": "NodeNext"
+    "moduleResolution": "NodeNext",
+    "types": ["node"]
   }
 }
