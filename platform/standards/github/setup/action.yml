@@ -4,8 +4,6 @@ description: "Common setup steps for Actions"
 runs:
   using: composite
   steps:
-    # pnpm version is read automatically from packageManager field in package.json
-    # Do NOT specify version here — it conflicts with packageManager and action-setup@v4 will error
     - uses: pnpm/action-setup@v4
 
     - uses: actions/setup-node@v6
@@ -15,7 +13,7 @@ runs:
 
     - name: Add pnpm global bin to PATH
       shell: bash
-      run: echo "$(pnpm root -g)/../.bin" >> $GITHUB_PATH
+      run: echo "$PNPM_HOME" >> $GITHUB_PATH
 
     - shell: bash
       run: pnpm add -g turbo
