@@ -1,7 +1,6 @@
 import { headers } from "next/headers";
 import { Webhook } from "svix";
 
-import { ensureUserProvisioned } from "@dw/auth";
 import { config } from "@dw/config";
 import { bootstrapInfra } from "@dw/runtime/bootstrap";
 import { createRuntimeContext } from "@dw/runtime/context";
@@ -63,8 +62,8 @@ export async function POST(req: Request) {
           await client.users.updateUserMetadata(userId, data);
         },
       },
-      ensureUserProvisioned,
-      ownerEmails: config.auth.OWNER_EMAILS?.split(",") ?? [],
+      ownerEmails:
+        config.auth.OWNER_EMAILS?.split(",").map((s) => s.trim()) ?? [],
     });
 
     return new Response("OK", { status: 200 });

@@ -1,6 +1,6 @@
 import type { SessionWebhookEvent, UserWebhookEvent } from "@clerk/backend";
 
-import type { AuthorityUser, ClerkPublicMetadata, Role } from "@dw/auth";
+import type { ClerkPublicMetadata, Role } from "@dw/auth";
 import type { DbInstance } from "@dw/db";
 import type { Redis } from "@dw/redis";
 import {
@@ -53,11 +53,6 @@ interface ClerkWebhookDeps {
       data: { publicMetadata?: ClerkPublicMetadata },
     ) => Promise<void>;
   };
-  ensureUserProvisioned: (
-    userId: string,
-    db: DbInstance,
-    redis: Redis,
-  ) => Promise<AuthorityUser | null>;
   ownerEmails: string[];
 }
 
@@ -67,17 +62,13 @@ export async function handleClerkWebhook(
   evt: SupportedClerkEvents,
   deps: ClerkWebhookDeps,
 ): Promise<void> {
-  const { db, redis, clerk, ensureUserProvisioned, ownerEmails } = deps;
+  const { db, redis, ownerEmails } = deps;
 
   // ── user.created / user.updated ─────────────────────────────────────────
 
   if (evt.type === "user.created" || evt.type === "user.updated") {
     const data = evt.data;
-
     if (!data.id) throw new Error("Missing user id");
-
-    const provisioned = await ensureUserProvisioned(data.id, db, redis);
-    if (!provisioned) throw new Error("Failed to provision user");
 
     const primaryEmail = data.email_addresses.find(
       (e) => e.id === data.primary_email_address_id,
@@ -87,19 +78,9 @@ export async function handleClerkWebhook(
     const isOwner = ownerEmails.includes(primaryEmail.email_address);
     const role: Role = isOwner ? ROLES.ADMIN : ROLES.USER;
 
-    console.log(
-      JSON.stringify({
-        level: "info",
-        webhook: "clerk",
-        event: evt.type,
-        userId: data.id,
-        email: primaryEmail.email_address,
-        isOwner,
-        role,
-        ownerEmailCount: ownerEmails.length,
-      }),
-    );
-
+    // Upsert directly from webhook payload — no Clerk API call needed.
+    // The payload IS the source of truth here; calling getUser() creates
+    // a race condition when the webhook fires immediately after dashboard creation.
     await db
       .insert(user)
       .values({
@@ -115,46 +96,15 @@ export async function handleClerkWebhook(
       .onConflictDoUpdate({
         target: user.id,
         set: {
-          role,
           email: primaryEmail.email_address,
           emailVerified: primaryEmail.verification?.status === "verified",
           name:
             `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim() || null,
           image: data.image_url || null,
+          role,
           updatedAt: new Date(data.updated_at),
         },
       });
-
-    // Sync role to Clerk public metadata if it drifted
-    const dbUser = await db.query.user.findFirst({
-      where: eq(user.id, data.id),
-      columns: { role: true },
-    });
-
-    const clerkRole = (data.public_metadata as ClerkPublicMetadata).role;
-
-    if (dbUser && clerkRole !== dbUser.role) {
-      const lockKey = `lock:user-role-sync:${data.id}`;
-      const acquired = await redis.set(lockKey, "1", { nx: true, ex: 15 });
-      if (acquired) {
-        try {
-          await clerk.updateUserMetadata(data.id, {
-            publicMetadata: { role: dbUser.role },
-          });
-          console.log(
-            JSON.stringify({
-              level: "info",
-              webhook: "clerk",
-              event: "role_synced_to_clerk",
-              userId: data.id,
-              role: dbUser.role,
-            }),
-          );
-        } finally {
-          await redis.del(lockKey);
-        }
-      }
-    }
 
     await redis.del(cacheKeys.userById(data.id));
 
