@@ -18,7 +18,7 @@ import { redirect } from "next/navigation";
 import { ROLES } from "@dw/auth";
 import { canViewPlatform } from "@dw/auth/roles";
 
-import { getRequestAuthority } from "./request-authority";
+import { getRequestAuthority } from "../../auth/request-authority";
 
 export async function requireRecruiterOrAdmin() {
   const authority = await getRequestAuthority();

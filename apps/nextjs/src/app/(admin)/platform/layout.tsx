@@ -4,7 +4,7 @@
 
 import Link from "next/link";
 
-import { getPlatformAccessLevel } from "~/auth/require-recruiter-or-admin";
+import { getPlatformAccessLevel } from "~/demo/auth/require-recruiter-or-admin";
 import { CommandPalette } from "./_components/command-palette";
 
 export default async function PlatformLayout({

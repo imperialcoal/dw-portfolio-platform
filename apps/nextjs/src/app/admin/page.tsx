@@ -14,17 +14,22 @@ import { Suspense } from "react";
 import Link from "next/link";
 
 import { Show, SignInButton } from "~/auth/client";
+import { requireAdmin } from "~/auth/require-admin";
+import { isDemoMode } from "~/demo";
+import { requireRecruiterOrAdmin } from "~/demo/auth/require-recruiter-or-admin";
 import {
   CreatePostForm,
   PostCardSkeleton,
   PostList,
 } from "../_components/posts";
 
-// import { requireAdmin } from "../../auth/require-admin";
-
 // export default async function AdminPage() {
-export default function AdminPage() {
-  // await requireAdmin();
+export default async function AdminPage() {
+  if (isDemoMode()) {
+    await requireRecruiterOrAdmin();
+  } else {
+    await requireAdmin();
+  }
 
   return (
     <div className="bg-background min-h-screen">
