@@ -161,22 +161,20 @@ export async function handleClerkWebhook(
     // Sync role to Clerk publicMetadata so the JWT carries the correct role
     // for client-side useUserRole() without a server round-trip.
     // Fire-and-forget — a metadata sync failure must not fail the webhook.
-    await deps.clerk
-      .updateUserMetadata(data.id, {
-        publicMetadata: { role },
-      })
-      .catch((err: unknown) => {
-        console.warn(
-          JSON.stringify({
-            level: "warn",
-            webhook: "clerk",
-            event: evt.type,
-            note: "failed to sync role to Clerk metadata",
-            userId: data.id,
-            error: String(err),
-          }),
-        );
-      });
+    await Promise.resolve(
+      deps.clerk.updateUserMetadata(data.id, { publicMetadata: { role } }),
+    ).catch((err: unknown) => {
+      console.warn(
+        JSON.stringify({
+          level: "warn",
+          webhook: "clerk",
+          event: evt.type,
+          note: "failed to sync role to Clerk metadata",
+          userId: data.id,
+          error: String(err),
+        }),
+      );
+    });
 
     // Track activity — fire-and-forget, non-critical
     await logUserActivity({
