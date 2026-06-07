@@ -240,31 +240,27 @@ export function DemoHomePage() {
           <div className="space-y-1.5 font-mono text-sm">
             <div className="flex items-center">
               <span className="text-muted-foreground w-20 text-xs">Email</span>
-              <span className="text-foreground">demo@dw-portfolio.dev</span>
-              <CopyButton text="demo@dw-portfolio.dev" />
+              <span className="text-foreground">
+                your_email+clerk_test@example.com
+              </span>
+              <CopyButton text="your_email+clerk_test@example.com" />
             </div>
             <div className="flex items-center">
               <span className="text-muted-foreground w-20 text-xs">
                 Password
               </span>
-              <span className="text-foreground">ViewerDemo2026!</span>
-              <CopyButton text="ViewerDemo2026!" />
+              <span className="text-foreground">superRandomPassword</span>
+              <CopyButton text="superRandomPassword" />
+            </div>
+            <div className="flex items-center">
+              <span className="text-muted-foreground w-20 text-xs">Code</span>
+              <span className="text-foreground">424242</span>
+              <CopyButton text="424242" />
             </div>
           </div>
-          <div className="mt-4 flex gap-2">
-            <Link
-              href="/platform"
-              className="bg-foreground text-background rounded-lg px-4 py-2 text-xs font-medium transition-opacity hover:opacity-80"
-            >
-              Open Platform Dashboard →
-            </Link>
-            <Link
-              href="/admin"
-              className="border-border bg-background text-foreground hover:bg-muted/60 rounded-lg border px-4 py-2 text-xs font-medium transition-colors"
-            >
-              Auth Demo
-            </Link>
-          </div>
+          <p className="text-muted-foreground mt-3 text-[11px]">
+            Use code 424242 for any email verification prompt.
+          </p>
         </div>
       </section>
 
