@@ -45,18 +45,14 @@ describe("Platform Identity Guardrails", () => {
       process.env.APP_ENV = "local";
       process.env.VERCEL_ENV = "production";
 
-      expect(() => getPlatformIdentity()).toThrowError(
-        /does not match VERCEL_ENV/,
-      );
+      expect(() => getPlatformIdentity()).toThrow(/does not match VERCEL_ENV/);
     });
 
     it("THROWS when Vercel Env is Preview but App Env is Production", () => {
       process.env.APP_ENV = "production";
       process.env.VERCEL_ENV = "preview";
 
-      expect(() => getPlatformIdentity()).toThrowError(
-        /does not match VERCEL_ENV/,
-      );
+      expect(() => getPlatformIdentity()).toThrow(/does not match VERCEL_ENV/);
     });
 
     it("Defaults NODE_ENV to development if undefined", () => {

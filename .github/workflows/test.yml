@@ -28,6 +28,23 @@ jobs:
       - name: Runtime Tests
         run: pnpm test:runtime
 
+  # ── Auth unit tests ─────────────────────────────────────────────────────
+  # Pure logic: roles, guards, errors, metadata, rbac assertions.
+  # No infrastructure required — mocked env vars only.
+  auth-unit-test:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://mock:mock@localhost:5432/mock_test
+      DIRECT_URL: postgresql://mock:mock@localhost:5432/mock_test
+      UPSTASH_REDIS_REST_URL: https://mock-redis.upstash.io
+      UPSTASH_REDIS_REST_TOKEN: mock_token
+    steps:
+      - uses: actions/checkout@v6
+      - name: Setup
+        uses: ./platform/standards/github/setup
+      - name: Auth Unit Tests
+        run: pnpm test:auth:unit
+
   infrastructure-test:
     runs-on: ubuntu-latest
     needs: [runtime-test]
@@ -47,6 +64,35 @@ jobs:
         run: docker compose -f platform/dev-tools/docker/docker-compose.yml up -d --wait
       - name: API Infrastructure Tests
         run: pnpm test:api:infra
+      - name: Stop Infrastructure
+        if: always()
+        run: docker compose -f platform/dev-tools/docker/docker-compose.yml down
+
+  # ── Auth integration tests ──────────────────────────────────────────────
+  # Tests loadAuthorityUser, getAuthorityContext, ensureUserProvisioned.
+  # Requires Docker Postgres + Redis (same setup as infrastructure-test).
+  auth-infra-test:
+    runs-on: ubuntu-latest
+    needs: [runtime-test]
+    env:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: postgres
+      DATABASE_URL: postgresql://postgres:password@localhost:5433/dw_test
+      DIRECT_URL: postgresql://postgres:password@localhost:5433/dw_test
+      UPSTASH_REDIS_REST_URL: http://localhost:8079
+      UPSTASH_REDIS_REST_TOKEN: mock_token
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_mock
+      CLERK_SECRET_KEY: sk_test_mock
+      CLERK_WEBHOOK_SECRET: whsec_mock
+    steps:
+      - uses: actions/checkout@v6
+      - name: Setup
+        uses: ./platform/standards/github/setup
+      - name: Start Infrastructure
+        run: docker compose -f platform/dev-tools/docker/docker-compose.yml up -d --wait
+      - name: Auth Infrastructure Tests
+        run: pnpm test:auth:infra
       - name: Stop Infrastructure
         if: always()
         run: docker compose -f platform/dev-tools/docker/docker-compose.yml down
@@ -76,4 +122,3 @@ jobs:
       - name: Stop Infrastructure
         if: always()
         run: docker compose -f platform/dev-tools/docker/docker-compose.yml down
-        

@@ -39,10 +39,13 @@ export const env = createEnv({
   /**
    * Server-side environment variables.
    * Cloud service keys validated in their respective env functions above.
+   * DEMO_MODE is declared here explicitly so env.DEMO_MODE is typed on
+   * the composed env object — the value is validated by authEnv() above.
    */
   server: {
     ...databaseSchema,
     ...redisSchema,
+    DEMO_MODE: z.string().optional(),
   },
   /**
    * Client-side environment variables (NEXT_PUBLIC_ prefix required).

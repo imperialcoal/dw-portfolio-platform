@@ -1,3 +1,5 @@
+// packages/auth/src/rbac.ts
+
 import { TRPCError } from "@trpc/server";
 
 import type { Role } from "./roles";
@@ -43,17 +45,22 @@ export function assertRole(
 }
 
 /**
- * Require admin role (full platform access + destructive actions).
+ * Require admin role (owner-only actions — not needed for recruiter).
+ * Currently unused in platform routes since recruiters have full access.
+ * Reserved for future owner-only features (e.g., billing, Doppler config).
  */
 export function assertAdmin(ctx: RBACContext) {
   assertRole(ctx, ROLES.ADMIN);
 }
 
 /**
- * Require viewer OR admin role (read-only platform access).
- * Use this on all /platform/* pages except destructive endpoints.
+ * Require recruiter OR admin role (platform access).
+ * Use this on all /platform/* pages and API routes.
+ *
+ * Both roles have identical platform capabilities.
+ * The distinction is only in the session banner and activity logs.
  */
-export function assertViewerOrAdmin(ctx: RBACContext) {
+export function assertRecruiterOrAdmin(ctx: RBACContext) {
   assertUser(ctx);
   if (!canViewPlatform(ctx.user.role)) {
     throw new TRPCError({
@@ -64,22 +71,22 @@ export function assertViewerOrAdmin(ctx: RBACContext) {
 }
 
 /**
- * Require admin for mutations (resolve, rollback, maintenance toggle).
- * Throws FORBIDDEN for viewers with a clear message so the UI can display it.
+ * Require platform mutation access (recruiter or admin).
+ * Both roles can resolve incidents, trigger rollbacks, toggle maintenance,
+ * and run platform agents. There are no recruiter-restricted mutations.
  */
 export function assertPlatformMutator(ctx: RBACContext) {
   assertUser(ctx);
   if (!canMutatePlatform(ctx.user.role)) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message:
-        "This action requires admin access. You are viewing in read-only mode.",
+      message: "Platform access required.",
     });
   }
 }
 
 /**
- * Require not banned (used as an additional check after role assertions).
+ * Require not banned.
  */
 export function assertNotBanned(ctx: RBACContext) {
   assertUser(ctx);

@@ -8,11 +8,15 @@ import { z } from "zod/v4";
  * admin privileges. Used by auth guards to determine who is an admin,
  * and mirrors RESEND_TO_EMAIL for incident email routing.
  *
+ * DEMO_MODE — when set to "true", the portfolio home route renders the
+ * recruiter-facing DemoHomePage instead of the base portfolio home.
+ * Set via Doppler `stg` config. No UI toggle exists — this is intentional.
  */
 export function authEnv() {
   return createEnv({
     server: {
       OWNER_EMAILS: z.string().min(1).optional(),
+      DEMO_MODE: z.string().optional(),
       NODE_ENV: z
         .enum(["development", "test", "production"])
         .default("development"),

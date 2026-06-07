@@ -13,30 +13,25 @@ import "~/app/styles.css";
 
 const url = new URL(env.NEXT_PUBLIC_APP_URL);
 
+// ─────────────────────────────────────────────
+// Base metadata — portfolio platform foundation.
+//
+// In demo mode this is overridden by demoMetadata
+// from ~/demo. See src/app/page.tsx for the toggle.
+// ─────────────────────────────────────────────
+
 export const metadata: Metadata = {
   metadataBase: url,
-  title: "Platform Intelligence — DW Portfolio",
+  title: "DW Portfolio",
   description:
-    "A production-grade AI DevOps platform: automated incident pipeline powered by Anthropic, Terraform-managed infrastructure across two environments, and a live control center dashboard. Built as a portfolio project.",
+    "A full-stack portfolio platform with a TypeScript monorepo, tRPC API, Drizzle ORM, Clerk auth, and a production DevOps dashboard.",
   openGraph: {
-    title: "Platform Intelligence — DW Portfolio",
+    title: "DW Portfolio",
     description:
-      "AI-powered incident pipeline + Terraform IaC + full-stack TypeScript monorepo. Live production system.",
+      "Full-stack TypeScript monorepo — Next.js, tRPC, Drizzle, Clerk, Supabase, and a live AI DevOps dashboard.",
     url: url,
     siteName: "DW Portfolio",
   },
-  keywords: [
-    "DevOps",
-    "AI",
-    "TypeScript",
-    "Next.js",
-    "Terraform",
-    "tRPC",
-    "Drizzle",
-    "Supabase",
-    "Turborepo",
-    "portfolio",
-  ],
 };
 
 export const viewport: Viewport = {
@@ -69,9 +64,9 @@ export default function RootLayout(props: { children: React.ReactNode }) {
           <ThemeProvider>
             <TRPCReactProvider>{props.children}</TRPCReactProvider>
             {/*
-             * Universal theme toggle — fixed bottom-right, visible on every route.
-             * Uses ThemeToggleMenu (dropdown) so Light / Dark / System options
-             * are always explicit. z-40 keeps it below modals (z-50).
+             * Universal theme toggle — fixed bottom-right, visible on every
+             * route. Uses ThemeToggleMenu (dropdown) so Light / Dark / System
+             * options are always explicit. z-40 keeps it below modals (z-50).
              */}
             <div className="fixed right-4 bottom-4 z-40">
               <ThemeToggleMenu />

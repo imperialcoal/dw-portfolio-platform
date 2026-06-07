@@ -105,6 +105,15 @@
       "dependsOn": ["@dw/dev-tools#dev-tools:db:test-setup"],
       "outputs": ["coverage/**"], // add coverage flag to vitest later for more metrics during testing
       "cache": false
+    },
+    "auth:unit:test": {
+      "outputs": ["coverage/**"],
+      "cache": true
+    },
+    "auth:infrastructure:test": {
+      "dependsOn": ["@dw/dev-tools#dev-tools:db:test-setup"],
+      "outputs": ["coverage/**"],
+      "cache": false
     }
   },
   "globalEnv": [
@@ -130,6 +139,7 @@
     "CLOUDFLARE_ZONE_ID",
     "CRON_SECRET",
     "DATABASE_URL",
+    "DEMO_MODE",
     "DIRECT_URL",
     "DOPPLER_CONFIG",
     "DOPPLER_ENVIRONMENT",
