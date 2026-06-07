@@ -11,7 +11,7 @@ import {
   markIncidentOpen,
 } from "@dw/ai/memory";
 import { ROLES } from "@dw/auth";
-import { eq } from "@dw/db";
+import { and, eq, sql } from "@dw/db";
 import { user } from "@dw/db/schema";
 import { cacheKeys } from "@dw/redis";
 
@@ -78,6 +78,56 @@ export async function handleClerkWebhook(
     const isOwner = ownerEmails.includes(primaryEmail.email_address);
     const role: Role = isOwner ? ROLES.ADMIN : ROLES.USER;
 
+    // ── Stale row cleanup (user.created only) ───────────────────────────────
+    //
+    // When a user is deleted from Clerk and recreates an account with the same
+    // email, Clerk issues a brand-new user_id. Our DB has a unique constraint
+    // on email, so the upsert below (which targets user.id) would conflict on
+    // the email column for any surviving row with the old user_id.
+    //
+    // Fix: on user.created, tombstone any existing row that shares this email
+    // but has a different Clerk user_id. We soft-delete it and mangle the email
+    // so the unique constraint is freed without losing audit history.
+    //
+    // This also clears any Redis cache for the stale user_id so stale authority
+    // lookups don't return the old profile.
+    if (evt.type === "user.created") {
+      const staleRows = await db
+        .select({ id: user.id })
+        .from(user)
+        .where(
+          and(
+            eq(user.email, primaryEmail.email_address),
+            sql`${user.id} != ${data.id}`,
+          ),
+        );
+
+      for (const stale of staleRows) {
+        await db
+          .update(user)
+          .set({
+            deletedAt: new Date(),
+            // Mangle email to free the unique constraint for the new row.
+            // Format: deleted-<timestamp>-<stale_id>@deleted.invalid
+            email: `deleted-${Date.now()}-${stale.id}@deleted.invalid`,
+          })
+          .where(eq(user.id, stale.id));
+
+        await redis.del(cacheKeys.userById(stale.id));
+
+        console.log(
+          JSON.stringify({
+            level: "info",
+            webhook: "clerk",
+            event: "stale_user_tombstoned",
+            staleUserId: stale.id,
+            newUserId: data.id,
+            email: primaryEmail.email_address,
+          }),
+        );
+      }
+    }
+
     // Upsert directly from webhook payload — no Clerk API call needed.
     // The payload IS the source of truth here; calling getUser() creates
     // a race condition when the webhook fires immediately after dashboard creation.
@@ -107,6 +157,26 @@ export async function handleClerkWebhook(
       });
 
     await redis.del(cacheKeys.userById(data.id));
+
+    // Sync role to Clerk publicMetadata so the JWT carries the correct role
+    // for client-side useUserRole() without a server round-trip.
+    // Fire-and-forget — a metadata sync failure must not fail the webhook.
+    await deps.clerk
+      .updateUserMetadata(data.id, {
+        publicMetadata: { role },
+      })
+      .catch((err: unknown) => {
+        console.warn(
+          JSON.stringify({
+            level: "warn",
+            webhook: "clerk",
+            event: evt.type,
+            note: "failed to sync role to Clerk metadata",
+            userId: data.id,
+            error: String(err),
+          }),
+        );
+      });
 
     // Track activity — fire-and-forget, non-critical
     await logUserActivity({

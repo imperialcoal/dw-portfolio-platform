@@ -8,17 +8,13 @@
 //   - Email verification status is persisted from the Clerk payload
 //   - Name and image fields are persisted correctly
 //   - Duplicate events are idempotent (upsert, not duplicate insert)
+//   - Stale row cleanup → recreating an account with the same email after
+//     deletion tombstones the old row and provisions the new user_id cleanly
 //
 // What this does NOT test (covered elsewhere):
 //   - ensureUserProvisioned (packages/auth — tested independently)
 //   - Clerk API calls (removed from webhook path — no race condition)
 //   - Session events (integration-tested separately with session fixtures)
-//
-// Architecture note:
-//   The handler now upserts directly from the webhook payload — no Clerk API
-//   call is made. This eliminates the race condition that occurred when the
-//   Clerk dashboard fired user.created before the user had propagated through
-//   Clerk's internal API. The payload IS the source of truth.
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -36,8 +32,6 @@ import {
 describe("Clerk Webhook", () => {
   const { db, redis } = createRuntimeContext();
 
-  // Wipe the user table before each test so tests are fully isolated.
-  // Uses TRUNCATE ... CASCADE so foreign key constraints on post don't block.
   beforeEach(async () => {
     await db.execute(sql`TRUNCATE TABLE "user" RESTART IDENTITY CASCADE`);
   });
@@ -89,7 +83,6 @@ describe("Clerk Webhook", () => {
   });
 
   it("sets emailVerified to false when verification is null", async () => {
-    // makeUserCreatedEvent sets verification: null by default
     const evt = makeUserCreatedEvent(
       "user_unverified",
       "unverified@example.com",
@@ -107,6 +100,62 @@ describe("Clerk Webhook", () => {
     });
 
     expect(inserted?.emailVerified).toBe(false);
+  });
+
+  it("calls updateUserMetadata with the assigned role on user.created", async () => {
+    const updateUserMetadata = vi.fn().mockResolvedValue(undefined);
+    const evt = makeUserCreatedEvent("user_meta", "meta@example.com");
+
+    await handleClerkWebhook(evt, {
+      db,
+      redis,
+      clerk: { updateUserMetadata },
+      ownerEmails: [],
+    });
+
+    expect(updateUserMetadata).toHaveBeenCalledOnce();
+    expect(updateUserMetadata).toHaveBeenCalledWith("user_meta", {
+      publicMetadata: { role: "user" },
+    });
+  });
+
+  it("calls updateUserMetadata with admin role when email is in ownerEmails", async () => {
+    const updateUserMetadata = vi.fn().mockResolvedValue(undefined);
+    const evt = makeUserCreatedEvent("user_admin_meta", "owner@example.com");
+
+    await handleClerkWebhook(evt, {
+      db,
+      redis,
+      clerk: { updateUserMetadata },
+      ownerEmails: ["owner@example.com"],
+    });
+
+    expect(updateUserMetadata).toHaveBeenCalledWith("user_admin_meta", {
+      publicMetadata: { role: "admin" },
+    });
+  });
+
+  it("does not fail the webhook when updateUserMetadata throws", async () => {
+    const updateUserMetadata = vi
+      .fn()
+      .mockRejectedValue(new Error("Clerk API error"));
+    const evt = makeUserCreatedEvent("user_meta_fail", "metafail@example.com");
+
+    // Should resolve without throwing even though Clerk call fails
+    await expect(
+      handleClerkWebhook(evt, {
+        db,
+        redis,
+        clerk: { updateUserMetadata },
+        ownerEmails: [],
+      }),
+    ).resolves.toBeUndefined();
+
+    // User was still provisioned in DB
+    const inserted = await db.query.user.findFirst({
+      where: (u, { eq }) => eq(u.id, "user_meta_fail"),
+    });
+    expect(inserted).toBeDefined();
   });
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -148,9 +197,6 @@ describe("Clerk Webhook", () => {
   });
 
   it("assigns admin role when ownerEmails has leading/trailing spaces (trim check)", async () => {
-    // Simulates Doppler value: "admin@example.com, other@example.com"
-    // The route trims with .split(",").map(s => s.trim()) before passing here.
-    // This test confirms the handler correctly receives trimmed values.
     const evt = makeUserCreatedEvent("user_trim", "trimmed@example.com");
 
     await handleClerkWebhook(evt, {
@@ -172,7 +218,6 @@ describe("Clerk Webhook", () => {
   // ─────────────────────────────────────────────────────────────────────────
 
   it("updates an existing user row on user.updated", async () => {
-    // Insert initial row
     await db.insert(user).values({
       id: "user_upd",
       email: "old@example.com",
@@ -199,7 +244,6 @@ describe("Clerk Webhook", () => {
   });
 
   it("promotes user to admin on user.updated when email added to ownerEmails", async () => {
-    // User initially created as regular user
     await db.insert(user).values({
       id: "user_promoted",
       email: "promoted@example.com",
@@ -209,7 +253,6 @@ describe("Clerk Webhook", () => {
       updatedAt: new Date(),
     });
 
-    // Now they appear in ownerEmails — user.updated fires (e.g., profile change)
     const evt = makeUserUpdatedEvent("user_promoted", "promoted@example.com");
 
     await handleClerkWebhook(evt, {
@@ -240,7 +283,6 @@ describe("Clerk Webhook", () => {
       ownerEmails: [],
     };
 
-    // Fire the same event twice (Clerk retries on transient failures)
     await handleClerkWebhook(evt, deps);
     await handleClerkWebhook(evt, deps);
 
@@ -292,7 +334,6 @@ describe("Clerk Webhook", () => {
       where: (u, { eq }) => eq(u.id, "user_del"),
     });
 
-    // Row still exists (soft delete, not hard delete)
     expect(deleted).toBeDefined();
     expect(deleted?.deletedAt).not.toBeNull();
     expect(deleted?.email).toBe("del@example.com");
@@ -316,14 +357,11 @@ describe("Clerk Webhook", () => {
     });
 
     const allUsers = await db.query.user.findMany();
-    // Row exists with deletedAt set — not gone
     expect(allUsers.length).toBe(1);
     expect(allUsers[0]?.deletedAt).not.toBeNull();
   });
 
   it("handles user.deleted gracefully when user was never provisioned", async () => {
-    // Clerk fires user.deleted for a user ID that never made it into Supabase.
-    // The UPDATE should be a no-op (0 rows affected), not throw.
     const evt = makeUserDeletedEvent("user_never_existed");
 
     await expect(
@@ -334,5 +372,132 @@ describe("Clerk Webhook", () => {
         ownerEmails: [],
       }),
     ).resolves.toBeUndefined();
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Stale row cleanup — email reuse after account deletion
+  //
+  // When a user deletes their Clerk account and signs up again with the same
+  // email, Clerk issues a new user_id. The handler must tombstone the old row
+  // to free the email unique constraint before inserting the new one.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  it("tombstones stale row when a new user_id registers with an existing email", async () => {
+    // Seed the old row — simulates a previously deleted Clerk account
+    // that still exists in our DB (soft-deleted or even active, doesn't matter)
+    await db.insert(user).values({
+      id: "old_clerk_user_id",
+      email: "returning@example.com",
+      emailVerified: true,
+      role: "user",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    // New Clerk user_id for the same email (what happens after re-signup)
+    const evt = makeUserCreatedEvent(
+      "new_clerk_user_id",
+      "returning@example.com",
+    );
+
+    await handleClerkWebhook(evt, {
+      db,
+      redis,
+      clerk: { updateUserMetadata: vi.fn() },
+      ownerEmails: [],
+    });
+
+    // Old row must be tombstoned — email mangled, deletedAt set
+    const staleRow = await db.query.user.findFirst({
+      where: (u, { eq }) => eq(u.id, "old_clerk_user_id"),
+    });
+    expect(staleRow).toBeDefined();
+    expect(staleRow?.deletedAt).not.toBeNull();
+    expect(staleRow?.email).not.toBe("returning@example.com");
+    expect(staleRow?.email).toContain("@deleted.invalid");
+
+    // New row must be provisioned correctly with the new user_id
+    const newRow = await db.query.user.findFirst({
+      where: (u, { eq }) => eq(u.id, "new_clerk_user_id"),
+    });
+    expect(newRow).toBeDefined();
+    expect(newRow?.email).toBe("returning@example.com");
+    expect(newRow?.deletedAt).toBeNull();
+    expect(newRow?.role).toBe("user");
+  });
+
+  it("tombstones multiple stale rows for the same email (edge case: double re-signup)", async () => {
+    // Two stale rows with the same email — e.g. the user signed up, deleted,
+    // signed up again (and that second account also got deleted before cleanup ran)
+    await db.insert(user).values([
+      {
+        id: "stale_id_1",
+        email: "multi-stale@example.com",
+        emailVerified: true,
+        role: "user",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: "stale_id_2",
+        // Mangle the email on the second stale row to avoid unique constraint
+        // during seed — simulates what our cleanup would have done on a prior run
+        email: `deleted-prev-stale_id_2@deleted.invalid`,
+        emailVerified: true,
+        role: "user",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+
+    // Only seed stale_id_1 with the real email — stale_id_2 is already mangled
+    const evt = makeUserCreatedEvent(
+      "final_user_id",
+      "multi-stale@example.com",
+    );
+
+    await handleClerkWebhook(evt, {
+      db,
+      redis,
+      clerk: { updateUserMetadata: vi.fn() },
+      ownerEmails: [],
+    });
+
+    const stale1 = await db.query.user.findFirst({
+      where: (u, { eq }) => eq(u.id, "stale_id_1"),
+    });
+    expect(stale1?.deletedAt).not.toBeNull();
+    expect(stale1?.email).toContain("@deleted.invalid");
+
+    const finalRow = await db.query.user.findFirst({
+      where: (u, { eq }) => eq(u.id, "final_user_id"),
+    });
+    expect(finalRow?.email).toBe("multi-stale@example.com");
+    expect(finalRow?.deletedAt).toBeNull();
+  });
+
+  it("does not tombstone the current user_id on idempotent user.created retry", async () => {
+    // If Clerk retries a user.created event, the cleanup must not tombstone
+    // the row it just created (same user_id, same email — WHERE id != data.id
+    // excludes it correctly)
+    const evt = makeUserCreatedEvent("stable_id", "stable@example.com");
+
+    const deps = {
+      db,
+      redis,
+      clerk: { updateUserMetadata: vi.fn() },
+      ownerEmails: [],
+    };
+
+    await handleClerkWebhook(evt, deps);
+    // Fire the same user.created again (Clerk retry)
+    await handleClerkWebhook(evt, deps);
+
+    const row = await db.query.user.findFirst({
+      where: (u, { eq }) => eq(u.id, "stable_id"),
+    });
+    // Must still be active — not tombstoned by its own retry
+    expect(row?.email).toBe("stable@example.com");
+    expect(row?.deletedAt).toBeNull();
   });
 });
