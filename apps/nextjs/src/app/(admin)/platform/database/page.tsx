@@ -4,6 +4,7 @@ import type { SupabaseAdvisory } from "@dw/contracts";
 import { fetchDbHealth, fetchSupabaseAdvisories } from "@dw/ai/sensors";
 import { isSupabaseConfigured, isSupabaseDbConfigured } from "@dw/validators";
 
+import { DEMO_TOOLTIPS, DemoDeepLink, isDemoMode } from "~/demo";
 import { env } from "~/env";
 import { SyncAdvisoriesButton } from "./_components/sync-advisories-button";
 
@@ -33,6 +34,8 @@ const ADVISORY_LEVEL_STYLES = {
 } as const;
 
 export default async function DatabasePage() {
+  const isDemo = isDemoMode();
+
   const configured = isSupabaseConfigured();
   const dbConfigured = isSupabaseDbConfigured();
 
@@ -53,36 +56,45 @@ export default async function DatabasePage() {
   const advisoryFetchError = advisoryResult.ok ? null : advisoryResult.error;
   const supabaseRef = env.SUPABASE_PROJECT_REF ?? "";
 
+  const headerLinkClass =
+    "border-border bg-muted/40 text-muted-foreground hover:text-foreground rounded border px-3 py-1.5 text-xs transition-colors";
+
   const supabaseLinks = [
     {
       label: "SQL Editor",
       desc: "Run diagnostic queries",
       href: `https://supabase.com/dashboard/project/${supabaseRef}/sql/new`,
+      tooltip: DEMO_TOOLTIPS.supabaseEditor,
     },
     {
       label: "Table Editor",
       desc: "Browse and edit data safely",
       href: `https://supabase.com/dashboard/project/${supabaseRef}/editor`,
+      tooltip: DEMO_TOOLTIPS.supabaseEditor,
     },
     {
       label: "Database Logs",
       desc: "Postgres error and query logs",
       href: `https://supabase.com/dashboard/project/${supabaseRef}/logs/postgres-logs`,
+      tooltip: DEMO_TOOLTIPS.supabaseLogs,
     },
     {
       label: "API Docs",
       desc: "Auto-generated REST endpoints",
       href: `https://supabase.com/dashboard/project/${supabaseRef}/api`,
+      tooltip: DEMO_TOOLTIPS.supabaseAdvisor,
     },
     {
       label: "Auth Settings",
       desc: "RLS, providers, rate limits",
       href: `https://supabase.com/dashboard/project/${supabaseRef}/auth`,
+      tooltip: DEMO_TOOLTIPS.supabaseAdvisor,
     },
     {
       label: "Storage",
       desc: "Buckets and file management",
       href: `https://supabase.com/dashboard/project/${supabaseRef}/storage/buckets`,
+      tooltip: DEMO_TOOLTIPS.supabaseEditor,
     },
   ];
 
@@ -107,14 +119,13 @@ export default async function DatabasePage() {
               </p>
             </div>
           </div>
-          <a
+          <DemoDeepLink
             href={`https://supabase.com/dashboard/project/${supabaseRef}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="border-border bg-muted/40 text-muted-foreground hover:text-foreground rounded border px-3 py-1.5 text-xs transition-colors"
-          >
-            Supabase Studio →
-          </a>
+            label="Supabase Studio →"
+            tooltip={DEMO_TOOLTIPS.supabaseEditor}
+            isDemo={isDemo}
+            className={headerLinkClass}
+          />
         </div>
 
         {!configured ? (
@@ -269,14 +280,14 @@ export default async function DatabasePage() {
                             {formatBytes(table.sizeBytes)}
                           </td>
                           <td className="px-4 py-3 text-right">
-                            <a
+                            {/* Browse links to the table editor — private Supabase console */}
+                            <DemoDeepLink
                               href={`https://supabase.com/dashboard/project/${supabaseRef}/editor`}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                              label="Browse →"
+                              tooltip={DEMO_TOOLTIPS.supabaseEditor}
+                              isDemo={isDemo}
                               className="text-muted-foreground hover:text-foreground text-xs transition-colors"
-                            >
-                              Browse →
-                            </a>
+                            />
                           </td>
                         </tr>
                       ))}
@@ -294,22 +305,38 @@ export default async function DatabasePage() {
             Supabase Quick Access
           </h2>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-            {supabaseLinks.map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="border-border bg-muted/40 hover:border-border hover:bg-muted/60 rounded-xl border p-4 transition-colors"
-              >
-                <p className="text-foreground text-sm font-medium">
-                  {link.label}
-                </p>
-                <p className="text-muted-foreground mt-0.5 text-xs">
-                  {link.desc}
-                </p>
-              </a>
-            ))}
+            {supabaseLinks.map((link) => {
+              const cardClass =
+                "border-border bg-muted/40 hover:border-border hover:bg-muted/60 rounded-xl border p-4 transition-colors";
+              if (!isDemo) {
+                return (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cardClass}
+                  >
+                    <p className="text-foreground text-sm font-medium">
+                      {link.label}
+                    </p>
+                    <p className="text-muted-foreground mt-0.5 text-xs">
+                      {link.desc}
+                    </p>
+                  </a>
+                );
+              }
+              return (
+                <DemoDeepLink
+                  key={link.label}
+                  href={link.href}
+                  label={link.label}
+                  tooltip={link.tooltip}
+                  isDemo={isDemo}
+                  className={cardClass}
+                />
+              );
+            })}
           </div>
         </div>
       </div>

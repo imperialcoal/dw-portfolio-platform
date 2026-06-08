@@ -1,36 +1,87 @@
 // apps/nextjs/src/app/(admin)/platform/communications/page.tsx
 import Link from "next/link";
 
+import { DEMO_TOOLTIPS, DemoDeepLink, isDemoMode } from "~/demo";
 import { env } from "~/env";
 
 function githubUrl(path: string, repo: string) {
   return repo ? `https://github.com/${repo}/${path}` : "https://github.com";
 }
 
+function LinkCard({
+  href,
+  label,
+  desc,
+  tooltip,
+  isDemo,
+}: {
+  href: string;
+  label: string;
+  desc: string;
+  tooltip: string;
+  isDemo: boolean;
+}) {
+  const cardClass =
+    "border-border bg-muted/40 hover:bg-muted/60 rounded-xl border p-4 transition-colors";
+
+  if (!isDemo) {
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={cardClass}
+      >
+        <p className="text-foreground text-sm font-medium">{label}</p>
+        <p className="text-muted-foreground mt-0.5 text-xs">{desc}</p>
+      </a>
+    );
+  }
+
+  return (
+    <DemoDeepLink
+      href={href}
+      label={label}
+      tooltip={tooltip}
+      isDemo={isDemo}
+      className={cardClass}
+    />
+  );
+}
+
 export default function CommunicationsPage() {
+  const isDemo = isDemoMode();
+
   const githubRepo = env.GITHUB_REPO ?? "";
   const github = (path: string) => githubUrl(path, githubRepo);
+
+  const headerLinkClass =
+    "border-border bg-muted/40 text-muted-foreground hover:text-foreground rounded border px-3 py-1.5 text-xs transition-colors";
 
   const resendLinks = [
     {
       label: "Email Logs",
       desc: "Incident alert and contact form delivery",
       href: "https://resend.com/emails",
+      tooltip: DEMO_TOOLTIPS.resendEmails,
     },
     {
       label: "Domains",
       desc: "Domain verification and DNS records",
       href: "https://resend.com/domains",
+      tooltip: DEMO_TOOLTIPS.resendDomains,
     },
     {
       label: "API Keys",
       desc: "Manage sending credentials",
       href: "https://resend.com/api-keys",
+      tooltip: DEMO_TOOLTIPS.resendEmails,
     },
     {
       label: "Audiences",
       desc: "Contact lists and suppression",
       href: "https://resend.com/audiences",
+      tooltip: DEMO_TOOLTIPS.resendEmails,
     },
   ];
 
@@ -39,31 +90,37 @@ export default function CommunicationsPage() {
       label: "Webhooks",
       desc: "Delivery history and failure logs",
       href: github("settings/hooks"),
+      tooltip: DEMO_TOOLTIPS.githubActions,
     },
     {
       label: "Pull Requests",
       desc: "Open PRs including Dependabot updates",
       href: github("pulls"),
+      tooltip: DEMO_TOOLTIPS.githubPRs,
     },
     {
       label: "Dependabot PRs",
       desc: "Automated dependency update PRs",
       href: github("pulls?q=is%3Aopen+author%3Aapp%2Fdependabot"),
+      tooltip: DEMO_TOOLTIPS.githubPRs,
     },
     {
       label: "Platform-agent Issues",
       desc: "AI-created incident tracking issues",
       href: github("issues?q=label%3Aplatform-agent+is%3Aopen"),
+      tooltip: DEMO_TOOLTIPS.githubIssues,
     },
     {
       label: "Releases",
       desc: "Published releases and changelogs",
       href: github("releases"),
+      tooltip: DEMO_TOOLTIPS.githubActions,
     },
     {
       label: "Discussions",
       desc: "Team discussions and ideas",
       href: github("discussions"),
+      tooltip: DEMO_TOOLTIPS.githubIssues,
     },
   ];
 
@@ -88,22 +145,20 @@ export default function CommunicationsPage() {
             </div>
           </div>
           <div className="flex shrink-0 gap-2">
-            <a
+            <DemoDeepLink
               href="https://resend.com/emails"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="border-border bg-muted/40 text-muted-foreground hover:text-foreground rounded border px-3 py-1.5 text-xs transition-colors"
-            >
-              Resend Logs →
-            </a>
-            <a
+              label="Resend Logs →"
+              tooltip={DEMO_TOOLTIPS.resendEmails}
+              isDemo={isDemo}
+              className={headerLinkClass}
+            />
+            <DemoDeepLink
               href={github("pulls")}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="border-border bg-muted/40 text-muted-foreground hover:text-foreground rounded border px-3 py-1.5 text-xs transition-colors"
-            >
-              GitHub PRs →
-            </a>
+              label="GitHub PRs →"
+              tooltip={DEMO_TOOLTIPS.githubPRs}
+              isDemo={isDemo}
+              className={headerLinkClass}
+            />
           </div>
         </div>
 
@@ -115,11 +170,6 @@ export default function CommunicationsPage() {
             agent pipeline. PRs are the primary delivery mechanism for
             Dependabot security and version updates.
           </p>
-          {githubRepo && (
-            <div className="text-muted-foreground mt-3 text-xs">
-              GitHub repo: <code className="text-foreground">{githubRepo}</code>
-            </div>
-          )}
         </div>
 
         <div>
@@ -128,20 +178,14 @@ export default function CommunicationsPage() {
           </h2>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {resendLinks.map((link) => (
-              <a
+              <LinkCard
                 key={link.label}
                 href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="border-border bg-muted/40 hover:bg-muted/60 rounded-xl border p-4 transition-colors"
-              >
-                <p className="text-foreground text-sm font-medium">
-                  {link.label}
-                </p>
-                <p className="text-muted-foreground mt-0.5 text-xs">
-                  {link.desc}
-                </p>
-              </a>
+                label={link.label}
+                desc={link.desc}
+                tooltip={link.tooltip}
+                isDemo={isDemo}
+              />
             ))}
           </div>
         </div>
@@ -152,20 +196,14 @@ export default function CommunicationsPage() {
           </h2>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
             {githubLinks.map((link) => (
-              <a
+              <LinkCard
                 key={link.label}
                 href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="border-border bg-muted/40 hover:bg-muted/60 rounded-xl border p-4 transition-colors"
-              >
-                <p className="text-foreground text-sm font-medium">
-                  {link.label}
-                </p>
-                <p className="text-muted-foreground mt-0.5 text-xs">
-                  {link.desc}
-                </p>
-              </a>
+                label={link.label}
+                desc={link.desc}
+                tooltip={link.tooltip}
+                isDemo={isDemo}
+              />
             ))}
           </div>
         </div>
