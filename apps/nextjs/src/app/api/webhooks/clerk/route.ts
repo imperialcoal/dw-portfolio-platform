@@ -8,11 +8,13 @@ import { createRuntimeContext } from "@dw/runtime/context";
 import type { SupportedClerkEvents } from "./handler";
 import type { WebhookEvent } from "~/auth/server";
 import { clerkClient } from "~/auth/server";
+import { isDemoMode } from "~/demo";
+import { getRecruiterEmails } from "~/demo/auth/recruiter-emails";
 import { handleClerkWebhook } from "./handler";
 
 export async function POST(req: Request) {
   if (config.app.APP_ENV === "local") {
-    await bootstrapInfra(); // optional: verifies local dev infra
+    await bootstrapInfra();
   }
 
   const { db, redis } = createRuntimeContext();
@@ -22,21 +24,16 @@ export async function POST(req: Request) {
     throw new Error("Missing CLERK_WEBHOOK_SECRET");
   }
 
-  // Get headers
   const headerPayload = await headers();
   const svixId = headerPayload.get("svix-id");
   const svixTimestamp = headerPayload.get("svix-timestamp");
   const svixSignature = headerPayload.get("svix-signature");
 
-  // Validate headers
   if (!svixId || !svixTimestamp || !svixSignature) {
     return new Response("Error: Missing svix headers", { status: 400 });
   }
 
-  // Get body
   const payload = await req.text();
-
-  // Verify webhook
   const wh = new Webhook(WEBHOOK_SECRET);
 
   let evt: WebhookEvent;
@@ -64,11 +61,16 @@ export async function POST(req: Request) {
       },
       ownerEmails:
         config.auth.OWNER_EMAILS?.split(",").map((s) => s.trim()) ?? [],
+      // Demo overlay — recruiterEmails is only populated when DEMO_MODE=true.
+      // The handler treats this as a generic optional injection and has no
+      // knowledge of demo mode or RECRUITER_EMAILS directly.
+      // To remove: delete src/demo/ and remove these two lines.
+      recruiterEmails: isDemoMode() ? getRecruiterEmails() : [],
     });
 
     return new Response("OK", { status: 200 });
-  } catch (error) {
-    console.error("Error processing webhook:", error);
+  } catch (err) {
+    console.error("Error handling webhook:", err);
     return new Response("Error: Internal server error", { status: 500 });
   }
 }

@@ -27,7 +27,6 @@ import { cacheKeys } from "@dw/redis";
 
 export type SupportedClerkEvents = UserWebhookEvent | SessionWebhookEvent;
 
-// Session event types that map to SessionWebhookEventJSON — used for narrowing
 const SESSION_EVENT_TYPES = new Set([
   "session.created",
   "session.ended",
@@ -44,7 +43,7 @@ function isSessionEvent(
   return SESSION_EVENT_TYPES.has(evt.type as SessionEventType);
 }
 
-interface ClerkWebhookDeps {
+export interface ClerkWebhookDeps {
   db: DbInstance;
   redis: Redis;
   clerk: {
@@ -54,6 +53,9 @@ interface ClerkWebhookDeps {
     ) => Promise<void>;
   };
   ownerEmails: string[];
+  // Optional extension point — demo module injects recruiterEmails via route.ts.
+  // The handler has no knowledge of RECRUITER_EMAILS or demo mode directly.
+  recruiterEmails?: string[];
 }
 
 const FAILED_SESSION_INCIDENT_THRESHOLD = 5;
@@ -62,7 +64,7 @@ export async function handleClerkWebhook(
   evt: SupportedClerkEvents,
   deps: ClerkWebhookDeps,
 ): Promise<void> {
-  const { db, redis, ownerEmails } = deps;
+  const { db, redis, ownerEmails, recruiterEmails = [] } = deps;
 
   // ── user.created / user.updated ─────────────────────────────────────────
 
@@ -76,21 +78,22 @@ export async function handleClerkWebhook(
     if (!primaryEmail) throw new Error("Missing primary email");
 
     const isOwner = ownerEmails.includes(primaryEmail.email_address);
-    const role: Role = isOwner ? ROLES.ADMIN : ROLES.USER;
+    const isRecruiter = recruiterEmails.includes(primaryEmail.email_address);
+
+    // Role priority: admin > recruiter > user.
+    // recruiterEmails is an optional injection — empty by default.
+    // The demo module populates it via route.ts when DEMO_MODE=true.
+    const role: Role = isOwner
+      ? ROLES.ADMIN
+      : isRecruiter
+        ? ROLES.RECRUITER
+        : ROLES.USER;
 
     // ── Stale row cleanup (user.created only) ───────────────────────────────
     //
-    // When a user is deleted from Clerk and recreates an account with the same
-    // email, Clerk issues a brand-new user_id. Our DB has a unique constraint
-    // on email, so the upsert below (which targets user.id) would conflict on
-    // the email column for any surviving row with the old user_id.
-    //
-    // Fix: on user.created, tombstone any existing row that shares this email
-    // but has a different Clerk user_id. We soft-delete it and mangle the email
-    // so the unique constraint is freed without losing audit history.
-    //
-    // This also clears any Redis cache for the stale user_id so stale authority
-    // lookups don't return the old profile.
+    // When a user deletes their Clerk account and recreates with the same email,
+    // Clerk issues a new user_id. Tombstone any existing row with the same email
+    // but a different user_id to free the unique constraint without losing history.
     if (evt.type === "user.created") {
       const staleRows = await db
         .select({ id: user.id })
@@ -107,8 +110,6 @@ export async function handleClerkWebhook(
           .update(user)
           .set({
             deletedAt: new Date(),
-            // Mangle email to free the unique constraint for the new row.
-            // Format: deleted-<timestamp>-<stale_id>@deleted.invalid
             email: `deleted-${Date.now()}-${stale.id}@deleted.invalid`,
           })
           .where(eq(user.id, stale.id));
@@ -128,9 +129,6 @@ export async function handleClerkWebhook(
       }
     }
 
-    // Upsert directly from webhook payload — no Clerk API call needed.
-    // The payload IS the source of truth here; calling getUser() creates
-    // a race condition when the webhook fires immediately after dashboard creation.
     await db
       .insert(user)
       .values({
@@ -158,11 +156,12 @@ export async function handleClerkWebhook(
 
     await redis.del(cacheKeys.userById(data.id));
 
-    // Sync role to Clerk publicMetadata so the JWT carries the correct role
-    // for client-side useUserRole() without a server round-trip.
-    // Fire-and-forget — a metadata sync failure must not fail the webhook.
+    // Sync role to Clerk publicMetadata so the JWT carries the correct role.
+    // Promise.resolve() tolerates a non-Promise return (e.g. vi.fn() in tests).
     await Promise.resolve(
-      deps.clerk.updateUserMetadata(data.id, { publicMetadata: { role } }),
+      deps.clerk.updateUserMetadata(data.id, {
+        publicMetadata: { role },
+      }),
     ).catch((err: unknown) => {
       console.warn(
         JSON.stringify({
@@ -176,7 +175,6 @@ export async function handleClerkWebhook(
       );
     });
 
-    // Track activity — fire-and-forget, non-critical
     await logUserActivity({
       id: `clerk-${data.id}-${evt.type}-${Date.now()}`,
       eventType: evt.type,
@@ -199,7 +197,6 @@ export async function handleClerkWebhook(
 
   if (evt.type === "user.deleted") {
     const data = evt.data;
-    // UserDeletedJSON.id is optional — user may have been deleted before full provisioning
     if (!data.id) {
       console.warn(
         JSON.stringify({
@@ -242,26 +239,15 @@ export async function handleClerkWebhook(
   }
 
   // ── session.created / session.ended / session.removed / session.revoked ──
-  //
-  // All four share SessionWebhookEventJSON:
-  //   id: string          (from ClerkResourceJSON)
-  //   user_id: string     (from SessionJSON)
-  //   status: string      (from SessionJSON)
-  //   user: UserJSON|null (added by SessionWebhookEventJSON)
-  //
-  // Using a Set-based type guard instead of chained if/else avoids the
-  // "comparison is always true" lint error on the final narrowed branch.
 
   if (isSessionEvent(evt)) {
-    const data = evt.data; // SessionWebhookEventJSON — fully typed, no `any`
+    const data = evt.data;
     const userId = data.user_id;
     const sessionId = data.id;
 
     if (evt.type === "session.created") {
-      // Successful sign-in — clear any accumulated failure count
       await clearFailedSessions(userId).catch(() => undefined);
 
-      // Resolve user email from the embedded UserJSON if available
       const userEmail =
         data.user !== null
           ? (data.user.email_addresses.find(
@@ -288,8 +274,6 @@ export async function handleClerkWebhook(
       return;
     }
 
-    // session.ended / session.removed / session.revoked
-    // "abandoned" status = session expired without an explicit sign-out
     const isAbandoned = data.status === "abandoned";
 
     await logUserActivity({
@@ -306,7 +290,6 @@ export async function handleClerkWebhook(
       const count = await incrementFailedSessions(userId).catch(() => 0);
 
       if (count >= FAILED_SESSION_INCIDENT_THRESHOLD) {
-        // Hourly dedup bucket — one incident per user per hour at most
         const hourBucket = Math.floor(Date.now() / (1000 * 60 * 60));
         const incidentId = `clerk-auth-${userId}-${hourBucket}`;
 
@@ -337,7 +320,6 @@ export async function handleClerkWebhook(
         );
       }
     } else {
-      // Clean end (revoked, removed, or normal sign-out) — reset failure counter
       await clearFailedSessions(userId).catch(() => undefined);
     }
 

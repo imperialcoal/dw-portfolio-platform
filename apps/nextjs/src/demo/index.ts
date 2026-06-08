@@ -2,20 +2,15 @@
 // Demo Module — Recruiter Presentation Layer
 // ─────────────────────────────────────────────
 //
-// This module replaces the base portfolio home page with a recruiter-facing
-// landing page when DEMO_MODE=true in Doppler.
+// Activates when DEMO_MODE=true in Doppler stg.
+// Self-contained — remove by deleting src/demo/ and reverting these call sites:
 //
-// It is intentionally self-contained so it can be removed cleanly:
-//
-//   To remove demo mode:
-//     1. Set DEMO_MODE=false in Doppler (or delete the variable)
-//     2. Delete this entire src/demo/ directory
-//     3. In src/app/page.tsx, remove the isDemoMode() conditional and
-//        the generateDemoMetadata export — revert to a plain export default
-//     4. In src/app/(admin)/platform/page.tsx, remove the isDemoMode()
-//        conditional and DemoIncidentTrigger import
-//     5. In src/app/(admin)/admin/page.tsx, revert to requireAdmin() only
-//     6. Done — zero traces in the core codebase
+//   src/app/page.tsx                          → remove isDemoMode() conditional
+//   src/app/(admin)/platform/page.tsx         → remove isDemoMode() + DemoIncidentTrigger
+//   src/app/(admin)/admin/page.tsx            → revert to requireAdmin() only
+//   src/app/(admin)/platform/layout.tsx       → remove DemoBanner import
+//   src/app/api/webhooks/clerk/route.ts       → remove isDemoMode() + getRecruiterEmails()
+//   Remove DEMO_MODE + RECRUITER_EMAILS from Doppler stg
 //
 // ─────────────────────────────────────────────
 
@@ -24,3 +19,4 @@ export { DemoHomePage } from "./DemoHomePage";
 export { generateDemoMetadata } from "./demo-metadata";
 export { DemoBanner } from "./DemoBanner";
 export { DemoIncidentTrigger } from "./triggers/DemoIncidentTrigger";
+export { getRecruiterEmails } from "./auth/recruiter-emails";
