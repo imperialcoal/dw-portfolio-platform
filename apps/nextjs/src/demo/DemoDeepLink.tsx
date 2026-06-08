@@ -1,3 +1,5 @@
+// apps/nextjs/src/demo/DemoDeepLink.tsx
+//
 // Demo-aware wrapper for external deep links to private service dashboards.
 //
 // When isDemo=true, renders a disabled button with a tooltip explaining what
@@ -5,6 +7,10 @@
 // without accessing private service consoles.
 //
 // When isDemo=false, renders a standard anchor — zero overhead, zero demo coupling.
+//
+// Tooltip fix: HTML disabled buttons suppress all mouse events, so onMouseEnter
+// never fires. The button is visually disabled via CSS (opacity, cursor, no click
+// handler) but NOT via the disabled attribute — mouse events flow normally.
 //
 // Usage (replaces any bare <a href> deep link on platform pages):
 //   import { DemoDeepLink, isDemoMode } from "~/demo";
@@ -64,17 +70,24 @@ export function DemoDeepLink({
   }
 
   return (
-    <div className="relative inline-block">
+    <div
+      className="relative inline-block"
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+      onFocus={() => setShowTooltip(true)}
+      onBlur={() => setShowTooltip(false)}
+    >
+      {/* Not using the disabled attribute — disabled buttons suppress mouse events,
+          which prevents onMouseEnter from firing on the parent div.
+          Visual disabled state is achieved via CSS only. */}
       <button
         type="button"
-        disabled
-        onMouseEnter={() => setShowTooltip(true)}
-        onMouseLeave={() => setShowTooltip(false)}
-        onFocus={() => setShowTooltip(true)}
-        onBlur={() => setShowTooltip(false)}
+        aria-disabled="true"
+        tabIndex={-1}
+        onClick={(e) => e.preventDefault()}
         className={cn(
           baseClassName,
-          "hover:text-muted-foreground cursor-not-allowed opacity-40",
+          "cursor-not-allowed opacity-40 select-none",
         )}
         aria-label={`${label} — ${tooltip}`}
       >
