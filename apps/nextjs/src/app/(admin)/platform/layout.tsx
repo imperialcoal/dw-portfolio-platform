@@ -1,9 +1,16 @@
 // Shared layout for all /platform/* pages.
-// Renders a recruiter demo banner when the session role is "recruiter".
-// The banner is informational only — recruiters have full platform access.
+//
+// Access control:
+//   DEMO_MODE=true  → recruiter and admin both enter; recruiter sees banner
+//   DEMO_MODE=false → admin only; recruiter redirected to / by requireAdmin()
+//
+// To remove demo mode: delete src/demo/, revert to requireAdmin() only,
+// remove isDemoMode import and the isRecruiter banner conditional.
 
 import Link from "next/link";
 
+import { requireAdmin } from "~/auth/require-admin";
+import { isDemoMode } from "~/demo";
 import { getPlatformAccessLevel } from "~/demo/auth/require-recruiter-or-admin";
 import { CommandPalette } from "./_components/command-palette";
 
@@ -12,11 +19,18 @@ export default async function PlatformLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { isRecruiter } = await getPlatformAccessLevel();
+  let isRecruiter = false;
+
+  if (isDemoMode()) {
+    const accessLevel = await getPlatformAccessLevel();
+    isRecruiter = accessLevel.isRecruiter;
+  } else {
+    await requireAdmin();
+  }
 
   return (
     <div className="bg-background text-foreground min-h-screen">
-      {/* Recruiter demo session banner */}
+      {/* Recruiter demo session banner — only shown in demo mode */}
       {isRecruiter && <RecruiterBanner />}
 
       {/* Sticky command palette bar */}
