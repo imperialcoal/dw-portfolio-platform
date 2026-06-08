@@ -1,3 +1,6 @@
+import { DemoHomePage, isDemoMode } from "~/demo";
+import { HomeContent } from "./_components/home-content";
+
 // Root home route.
 //
 // Renders the recruiter-facing demo landing page when DEMO_MODE=true
@@ -12,8 +15,7 @@
 //   3. Remove the isDemoMode import and conditional below
 //   4. Remove the demoMetadata export from this file if present
 
-import { DemoHomePage, isDemoMode } from "~/demo";
-import { HomeContent } from "./_components/home-content";
+export const dynamic = "force-dynamic";
 
 export { generateDemoMetadata as generateMetadata } from "~/demo";
 
@@ -21,6 +23,5 @@ export default function HomePage() {
   if (isDemoMode()) {
     return <DemoHomePage />;
   }
-
   return <HomeContent />;
 }
