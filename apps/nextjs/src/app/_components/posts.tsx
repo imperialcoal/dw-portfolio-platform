@@ -168,7 +168,12 @@ export function PostCard(props: {
   );
 
   return (
-    <div className="border-border bg-muted/40 hover:bg-muted/60 flex flex-row items-start rounded-xl border p-4 transition-colors">
+    <div
+      className={cn(
+        "bg-muted/40 hover:bg-muted/60 flex flex-row items-start rounded-xl border p-4 transition-colors",
+        "border-border border-l-primary border-l-[3px]",
+      )}
+    >
       <div className="grow">
         <h2 className="text-foreground text-base font-semibold">
           {props.post.title}
@@ -196,7 +201,12 @@ export function PostCard(props: {
 export function PostCardSkeleton(props: { pulse?: boolean }) {
   const { pulse = true } = props;
   return (
-    <div className="border-border bg-muted/40 flex flex-row rounded-xl border p-4">
+    <div
+      className={cn(
+        "bg-muted/40 flex flex-row rounded-xl border p-4",
+        "border-border border-l-primary border-l-[3px]",
+      )}
+    >
       <div className="grow">
         <h2
           className={cn(
