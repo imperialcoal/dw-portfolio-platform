@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 
 import { cn } from "@dw/ui";
@@ -16,17 +15,18 @@ import { ContactForm } from "~/app/_components/contact-form";
 // This component owns:
 //   - The nav with GitHub, LinkedIn, Auth Demo, Open Dashboard links
 //   - The hero section with live system badges and headline
-//   - The demo credentials card with copy-to-clipboard
+//   - The demo access request card (replaces hardcoded credentials)
 //   - The AI pipeline visualization
 //   - The feature cards
 //   - The tech stack tags
 //   - The contact form section (Resend showcase)
 //
+// Security note: credentials are never hardcoded here. Recruiters request
+// access via the contact form — you add their email to RECRUITER_EMAILS in
+// Doppler and they receive a provisioned recruiter account. This ensures
+// only known, identified recruiters access the live platform.
+//
 // To remove: delete src/demo/ and revert src/app/page.tsx.
-// ─────────────────────────────────────────────
-
-// ─────────────────────────────────────────────
-// Data
 // ─────────────────────────────────────────────
 
 const PIPELINE_STEPS = [
@@ -130,34 +130,9 @@ const FEATURES = [
     subtitle: "Live DevOps control center",
     description:
       "Real-time incident tracking, one-click rollback with migration risk analysis, database health monitoring with RLS advisories, Clerk user activity, Sentry observability, and a ⌘K command palette.",
-    detail: "Full admin access with demo credentials · All systems live",
+    detail: "Full recruiter access provisioned on request · All systems live",
   },
 ];
-
-// ─────────────────────────────────────────────
-// Copy-to-clipboard helper
-// ─────────────────────────────────────────────
-
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <button
-      onClick={async () => {
-        await navigator.clipboard.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
-      }}
-      className="text-muted-foreground hover:text-foreground ml-2 transition-colors"
-      title="Copy"
-    >
-      {copied ? "✓" : "⎘"}
-    </button>
-  );
-}
-
-// ─────────────────────────────────────────────
-// Page
-// ─────────────────────────────────────────────
 
 export function DemoHomePage() {
   return (
@@ -232,35 +207,40 @@ export function DemoHomePage() {
           Terraform. Real CI, real deployments, real data.
         </p>
 
-        {/* Demo credentials card */}
+        {/* ── Demo access request card ─────────────────────
+            Credentials are provisioned per-recruiter via RECRUITER_EMAILS in
+            Doppler — never hardcoded. Recruiters request access via the
+            contact form below; a provisioned account is created on response.
+        ─────────────────────────────────────────────────── */}
         <div className="border-border bg-muted/30 mt-10 inline-block rounded-xl border p-5">
           <p className="text-muted-foreground mb-3 text-xs font-semibold tracking-widest uppercase">
             Live Demo Access
           </p>
-          <div className="space-y-1.5 font-mono text-sm">
-            <div className="flex items-center">
-              <span className="text-muted-foreground w-20 text-xs">Email</span>
-              <span className="text-foreground">
-                your_email+clerk_test@example.com
-              </span>
-              <CopyButton text="your_email+clerk_test@example.com" />
+          <p className="text-foreground mb-4 max-w-sm text-sm leading-relaxed">
+            The platform dashboard is live and running on real infrastructure.
+            Request access below — a provisioned recruiter account will be
+            created for your email with full read access to the control center.
+          </p>
+          <div className="flex flex-wrap gap-3 text-xs">
+            <div className="border-border bg-muted/60 text-muted-foreground flex items-center gap-1.5 rounded border px-2.5 py-1">
+              <span className="text-emerald-500">✓</span>
+              Full platform dashboard
             </div>
-            <div className="flex items-center">
-              <span className="text-muted-foreground w-20 text-xs">
-                Password
-              </span>
-              <span className="text-foreground">superRandomPassword</span>
-              <CopyButton text="superRandomPassword" />
+            <div className="border-border bg-muted/60 text-muted-foreground flex items-center gap-1.5 rounded border px-2.5 py-1">
+              <span className="text-emerald-500">✓</span>
+              Live AI incident pipeline
             </div>
-            <div className="flex items-center">
-              <span className="text-muted-foreground w-20 text-xs">Code</span>
-              <span className="text-foreground">424242</span>
-              <CopyButton text="424242" />
+            <div className="border-border bg-muted/60 text-muted-foreground flex items-center gap-1.5 rounded border px-2.5 py-1">
+              <span className="text-emerald-500">✓</span>
+              Real infrastructure data
             </div>
           </div>
-          <p className="text-muted-foreground mt-3 text-[11px]">
-            Use code 424242 for any email verification prompt.
-          </p>
+          <a
+            href="#contact"
+            className="bg-primary text-primary-foreground mt-4 inline-block rounded-md px-4 py-2 text-sm font-medium transition-opacity hover:opacity-80"
+          >
+            Request access via contact form ↓
+          </a>
         </div>
       </section>
 
@@ -364,7 +344,9 @@ export function DemoHomePage() {
       </section>
 
       {/* ── Contact (Resend showcase) ──────────────────────── */}
-      <ContactForm />
+      <div id="contact">
+        <ContactForm />
+      </div>
     </div>
   );
 }
