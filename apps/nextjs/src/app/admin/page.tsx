@@ -9,21 +9,25 @@
 //
 // The tRPC layer enforces these roles server-side — this UI
 // just reflects what the API permits.
+//
+// Access control:
+//   DEMO_MODE=true  → recruiter and admin both enter via requireRecruiterOrAdmin()
+//   DEMO_MODE=false → admin only via requireAdmin()
+//
+// To remove demo mode: revert to requireAdmin() only, remove isDemoMode import.
 
 import { Suspense } from "react";
 import Link from "next/link";
 
 import { Show, SignInButton } from "~/auth/client";
 import { requireAdmin } from "~/auth/require-admin";
-import { isDemoMode } from "~/demo";
-import { requireRecruiterOrAdmin } from "~/demo/auth/require-recruiter-or-admin";
+import { isDemoMode, requireRecruiterOrAdmin } from "~/demo";
 import {
   CreatePostForm,
   PostCardSkeleton,
   PostList,
 } from "../_components/posts";
 
-// export default async function AdminPage() {
 export default async function AdminPage() {
   if (isDemoMode()) {
     await requireRecruiterOrAdmin();

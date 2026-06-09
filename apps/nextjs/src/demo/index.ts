@@ -25,3 +25,4 @@ export { DemoDeepLink } from "./DemoDeepLink";
 export { DEMO_TOOLTIPS } from "./demo-deep-links";
 export type { DemoTooltipKey } from "./demo-deep-links";
 export { isDemoSession } from "./auth/is-demo-session";
+export { requireRecruiterOrAdmin } from "./auth/require-recruiter-or-admin";

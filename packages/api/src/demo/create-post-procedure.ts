@@ -1,5 +1,3 @@
-// packages/api/src/demo/create-post-procedure.ts
-//
 // Returns the tRPC procedure to use for post.create based on DEMO_MODE.
 //
 // DEMO_MODE=true  → recruiterOrAdminProcedure (recruiter + admin can create posts)

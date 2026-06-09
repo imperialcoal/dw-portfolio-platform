@@ -1,5 +1,3 @@
-// packages/api/src/demo/recruiter-or-admin-procedure.ts
-//
 // Builds a tRPC procedure that accepts recruiter OR admin role.
 // Constructed by composing protectedProcedure from the core trpc module —
 // trpc.ts itself is never modified.
