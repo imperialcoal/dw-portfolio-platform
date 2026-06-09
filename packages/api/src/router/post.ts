@@ -6,8 +6,14 @@ import { desc, eq } from "@dw/db";
 import { CreatePostSchema, Post } from "@dw/db/schema";
 import { cacheKeys } from "@dw/redis";
 
-// Add protectedProcedure when all registered users have writing privileges
+import { getCreatePostProcedure } from "../demo";
 import { adminProcedure, publicProcedure } from "../trpc";
+
+// Demo overlay: when DEMO_MODE=true, recruiters can create posts to
+// demonstrate the tRPC pipeline on /admin. The procedure decision is
+// fully encapsulated in packages/api/src/demo/ — no demo logic here.
+// Delete: packages/api/src/demo/ and replace createProcedure with adminProcedure.
+const createProcedure = getCreatePostProcedure();
 
 export const postRouter = {
   all: publicProcedure.query(async ({ ctx }) => {
@@ -53,27 +59,11 @@ export const postRouter = {
       return post;
     }),
 
-  // Currently Admin is the only user that can create posts
-  // create: protectedProcedure
-  //   .input(CreatePostSchema)
-  //   .mutation(async ({ ctx, input }) => {
-  //     const result = await ctx.db.insert(Post).values({
-  //       ...input,
-  //       authorId: ctx.user.id,
-  //     });
-
-  //     void ctx.redis.del(cacheKeys.postsAll);
-
-  //     return result;
-  //   }),
-
-  // ADMIN ONLY: Currently only Admin can create posts
-  // In the future, I will change this back to `protectedProcedure`
-  // and add logic to enforce `authorId` matches `ctx.user.id`.
-  create: adminProcedure
+  // DEMO_MODE=true  → recruiterOrAdminProcedure via demo module
+  // DEMO_MODE=false → adminProcedure (core default, unchanged)
+  create: createProcedure
     .input(CreatePostSchema)
     .mutation(async ({ ctx, input }) => {
-      // ADD .returning()
       const [post] = await ctx.db
         .insert(Post)
         .values({
@@ -87,21 +77,8 @@ export const postRouter = {
       return post;
     }),
 
-  // Currently Admin is the only user that can delete posts
-  // delete: protectedProcedure
-  //   .input(z.string())
-  //   .mutation(async ({ ctx, input }) => {
-  //     const res = await ctx.db.delete(Post).where(eq(Post.id, input));
-
-  //     void Promise.all([
-  //       ctx.redis.del(cacheKeys.postsAll),
-  //       ctx.redis.del(cacheKeys.postById(input)),
-  //     ]);
-
-  //     return res;
-  //   }),
-
-  // ADMIN ONLY: Currently only admin can delete
+  // Delete is always admin-only — recruiters can create posts to demonstrate
+  // the pipeline but cannot destroy data.
   delete: adminProcedure.input(z.string()).mutation(async ({ ctx, input }) => {
     const res = await ctx.db.delete(Post).where(eq(Post.id, input));
 
