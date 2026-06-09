@@ -1,7 +1,7 @@
 // apps/nextjs/src/app/(admin)/platform/communications/page.tsx
 import Link from "next/link";
 
-import { DEMO_TOOLTIPS, DemoDeepLink, isDemoMode } from "~/demo";
+import { DEMO_TOOLTIPS, DemoDeepLink, isDemoSession } from "~/demo";
 import { env } from "~/env";
 
 function githubUrl(path: string, repo: string) {
@@ -49,8 +49,8 @@ function LinkCard({
   );
 }
 
-export default function CommunicationsPage() {
-  const isDemo = isDemoMode();
+export default async function CommunicationsPage() {
+  const isDemo = await isDemoSession();
 
   const githubRepo = env.GITHUB_REPO ?? "";
   const github = (path: string) => githubUrl(path, githubRepo);

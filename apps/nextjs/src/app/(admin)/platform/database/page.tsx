@@ -4,7 +4,7 @@ import type { SupabaseAdvisory } from "@dw/contracts";
 import { fetchDbHealth, fetchSupabaseAdvisories } from "@dw/ai/sensors";
 import { isSupabaseConfigured, isSupabaseDbConfigured } from "@dw/validators";
 
-import { DEMO_TOOLTIPS, DemoDeepLink, isDemoMode } from "~/demo";
+import { DEMO_TOOLTIPS, DemoDeepLink, isDemoSession } from "~/demo";
 import { env } from "~/env";
 import { SyncAdvisoriesButton } from "./_components/sync-advisories-button";
 
@@ -34,7 +34,7 @@ const ADVISORY_LEVEL_STYLES = {
 } as const;
 
 export default async function DatabasePage() {
-  const isDemo = isDemoMode();
+  const isDemo = await isDemoSession();
 
   const configured = isSupabaseConfigured();
   const dbConfigured = isSupabaseDbConfigured();

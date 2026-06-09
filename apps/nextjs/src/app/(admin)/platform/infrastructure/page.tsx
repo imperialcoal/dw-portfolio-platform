@@ -1,7 +1,7 @@
 // apps/nextjs/src/app/(admin)/platform/infrastructure/page.tsx
 import Link from "next/link";
 
-import { DEMO_TOOLTIPS, DemoDeepLink, isDemoMode } from "~/demo";
+import { DEMO_TOOLTIPS, DemoDeepLink, isDemoSession } from "~/demo";
 
 const UPSTASH_LINKS = [
   {
@@ -113,8 +113,8 @@ function LinkCard({
   );
 }
 
-export default function InfrastructurePage() {
-  const isDemo = isDemoMode();
+export default async function InfrastructurePage() {
+  const isDemo = await isDemoSession();
 
   const headerLinkClass =
     "border-border bg-muted/40 text-muted-foreground hover:text-foreground rounded border px-3 py-1.5 text-xs transition-colors";

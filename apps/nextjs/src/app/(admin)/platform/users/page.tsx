@@ -5,7 +5,7 @@ import type { UserActivityRecord } from "@dw/contracts";
 import { getUserActivity } from "@dw/ai/memory";
 import { config } from "@dw/config";
 
-import { DEMO_TOOLTIPS, DemoDeepLink, isDemoMode } from "~/demo";
+import { DEMO_TOOLTIPS, DemoDeepLink, isDemoSession } from "~/demo";
 
 function clerkUrl(path: string, appId: string, instanceId: string) {
   if (!appId || !instanceId) return "https://dashboard.clerk.com";
@@ -37,7 +37,7 @@ const EVENT_STYLES: Record<
   },
   "user.deleted": {
     badge: "bg-red-500/10 text-red-400 border-red-500/20",
-    icon: "×",
+    icon: "x",
     label: "deleted",
   },
   "session.created": {
@@ -129,7 +129,7 @@ function ActivityRow({
 }
 
 export default async function UsersPage() {
-  const isDemo = isDemoMode();
+  const isDemo = await isDemoSession();
   const activity = await getUserActivity(100).catch(
     () => [] as UserActivityRecord[],
   );

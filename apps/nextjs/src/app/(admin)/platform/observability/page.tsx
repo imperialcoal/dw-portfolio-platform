@@ -1,7 +1,7 @@
 // apps/nextjs/src/app/(admin)/platform/observability/page.tsx
 import Link from "next/link";
 
-import { DEMO_TOOLTIPS, DemoDeepLink, isDemoMode } from "~/demo";
+import { DEMO_TOOLTIPS, DemoDeepLink, isDemoSession } from "~/demo";
 import { env } from "~/env";
 
 function sentryUrl(path: string, org: string) {
@@ -54,8 +54,8 @@ function LinkCard({
   );
 }
 
-export default function ObservabilityPage() {
-  const isDemo = isDemoMode();
+export default async function ObservabilityPage() {
+  const isDemo = await isDemoSession();
 
   const sentryOrg = env.SENTRY_ORG ?? "";
   const sentryProject = env.SENTRY_PROJECT ?? "";
