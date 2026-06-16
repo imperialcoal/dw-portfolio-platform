@@ -1,5 +1,3 @@
-// apps/nextjs/src/app/admin/page.tsx
-//
 // Clerk authentication showcase.
 //
 // This page demonstrates role-based access control:

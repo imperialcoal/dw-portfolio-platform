@@ -114,6 +114,24 @@
       "dependsOn": ["@dw/dev-tools#dev-tools:db:test-setup"],
       "outputs": ["coverage/**"],
       "cache": false
+    },
+    "api:platform:dashboard:test": {
+      "dependsOn": ["@dw/dev-tools#dev-tools:db:test-setup"],
+      "outputs": ["coverage/**"],
+      "cache": false
+    },
+    "contracts:unit:test": {
+      "outputs": ["coverage/**"],
+      "cache": true
+    },
+    "llm:unit:test": {
+      "outputs": ["coverage/**"],
+      "cache": true
+    },
+    "ai:memory:test": {
+      "dependsOn": ["@dw/dev-tools#dev-tools:db:test-setup"],
+      "outputs": ["coverage/**"],
+      "cache": false
     }
   },
   "globalEnv": [

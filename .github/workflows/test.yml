@@ -28,9 +28,8 @@ jobs:
       - name: Runtime Tests
         run: pnpm test:runtime
 
-  # ── Auth unit tests ─────────────────────────────────────────────────────
+  # ── Unit tests (no infrastructure) ─────────────────────────────────────
   # Pure logic: roles, guards, errors, metadata, rbac assertions.
-  # No infrastructure required — mocked env vars only.
   auth-unit-test:
     runs-on: ubuntu-latest
     env:
@@ -45,6 +44,40 @@ jobs:
       - name: Auth Unit Tests
         run: pnpm test:auth:unit
 
+  # Contracts: normalize functions, Zod schemas, safeId, incident summaries.
+  # No infra — pure deterministic logic.
+  contracts-unit-test:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://mock:mock@localhost:5432/mock_test
+      DIRECT_URL: postgresql://mock:mock@localhost:5432/mock_test
+      UPSTASH_REDIS_REST_URL: https://mock-redis.upstash.io
+      UPSTASH_REDIS_REST_TOKEN: mock_token
+    steps:
+      - uses: actions/checkout@v6
+      - name: Setup
+        uses: ./platform/standards/github/setup
+      - name: Contracts Unit Tests
+        run: pnpm test:contracts
+
+  # LLM: parseAnalysisXml, prompt builders, analyzeEvent() with mocked SDK.
+  # ANTHROPIC_API_KEY is a mock value — the SDK call itself is mocked via vi.mock.
+  llm-unit-test:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://mock:mock@localhost:5432/mock_test
+      DIRECT_URL: postgresql://mock:mock@localhost:5432/mock_test
+      UPSTASH_REDIS_REST_URL: https://mock-redis.upstash.io
+      UPSTASH_REDIS_REST_TOKEN: mock_token
+      ANTHROPIC_API_KEY: sk-test-mock-key
+    steps:
+      - uses: actions/checkout@v6
+      - name: Setup
+        uses: ./platform/standards/github/setup
+      - name: LLM Unit Tests
+        run: pnpm test:llm
+
+  # ── Infrastructure tests (Docker required) ─────────────────────────────
   infrastructure-test:
     runs-on: ubuntu-latest
     needs: [runtime-test]
@@ -131,6 +164,65 @@ jobs:
         run: docker compose -f platform/dev-tools/docker/docker-compose.yml up -d --wait
       - name: Clerk Webhook Tests
         run: pnpm test:clerk:webhook
+      - name: Stop Infrastructure
+        if: always()
+        run: docker compose -f platform/dev-tools/docker/docker-compose.yml down
+
+  # Platform dashboard: post router RBAC (DEMO_MODE on/off), cache invalidation,
+  # demo overlay procedure selection. Requires full Postgres + Redis stack since
+  # it inserts users via @dw/db and resolves auth context via @dw/auth.
+  platform-dashboard-test:
+    runs-on: ubuntu-latest
+    needs: [runtime-test]
+    env:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: postgres
+      DATABASE_URL: postgresql://postgres:password@localhost:5433/dw_test
+      DIRECT_URL: postgresql://postgres:password@localhost:5433/dw_test
+      UPSTASH_REDIS_REST_URL: http://localhost:8079
+      UPSTASH_REDIS_REST_TOKEN: mock_token
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_mock
+      CLERK_SECRET_KEY: sk_test_mock
+      CLERK_WEBHOOK_SECRET: whsec_mock
+    steps:
+      - uses: actions/checkout@v6
+      - name: Setup
+        uses: ./platform/standards/github/setup
+      - name: Cache Docker images
+        uses: ScribeMD/docker-cache@0.5.0
+        with:
+          key: docker-${{ runner.os }}-${{ hashFiles('platform/dev-tools/docker/docker-compose.yml') }}
+      - name: Start Infrastructure
+        run: docker compose -f platform/dev-tools/docker/docker-compose.yml up -d --wait
+      - name: Platform Dashboard Tests
+        run: pnpm test:api:platform:dashboard
+      - name: Stop Infrastructure
+        if: always()
+        run: docker compose -f platform/dev-tools/docker/docker-compose.yml down
+
+  # AI memory: Redis-only. No Postgres needed — memory layer is purely
+  # Redis-backed. Only Redis is started, not the full Docker Compose stack.
+  ai-memory-test:
+    runs-on: ubuntu-latest
+    needs: [runtime-test]
+    env:
+      DATABASE_URL: postgresql://mock:mock@localhost:5432/mock_test
+      DIRECT_URL: postgresql://mock:mock@localhost:5432/mock_test
+      UPSTASH_REDIS_REST_URL: http://localhost:8079
+      UPSTASH_REDIS_REST_TOKEN: mock_token
+    steps:
+      - uses: actions/checkout@v6
+      - name: Setup
+        uses: ./platform/standards/github/setup
+      - name: Cache Docker images
+        uses: ScribeMD/docker-cache@0.5.0
+        with:
+          key: docker-${{ runner.os }}-${{ hashFiles('platform/dev-tools/docker/docker-compose.yml') }}
+      - name: Start Redis only
+        run: docker compose -f platform/dev-tools/docker/docker-compose.yml up redis -d --wait
+      - name: AI Memory Tests
+        run: pnpm test:ai:memory
       - name: Stop Infrastructure
         if: always()
         run: docker compose -f platform/dev-tools/docker/docker-compose.yml down
