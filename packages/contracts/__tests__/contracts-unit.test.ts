@@ -1,12 +1,5 @@
 // Pure unit tests for @dw/contracts.
 // No database, Redis, or network required — all logic is deterministic.
-//
-// Covers:
-//   normalize.ts  — normalizeGitHubWorkflowRun, normalizeSentryWebhook,
-//                   normalizeSecurityAlert, safeId
-//   events-schema — PlatformEventSchema, AnalysisResultSchema,
-//                   IncidentRecordSchema Zod validation
-//   incidents.ts  — toIncidentSummary, INCIDENT_STATUSES
 
 import { describe, expect, it } from "vitest";
 
@@ -139,6 +132,18 @@ describe("normalizeGitHubWorkflowRun", () => {
 
 // ─────────────────────────────────────────────
 // normalizeSentryWebhook
+//
+// Real source shape (packages/contracts/src/ai/normalize.ts):
+//   const data = obj(payload.data);
+//   const issue = obj(data.issue ?? payload.issue);
+//   const event = obj(data.event);          <- sibling of data.issue, NOT nested in it
+//   const request = obj(event.request);
+//   route: str(request.url ?? event.transaction, "")
+//
+// request.url lives at payload.data.event.request.url -- "event" is a
+// sibling key under "data", alongside "issue", not a child of "issue".
+// An earlier draft nested event/request inside issue, which is why
+// "extracts route" failed with null instead of the expected URL.
 // ─────────────────────────────────────────────
 
 describe("normalizeSentryWebhook", () => {
@@ -154,18 +159,19 @@ describe("normalizeSentryWebhook", () => {
           firstSeen: "2026-06-01T10:00:00Z",
           userCount: 3,
           permalink: "https://sentry.io/issues/5551234",
-          event: {
-            environment: "preview",
-            request: { url: "/api/trpc/post.all" },
-            exception: {
-              values: [
-                {
-                  type: "TypeError",
-                  value: "Cannot read property 'id' of undefined",
-                  stacktrace: { frames: [] },
-                },
-              ],
-            },
+        },
+        event: {
+          environment: "preview",
+          culprit: "apps/nextjs/src/app/api/trpc/[trpc]/route.ts",
+          request: { url: "/api/trpc/post.all" },
+          exception: {
+            values: [
+              {
+                type: "TypeError",
+                value: "Cannot read property 'id' of undefined",
+                stacktrace: { frames: [] },
+              },
+            ],
           },
         },
       },

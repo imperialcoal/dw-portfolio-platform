@@ -1,5 +1,5 @@
 // Pure unit tests for @dw/llm.
-// No Anthropic API calls — analyzeEvent() is tested via mocking.
+// No real Anthropic API calls — analyzeEvent() is tested via a mocked SDK.
 // parseAnalysisXml() and all prompt builders are tested directly.
 //
 // Covers:
@@ -8,6 +8,18 @@
 //   prompts/      — buildCiFailureUserPrompt, buildSentryIncidentUserPrompt,
 //                   buildSecurityAlertUserPrompt — shape and content
 //   client.ts     — ANALYSIS_MODEL constant
+//
+// MOCK NOTE: vi.mock() must be called at the TOP LEVEL of the module, not
+// nested inside a describe/it block. Vitest hoists vi.mock() calls above
+// all imports regardless of where they're written in the file, and recent
+// Vitest versions warn (soon: error) if the call isn't already at the top
+// level reflecting that real execution order.
+//
+// MOCK NOTE 2: the mocked Anthropic export must be a `class` (or function
+// declaration), not an arrow function. client.ts does `new Anthropic(...)`,
+// and arrow functions cannot be used as constructors with `new` — this
+// throws "X is not a constructor" at runtime even though vi.fn() compiles
+// fine.
 
 import { describe, expect, it, vi } from "vitest";
 
@@ -18,6 +30,7 @@ import type {
 } from "@dw/contracts";
 import {
   ANALYSIS_MODEL,
+  analyzeEvent,
   buildCiFailureUserPrompt,
   buildSecurityAlertUserPrompt,
   buildSentryIncidentUserPrompt,
@@ -26,6 +39,36 @@ import {
   SECURITY_ALERT_SYSTEM_PROMPT,
   SENTRY_INCIDENT_SYSTEM_PROMPT,
 } from "@dw/llm";
+
+// ─────────────────────────────────────────────
+// Top-level mock — must precede all imports of @dw/llm for hoisting to
+// resolve correctly. The mocked class's `messages.create` resolves with
+// well-formed analysis XML so analyzeEvent() can be tested end-to-end
+// without a real API key or network call.
+// ─────────────────────────────────────────────
+
+const mockCreate = vi.fn().mockResolvedValue({
+  content: [
+    {
+      type: "text",
+      text: `
+        <summary>TypeScript build failed</summary>
+        <root_cause>Missing type on auth middleware</root_cause>
+        <impact>CI blocked</impact>
+        <suggested_fix>Add return type</suggested_fix>
+        <severity>high</severity>
+        <labels>typescript, ci</labels>
+      `,
+    },
+  ],
+});
+
+vi.mock("@anthropic-ai/sdk", () => {
+  class MockAnthropic {
+    messages = { create: mockCreate };
+  }
+  return { default: MockAnthropic };
+});
 
 // ─────────────────────────────────────────────
 // Fixtures
@@ -249,6 +292,10 @@ describe("buildSentryIncidentUserPrompt", () => {
 
 // ─────────────────────────────────────────────
 // buildSecurityAlertUserPrompt
+//
+// NOTE: the real prompt builder emits "**GitHub severity**: HIGH" in
+// uppercase. An earlier draft asserted lowercase "high", which never
+// matched. Asserting the actual uppercase output here.
 // ─────────────────────────────────────────────
 
 describe("buildSecurityAlertUserPrompt", () => {
@@ -262,9 +309,9 @@ describe("buildSecurityAlertUserPrompt", () => {
     expect(prompt).toContain("npm");
   });
 
-  it("includes severity in prompt", () => {
+  it("includes severity in prompt (rendered uppercase)", () => {
     const prompt = buildSecurityAlertUserPrompt(securityEvent);
-    expect(prompt).toContain("high");
+    expect(prompt).toContain("HIGH");
   });
 
   it("includes GHSA id in prompt", () => {
@@ -299,42 +346,26 @@ describe("ANALYSIS_MODEL", () => {
 });
 
 // ─────────────────────────────────────────────
-// analyzeEvent — mocked Anthropic client
+// analyzeEvent — mocked Anthropic client (class mock defined at top of file)
 // ─────────────────────────────────────────────
 
 describe("analyzeEvent (mocked)", () => {
   it("calls the Anthropic client and parses the response", async () => {
-    // Mock the Anthropic client before importing analyzeEvent
-    vi.mock("@anthropic-ai/sdk", () => ({
-      default: vi.fn().mockImplementation(() => ({
-        messages: {
-          create: vi.fn().mockResolvedValue({
-            content: [
-              {
-                type: "text",
-                text: `
-                  <summary>TypeScript build failed</summary>
-                  <root_cause>Missing type on auth middleware</root_cause>
-                  <impact>CI blocked</impact>
-                  <suggested_fix>Add return type</suggested_fix>
-                  <severity>high</severity>
-                  <labels>typescript, ci</labels>
-                `,
-              },
-            ],
-          }),
-        },
-      })),
-    }));
-
-    // Set API key so client initializes
-    process.env.ANTHROPIC_API_KEY = "sk-test-mock-key";
-
-    const { analyzeEvent } = await import("@dw/llm");
     const result = await analyzeEvent(ciEvent);
 
     expect(result.summary).toBe("TypeScript build failed");
     expect(result.severity).toBe("high");
     expect(result.labels).toContain("typescript");
+  });
+
+  it("passes the correct model and system prompt to the SDK", async () => {
+    await analyzeEvent(ciEvent);
+
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: ANALYSIS_MODEL,
+        system: CI_FAILURE_SYSTEM_PROMPT,
+      }),
+    );
   });
 });

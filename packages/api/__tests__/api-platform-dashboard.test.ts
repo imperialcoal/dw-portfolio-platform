@@ -342,6 +342,26 @@ describe("Platform Dashboard — Post Router", () => {
   });
 
   // ── Cache invalidation ──────────────────────────────────────────────────
+  //
+  // post.create and post.delete invalidate the cache via `void ctx.redis.del(...)`
+  // — intentionally fire-and-forget so mutation latency isn't held hostage to
+  // cache eviction. That means the deletion may not have completed the instant
+  // the mutation's own Promise resolves. waitForCacheClear polls briefly
+  // instead of asserting immediately, matching the real fire-and-forget
+  // contract instead of forcing synchronous behavior that doesn't exist.
+
+  async function waitForCacheClear(
+    key: string,
+    timeoutMs = 2000,
+  ): Promise<void> {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      const value = await redis.get(key);
+      if (value === null) return;
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+    throw new Error(`Cache key "${key}" was not cleared within ${timeoutMs}ms`);
+  }
 
   describe("cache invalidation", () => {
     it("creating a post invalidates the postsAll cache", async () => {
@@ -359,8 +379,7 @@ describe("Platform Dashboard — Post Router", () => {
         content: "Invalidates the list cache",
       });
 
-      const afterCreate = await redis.get(cacheKeys.postsAll);
-      expect(afterCreate).toBeNull();
+      await waitForCacheClear(cacheKeys.postsAll);
     });
 
     it("deleting a post invalidates the postsAll cache", async () => {
@@ -382,8 +401,7 @@ describe("Platform Dashboard — Post Router", () => {
 
       await caller.post.delete(post.id);
 
-      const afterDelete = await redis.get(cacheKeys.postsAll);
-      expect(afterDelete).toBeNull();
+      await waitForCacheClear(cacheKeys.postsAll);
     });
   });
 });

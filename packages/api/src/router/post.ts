@@ -7,13 +7,8 @@ import { CreatePostSchema, Post } from "@dw/db/schema";
 import { cacheKeys } from "@dw/redis";
 
 import { getCreatePostProcedure } from "../demo";
+// Add protectedProcedure when all registered users have writing privileges
 import { adminProcedure, publicProcedure } from "../trpc";
-
-// Demo overlay: when DEMO_MODE=true, recruiters can create posts to
-// demonstrate the tRPC pipeline on /admin. The procedure decision is
-// fully encapsulated in packages/api/src/demo/ — no demo logic here.
-// Delete: packages/api/src/demo/ and replace createProcedure with adminProcedure.
-const createProcedure = getCreatePostProcedure();
 
 export const postRouter = {
   all: publicProcedure.query(async ({ ctx }) => {
@@ -59,9 +54,10 @@ export const postRouter = {
       return post;
     }),
 
-  // DEMO_MODE=true  → recruiterOrAdminProcedure via demo module
-  // DEMO_MODE=false → adminProcedure (core default, unchanged)
-  create: createProcedure
+  // Demo overlay: getCreatePostProcedure() returns recruiterOrAdminProcedure
+  // when DEMO_MODE=true, otherwise adminProcedure. This is the only place
+  // the demo overlay needs to be wired in -- see packages/api/src/demo/.
+  create: getCreatePostProcedure()
     .input(CreatePostSchema)
     .mutation(async ({ ctx, input }) => {
       const [post] = await ctx.db
@@ -77,8 +73,8 @@ export const postRouter = {
       return post;
     }),
 
-  // Delete is always admin-only — recruiters can create posts to demonstrate
-  // the pipeline but cannot destroy data.
+  // ADMIN ONLY, always -- delete is never exposed to recruiters even in
+  // demo mode. Destructive actions stay admin-gated regardless of DEMO_MODE.
   delete: adminProcedure.input(z.string()).mutation(async ({ ctx, input }) => {
     const res = await ctx.db.delete(Post).where(eq(Post.id, input));
 
