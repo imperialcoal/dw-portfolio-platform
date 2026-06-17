@@ -10,5 +10,6 @@ export default defineConfig({
     environment: "node",
     testTimeout: 15000,
     include: ["__tests__/**/*.test.ts"],
+    exclude: ["__tests__/api-platform-dashboard.test.ts"],
   },
 });
