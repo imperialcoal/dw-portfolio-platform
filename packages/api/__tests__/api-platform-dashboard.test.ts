@@ -32,8 +32,6 @@ import { user } from "@dw/db/schema";
 import { cacheKeys } from "@dw/redis";
 import { createRuntimeContext } from "@dw/runtime/context";
 
-import { appRouter } from "../src/root";
-
 // ─────────────────────────────────────────────
 // Shared runtime context (real Docker DB + Redis)
 // ─────────────────────────────────────────────
@@ -73,10 +71,12 @@ function makeAuth(userId: string | null): AuthObject {
   } as unknown as AuthObject;
 }
 
-async function createCaller(opts: {
-  userId?: string;
-  role?: "admin" | "recruiter" | "user";
-}) {
+async function createCaller(
+  opts: {
+    userId?: string;
+    role?: "admin" | "recruiter" | "user";
+  } = {},
+) {
   if (opts.userId && opts.role) {
     await insertUser({
       id: opts.userId,
@@ -84,6 +84,12 @@ async function createCaller(opts: {
       role: opts.role,
     });
   }
+
+  // Dynamic import (not static) — getCreatePostProcedure() resolves
+  // DEMO_MODE once at module load. Re-importing here after vi.resetModules()
+  // is what lets each describe block's vi.stubEnv("DEMO_MODE", ...) actually
+  // take effect on post.create's procedure selection.
+  const { appRouter } = await import("../src/root");
 
   return appRouter.createCaller({
     ...createRuntimeContext(),

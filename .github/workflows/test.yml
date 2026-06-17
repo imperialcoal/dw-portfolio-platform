@@ -220,7 +220,7 @@ jobs:
         with:
           key: docker-${{ runner.os }}-${{ hashFiles('platform/dev-tools/docker/docker-compose.yml') }}
       - name: Start Redis only
-        run: docker compose -f platform/dev-tools/docker/docker-compose.yml up redis -d --wait
+        run: docker compose -f platform/dev-tools/docker/docker-compose.yml up redis-proxy -d --wait
       - name: AI Memory Tests
         run: pnpm test:ai:memory
       - name: Stop Infrastructure
