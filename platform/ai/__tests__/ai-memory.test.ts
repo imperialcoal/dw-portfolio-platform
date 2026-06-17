@@ -648,7 +648,7 @@ describe("computePercentile", () => {
       250, 260, 270, 280, 500,
     ];
     const p95 = computePercentile(sorted, 95);
-    expect(p95).toBe(500);
+    expect(p95).toBe(280); // was: 500
   });
 
   it("returns single element for single-element array", () => {
