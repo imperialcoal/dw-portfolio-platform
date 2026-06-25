@@ -22,7 +22,7 @@ jobs:
       UPSTASH_REDIS_REST_URL: https://mock-redis.upstash.io
       UPSTASH_REDIS_REST_TOKEN: mock_token
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Setup
         uses: ./platform/standards/github/setup
       - name: Runtime Tests
@@ -38,7 +38,7 @@ jobs:
       UPSTASH_REDIS_REST_URL: https://mock-redis.upstash.io
       UPSTASH_REDIS_REST_TOKEN: mock_token
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Setup
         uses: ./platform/standards/github/setup
       - name: Auth Unit Tests
@@ -54,7 +54,7 @@ jobs:
       UPSTASH_REDIS_REST_URL: https://mock-redis.upstash.io
       UPSTASH_REDIS_REST_TOKEN: mock_token
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Setup
         uses: ./platform/standards/github/setup
       - name: Contracts Unit Tests
@@ -71,7 +71,7 @@ jobs:
       UPSTASH_REDIS_REST_TOKEN: mock_token
       ANTHROPIC_API_KEY: sk-test-mock-key
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Setup
         uses: ./platform/standards/github/setup
       - name: LLM Unit Tests
@@ -90,7 +90,7 @@ jobs:
       UPSTASH_REDIS_REST_URL: http://localhost:8079
       UPSTASH_REDIS_REST_TOKEN: mock_token
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Setup
         uses: ./platform/standards/github/setup
       - name: Cache Docker images
@@ -123,7 +123,7 @@ jobs:
       CLERK_SECRET_KEY: sk_test_mock
       CLERK_WEBHOOK_SECRET: whsec_mock
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Setup
         uses: ./platform/standards/github/setup
       - name: Cache Docker images
@@ -153,7 +153,7 @@ jobs:
       CLERK_SECRET_KEY: sk_test_mock
       CLERK_WEBHOOK_SECRET: whsec_mock
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Setup
         uses: ./platform/standards/github/setup
       - name: Cache Docker images
@@ -186,7 +186,7 @@ jobs:
       CLERK_SECRET_KEY: sk_test_mock
       CLERK_WEBHOOK_SECRET: whsec_mock
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Setup
         uses: ./platform/standards/github/setup
       - name: Cache Docker images
@@ -212,7 +212,7 @@ jobs:
       UPSTASH_REDIS_REST_URL: http://localhost:8079
       UPSTASH_REDIS_REST_TOKEN: mock_token
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Setup
         uses: ./platform/standards/github/setup
       - name: Cache Docker images
