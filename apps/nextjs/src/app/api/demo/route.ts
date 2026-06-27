@@ -1,13 +1,13 @@
 // Demo sign-in — generates a one-time Clerk sign-in token for the
-// pre-provisioned demo recruiter account and redirects to the sign-in
-// page. The visitor never sees credentials; the token is single-use
-// and expires in 5 minutes.
+// pre-provisioned demo recruiter account and redirects to Clerk's
+// sign-in URL. The visitor never sees credentials; the token is
+// single-use and expires in 5 minutes.
 //
-// GET /api/demo → 302 /sign-in?__clerk_ticket=<token>&redirect_url=/platform
+// GET /api/demo → 302 <clerk-sign-in-url>?__clerk_ticket=<token>&redirect_url=/platform
 //
 // Guards:
 //   - 302 → / when DEMO_MODE=false
-//   - 302 → /sign-in when Clerk is unconfigured or DEMO_USER_CLERK_ID is missing
+//   - 302 → / when Clerk is unconfigured or DEMO_USER_CLERK_ID is missing
 //
 // Sits alongside the existing trigger routes in src/app/api/demo/trigger/*.
 // To remove: delete this file and revert Project.astro CTA href to the
@@ -39,7 +39,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         reason: "clerk-not-configured",
       }),
     );
-    return NextResponse.redirect(new URL("/sign-in", req.url));
+    return NextResponse.redirect(new URL("/", req.url));
   }
 
   const userId = env.DEMO_USER_CLERK_ID;
@@ -51,21 +51,25 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         reason: "demo-user-id-not-configured",
       }),
     );
-    return NextResponse.redirect(new URL("/sign-in", req.url));
+    return NextResponse.redirect(new URL("/", req.url));
   }
 
   try {
     const client = await clerkClient();
-    const { token } = await client.signInTokens.createSignInToken({
+    const result = await client.signInTokens.createSignInToken({
       userId,
-      expiresInSeconds: 300, // 5 minutes — ample time to land on sign-in page
+      expiresInSeconds: 300, // 5 minutes
     });
 
-    const signInUrl = new URL("/sign-in", req.url);
-    signInUrl.searchParams.set("__clerk_ticket", token);
-    signInUrl.searchParams.set("redirect_url", "/platform");
+    // result.url is Clerk's own sign-in URL with __clerk_ticket already set.
+    // Works for both hosted and embedded sign-in pages — do not hardcode /sign-in.
+    const signInUrl = new URL(result.url);
+    signInUrl.searchParams.set(
+      "redirect_url",
+      new URL("/platform", req.url).toString(),
+    );
 
-    return NextResponse.redirect(signInUrl);
+    return NextResponse.redirect(signInUrl.toString());
   } catch (err) {
     console.error(
       JSON.stringify({
@@ -74,7 +78,6 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         error: String(err),
       }),
     );
-    // Graceful fallback — recruiter lands on the standard sign-in page
-    return NextResponse.redirect(new URL("/sign-in", req.url));
+    return NextResponse.redirect(new URL("/", req.url));
   }
 }
