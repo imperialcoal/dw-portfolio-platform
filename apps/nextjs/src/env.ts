@@ -47,6 +47,7 @@ export const env = createEnv({
     ...redisSchema,
     DEMO_MODE: z.string().optional(),
     RECRUITER_EMAILS: z.string().optional(),
+    DEMO_USER_CLERK_ID: z.string().optional(),
   },
   /**
    * Client-side environment variables (NEXT_PUBLIC_ prefix required).
