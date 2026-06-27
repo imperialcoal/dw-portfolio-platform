@@ -1,51 +1,26 @@
 ---
 const stack = [
-  "TypeScript",
-  "Next.js 16",
-  "tRPC",
-  "Drizzle ORM",
-  "Supabase",
-  "Upstash Redis",
-  "Anthropic SDK",
-  "Clerk",
-  "GitHub Actions",
-  "Terraform",
-  "Turborepo",
-  "Vitest",
-  "Docker",
-  "Cloudflare",
-  "Vercel",
+  "TypeScript", "Next.js 16", "tRPC", "Drizzle ORM", "Supabase",
+  "Upstash Redis", "Anthropic SDK", "Clerk", "GitHub Actions",
+  "Terraform", "Turborepo", "Vitest", "Docker", "Cloudflare", "Vercel",
 ];
 
-const highlights = [
+const demoSections = [
   {
-    label: "Monorepo",
-    value: "25+ packages across apps, packages, and platform workspaces",
+    label: "Platform Dashboard",
+    desc: "Live AI agent output, incident tracking, system health, and deployment history — all running on real infrastructure.",
+  },
+  {
+    label: "Role-Based Access",
+    desc: "Sign in as a recruiter to see the demo overlay. Recruiters get scoped access to the dashboard without admin privileges.",
   },
   {
     label: "AI Agents",
-    value:
-      "5 specialized agents (CI, Sentry, Security, Deps, Docs) with Redis-backed memory",
+    desc: "Five specialized agents (CI, Sentry, Security, Deps, Docs) poll sensors and write structured incident memory to Redis.",
   },
   {
-    label: "CI/CD",
-    value:
-      "8 parallel GitHub Actions jobs with Docker service orchestration and Turborepo remote caching",
-  },
-  {
-    label: "Infrastructure",
-    value:
-      "Full Terraform IaC for Vercel, Cloudflare, Supabase, Upstash, and Doppler — with daily drift detection",
-  },
-  {
-    label: "Auth & RBAC",
-    value:
-      "Clerk with DB-backed role enforcement, rate limiting, and demo overlay procedure selection",
-  },
-  {
-    label: "Testing",
-    value:
-      "Real-infrastructure test suite covering RBAC, cache invalidation semantics, and AI memory layer",
+    label: "Webhook Pipeline",
+    desc: "GitHub and Sentry webhooks feed events into QStash, which dispatches async jobs to the agent layer.",
   },
 ];
 ---
@@ -54,53 +29,62 @@ const highlights = [
   <div class="container">
     <p class="section-label" data-reveal>Featured Project</p>
     <h2 class="section-title" data-reveal data-reveal-delay="1">
-      What I've built
+      dw-portfolio-platform
     </h2>
     <div class="section-divider" data-reveal data-reveal-delay="1"></div>
 
     <div class="project-card" data-reveal data-reveal-delay="2">
-      <div class="project-header">
-        <div class="project-title-group">
-          <div class="project-badge">Flagship</div>
-          <h3 class="project-name">dw-portfolio-platform</h3>
-          <p class="project-meta">
-            The system powering this portfolio — and a demonstration of
-            production-grade full-stack engineering from data layer to
-            infrastructure.
+
+      <!-- Description + primary CTA -->
+      <div class="project-top">
+        <div class="project-desc-block">
+          <p class="project-desc">
+            A production-grade pnpm + Turborepo monorepo: 25+ packages spanning
+            a Next.js platform dashboard, tRPC API, Drizzle ORM, AI agent
+            system, and full Terraform IaC. Built end-to-end as a demonstration
+            of what I ship independently.
           </p>
+          <div class="project-actions">
+            <a
+              href="https://dev.dw-portfolio.dev"
+              class="btn btn-primary"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Try the Demo
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M7 17L17 7M7 7h10v10"/>
+              </svg>
+            </a>
+            <a
+              href="https://github.com/imperialcoal/dw-portfolio-platform"
+              class="btn btn-outline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/>
+              </svg>
+              View Source
+            </a>
+          </div>
         </div>
-        <a
-          href="https://github.com/imperialcoal/dw-portfolio-platform"
-          class="btn btn-primary project-cta"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <svg
-            width="15"
-            height="15"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            aria-hidden="true"
-          >
-            <path
-              d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"
-            ></path>
-          </svg>
-          View on GitHub
-        </a>
       </div>
 
-      <div class="project-highlights">
-        {
-          highlights.map((h) => (
-            <div class="highlight-row">
-              <span class="highlight-label">{h.label}</span>
-              <span class="highlight-value">{h.value}</span>
+      <!-- What you'll see in the demo -->
+      <div class="demo-preview">
+        <p class="demo-preview-heading">What you'll see in the demo</p>
+        <div class="demo-grid">
+          {demoSections.map((s) => (
+            <div class="demo-item">
+              <p class="demo-item-label">{s.label}</p>
+              <p class="demo-item-desc">{s.desc}</p>
             </div>
-          ))
-        }
+          ))}
+        </div>
       </div>
 
+      <!-- Stack -->
       <div class="project-stack">
         <p class="stack-heading">Tech Stack</p>
         <div class="stack-pills">
@@ -116,115 +100,95 @@ const highlights = [
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 2.5rem;
-    box-shadow: var(--shadow-card);
-    transition: border-color var(--transition), box-shadow var(--transition);
+    padding: 2rem;
+    transition: border-color var(--transition);
   }
 
   .project-card:hover {
     border-color: var(--border-accent);
-    box-shadow: 0 0 0 1px var(--accent-dim), var(--shadow);
   }
 
-  .project-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 2rem;
+  .project-top {
     margin-bottom: 2rem;
   }
 
-  .project-badge {
-    display: inline-block;
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--accent);
-    background: var(--accent-glow);
-    border: 1px solid var(--border-accent);
-    padding: 0.2rem 0.6rem;
-    border-radius: 20px;
-    margin-bottom: 0.6rem;
-  }
-
-  .project-name {
-    font-size: 1.6rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    margin-bottom: 0.6rem;
-    font-family: "SF Mono", "Cascadia Code", "Fira Code", monospace;
-    color: var(--text);
-  }
-
-  .project-meta {
+  .project-desc {
     color: var(--text-muted);
-    font-size: 0.95rem;
-    line-height: 1.6;
-    max-width: 480px;
+    font-size: 0.97rem;
+    line-height: 1.75;
+    max-width: 620px;
+    margin-bottom: 1.5rem;
   }
 
-  .project-cta {
-    flex-shrink: 0;
-    white-space: nowrap;
-  }
-
-  .project-highlights {
+  .project-actions {
     display: flex;
-    flex-direction: column;
-    gap: 0;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+  }
+
+  /* Demo preview grid */
+  .demo-preview {
     border-top: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
-    margin-bottom: 2rem;
+    padding: 1.5rem 0;
+    margin-bottom: 1.75rem;
   }
 
-  .highlight-row {
+  .demo-preview-heading {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 1.1rem;
+  }
+
+  .demo-grid {
     display: grid;
-    grid-template-columns: 130px 1fr;
-    gap: 1.5rem;
-    padding: 0.85rem 0;
-    border-bottom: 1px solid var(--border);
-    align-items: baseline;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.1rem;
   }
 
-  .highlight-row:last-child {
-    border-bottom: none;
+  .demo-item {
+    background: var(--bg-card-hover);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 1rem 1.1rem;
   }
 
-  .highlight-label {
-    font-size: 0.8rem;
+  .demo-item-label {
+    font-size: 0.82rem;
     font-weight: 700;
     color: var(--accent);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    flex-shrink: 0;
+    margin-bottom: 0.35rem;
   }
 
-  .highlight-value {
-    font-size: 0.9rem;
+  .demo-item-desc {
+    font-size: 0.82rem;
     color: var(--text-muted);
-    line-height: 1.5;
+    line-height: 1.6;
   }
 
+  /* Stack */
   .stack-heading {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     color: var(--text-muted);
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.7rem;
   }
 
   .stack-pills {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.4rem;
+    gap: 0.35rem;
   }
 
   .pill {
-    font-size: 0.78rem;
+    font-size: 0.75rem;
     font-weight: 500;
-    padding: 0.25rem 0.65rem;
+    padding: 0.2rem 0.6rem;
     background: var(--tag-bg);
     color: var(--tag-text);
     border-radius: 20px;
@@ -232,18 +196,8 @@ const highlights = [
     font-family: "SF Mono", "Cascadia Code", "Fira Code", monospace;
   }
 
-  @media (max-width: 640px) {
-    .project-header {
-      flex-direction: column;
-    }
-
-    .highlight-row {
-      grid-template-columns: 1fr;
-      gap: 0.25rem;
-    }
-
-    .project-card {
-      padding: 1.5rem;
-    }
+  @media (max-width: 600px) {
+    .demo-grid { grid-template-columns: 1fr; }
+    .project-card { padding: 1.25rem; }
   }
 </style>

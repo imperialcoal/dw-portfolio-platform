@@ -1,43 +1,43 @@
-/* ── Design tokens ─────────────────────────────────────────────────────────── */
+/* ── Design tokens — matches dw-portfolio-platform dark theme ──────────────── */
 :root {
-  /* Dark theme (default) */
-  --bg: #080c14;
-  --bg-surface: #0f1623;
-  --bg-card: #141d2e;
-  --bg-card-hover: #1a2540;
-  --accent: #4f8ef7;
-  --accent-dim: #1a3460;
-  --accent-glow: rgba(79, 142, 247, 0.15);
-  --text: #e2e8f4;
-  --text-muted: #8899b4;
-  --border: #1e2d45;
-  --border-accent: #2a4070;
-  --tag-bg: #1a2540;
-  --tag-text: #7eb3ff;
-  --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  /* Dark (default) — zinc-950 base, blue-400 accent */
+  --bg: #09090b;
+  --bg-surface: #18181b;
+  --bg-card: #18181b;
+  --bg-card-hover: #27272a;
+  --accent: #60a5fa;
+  --accent-dim: rgba(96, 165, 250, 0.1);
+  --accent-glow: rgba(96, 165, 250, 0.12);
+  --text: #fafafa;
+  --text-muted: #a1a1aa;
+  --border: #27272a;
+  --border-accent: rgba(96, 165, 250, 0.3);
+  --tag-bg: rgba(96, 165, 250, 0.08);
+  --tag-text: #93c5fd;
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
   --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.3);
-  --radius: 10px;
-  --radius-sm: 6px;
+  --radius: 12px;
+  --radius-sm: 8px;
   --transition: 200ms ease;
 }
 
 @media (prefers-color-scheme: light) {
   :root {
-    --bg: #f0f4f8;
+    --bg: #fafafa;
     --bg-surface: #ffffff;
     --bg-card: #ffffff;
-    --bg-card-hover: #f5f8ff;
-    --accent: #1d4ed8;
-    --accent-dim: #dbeafe;
-    --accent-glow: rgba(29, 78, 216, 0.08);
-    --text: #0d1117;
-    --text-muted: #4b5875;
-    --border: #d1dae8;
+    --bg-card-hover: #f4f4f5;
+    --accent: #2563eb;
+    --accent-dim: rgba(37, 99, 235, 0.08);
+    --accent-glow: rgba(37, 99, 235, 0.08);
+    --text: #09090b;
+    --text-muted: #71717a;
+    --border: #e4e4e7;
     --border-accent: #93c5fd;
     --tag-bg: #dbeafe;
     --tag-text: #1d4ed8;
-    --shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-    --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.06);
+    --shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+    --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.04);
   }
 }
 
@@ -76,11 +76,8 @@ svg {
 a {
   color: var(--accent);
   text-decoration: none;
-  transition:
-    color var(--transition),
-    opacity var(--transition);
+  transition: opacity var(--transition);
 }
-
 a:hover {
   opacity: 0.8;
 }
@@ -108,7 +105,7 @@ h3 {
 
 .section-label {
   display: inline-block;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -123,38 +120,37 @@ h3 {
 }
 
 .section-divider {
-  width: 40px;
-  height: 3px;
+  width: 36px;
+  height: 2px;
   background: var(--accent);
   border-radius: 2px;
   margin-bottom: 3rem;
+  opacity: 0.6;
 }
 
-/* ── Reveal animation ──────────────────────────────────────────────────────── */
+/* ── Reveal ────────────────────────────────────────────────────────────────── */
 [data-reveal] {
   opacity: 0;
-  transform: translateY(20px);
+  transform: translateY(18px);
   transition:
     opacity 0.5s ease,
     transform 0.5s ease;
 }
-
 [data-reveal].visible {
   opacity: 1;
   transform: translateY(0);
 }
-
 [data-reveal-delay="1"] {
-  transition-delay: 0.1s;
+  transition-delay: 0.08s;
 }
 [data-reveal-delay="2"] {
-  transition-delay: 0.2s;
+  transition-delay: 0.16s;
 }
 [data-reveal-delay="3"] {
-  transition-delay: 0.3s;
+  transition-delay: 0.24s;
 }
 [data-reveal-delay="4"] {
-  transition-delay: 0.4s;
+  transition-delay: 0.32s;
 }
 
 /* ── Buttons ───────────────────────────────────────────────────────────────── */
@@ -170,41 +166,48 @@ h3 {
   cursor: pointer;
   border: none;
   text-decoration: none;
+  white-space: nowrap;
 }
 
 .btn-primary {
   background: var(--accent);
-  color: #fff;
+  color: #09090b;
 }
-
 .btn-primary:hover {
   opacity: 0.9;
   transform: translateY(-1px);
-  color: #fff;
+  color: #09090b;
 }
 
 .btn-outline {
   background: transparent;
   color: var(--text);
-  border: 1.5px solid var(--border-accent);
+  border: 1px solid var(--border);
+}
+.btn-outline:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-accent);
+  color: var(--text);
+  transform: translateY(-1px);
 }
 
-.btn-outline:hover {
-  background: var(--accent-glow);
-  border-color: var(--accent);
-  color: var(--accent);
-  transform: translateY(-1px);
+.btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  padding-left: 0;
+  padding-right: 0;
+}
+.btn-ghost:hover {
+  color: var(--text);
 }
 
 /* ── Scrollbar ─────────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
 }
-
 ::-webkit-scrollbar-track {
   background: var(--bg);
 }
-
 ::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 3px;
