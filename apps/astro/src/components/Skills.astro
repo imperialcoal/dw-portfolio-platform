@@ -1,0 +1,162 @@
+---
+const categories = [
+  {
+    label: "Languages",
+    skills: ["TypeScript", "JavaScript", "Perl", "HTML", "CSS", "SQL", "Bash"],
+  },
+  {
+    label: "Frontend",
+    skills: ["Next.js 16", "React 19", "Astro", "Tailwind CSS"],
+  },
+  {
+    label: "Backend",
+    skills: ["Node.js", "tRPC", "Drizzle ORM", "PostgreSQL", "Redis"],
+  },
+  {
+    label: "Cloud & Infra",
+    skills: [
+      "Vercel",
+      "Supabase",
+      "Cloudflare",
+      "Upstash",
+      "Doppler",
+      "Terraform",
+      "Docker",
+    ],
+  },
+  {
+    label: "Auth & Security",
+    skills: ["Clerk", "JWT", "Webhook verification", "RBAC", "Secret management"],
+  },
+  {
+    label: "AI & Automation",
+    skills: [
+      "Anthropic SDK",
+      "AI agent loops",
+      "Prompt engineering",
+      "QStash",
+    ],
+  },
+  {
+    label: "CI/CD & DevOps",
+    skills: [
+      "GitHub Actions",
+      "Turborepo",
+      "pnpm Workspaces",
+      "Monorepo architecture",
+      "ESLint 9",
+    ],
+  },
+  {
+    label: "Testing",
+    skills: [
+      "Vitest",
+      "Integration testing",
+      "Test isolation",
+      "QA & data validation",
+    ],
+  },
+  {
+    label: "Developer Tools",
+    skills: ["Git", "VS Code", "Jira", "Bitbucket", "Ubuntu / Linux"],
+  },
+  {
+    label: "Hardware & Systems",
+    skills: [
+      "PC assembly",
+      "Hardware diagnostics",
+      "Peripheral configuration",
+      "Network setup",
+    ],
+  },
+  {
+    label: "Mechanical",
+    skills: [
+      "Vehicle diagnostics",
+      "Brake & alignment service",
+      "Emissions testing",
+      "Michelin certified",
+      "Goodyear certified",
+    ],
+  },
+];
+---
+
+<section id="skills">
+  <div class="container">
+    <p class="section-label" data-reveal>Skills</p>
+    <h2 class="section-title" data-reveal data-reveal-delay="1">
+      Technical competencies
+    </h2>
+    <div class="section-divider" data-reveal data-reveal-delay="1"></div>
+
+    <div class="skills-grid">
+      {
+        categories.map((cat, i) => (
+          <div
+            class="skill-group"
+            data-reveal
+            data-reveal-delay={String((i % 3) + 1)}
+          >
+            <p class="skill-category">{cat.label}</p>
+            <div class="skill-pills">
+              {cat.skills.map((s) => (
+                <span class="skill-pill">{s}</span>
+              ))}
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .skills-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+  }
+
+  .skill-group {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    transition: border-color var(--transition);
+  }
+
+  .skill-group:hover {
+    border-color: var(--border-accent);
+  }
+
+  .skill-category {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    margin-bottom: 0.75rem;
+  }
+
+  .skill-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  .skill-pill {
+    font-size: 0.8rem;
+    padding: 0.2rem 0.55rem;
+    background: var(--tag-bg);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+  }
+
+  @media (max-width: 600px) {
+    .skills-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

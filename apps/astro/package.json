@@ -1,0 +1,20 @@
+{
+  "name": "@dw/astro",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "astro build",
+    "dev": "astro dev",
+    "preview": "astro preview",
+    "typecheck": "astro check",
+    "clean": "git clean -xdf dist .astro node_modules"
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "^3.7.3",
+    "@astrojs/vercel": "^10.0.8",
+    "astro": "^7.0.3"
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
+  }
+}

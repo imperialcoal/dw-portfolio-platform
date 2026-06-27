@@ -1,0 +1,145 @@
+---
+---
+
+<section id="about">
+  <div class="container">
+    <p class="section-label" data-reveal>About</p>
+    <h2 class="section-title" data-reveal data-reveal-delay="1">
+      The full picture
+    </h2>
+    <div class="section-divider" data-reveal data-reveal-delay="1"></div>
+
+    <div class="about-grid">
+      <div class="about-text" data-reveal data-reveal-delay="2">
+        <p>
+          I'm a software developer who arrived here through a path most
+          resumes don't follow. Before writing TypeScript, I was diagnosing
+          vehicles, managing operations teams, building computers from
+          components, and figuring out what was wrong when something stopped
+          working. That hands-on, systems-level instinct didn't go away when I
+          moved into software — it just found a larger surface area.
+        </p>
+        <p>
+          Professionally, I spent four years at MarketVision Research building
+          and maintaining custom survey applications in Perl, JavaScript, and
+          HTML — owning the full lifecycle from client requirements through
+          deployment and post-launch support. I shipped interactive ECharts
+          dashboards for non-technical stakeholders, co-developed a VS Code
+          extension that automated repetitive workflows across the team, and
+          learned what it actually means to maintain production software under
+          real pressure.
+        </p>
+        <p>
+          Independently, I designed and built
+          <strong>dw-portfolio-platform</strong> — the system powering this
+          page. It's a production-grade pnpm + Turborepo monorepo with a
+          Next.js app, tRPC API, Drizzle ORM, AI agents backed by
+          Anthropic's Claude, eight parallel CI/CD jobs in GitHub Actions, and
+          all cloud infrastructure provisioned through Terraform. I built it
+          to demonstrate the kind of work I can do end-to-end, and to have
+          something worth showing when I walk into an interview.
+        </p>
+        <p>
+          I hold two associate degrees — Computer Information Systems and
+          Accounting — and I've consistently been the person in any room who
+          figures out how things actually work, not just how they're
+          supposed to work.
+        </p>
+      </div>
+
+      <div class="about-stats" data-reveal data-reveal-delay="3">
+        <div class="stat-card">
+          <span class="stat-value">4+</span>
+          <span class="stat-label">Years professional development</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value">25+</span>
+          <span class="stat-label">Packages in flagship monorepo</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value">8</span>
+          <span class="stat-label">Parallel CI/CD jobs shipped</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value">3.75</span>
+          <span class="stat-label">GPA — Computer Information Systems</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .about-grid {
+    display: grid;
+    grid-template-columns: 1fr 260px;
+    gap: 3rem;
+    align-items: start;
+  }
+
+  .about-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+  }
+
+  .about-text p {
+    color: var(--text-muted);
+    line-height: 1.8;
+  }
+
+  .about-text strong {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .about-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    position: sticky;
+    top: 80px;
+  }
+
+  .stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    transition: border-color var(--transition), box-shadow var(--transition);
+  }
+
+  .stat-card:hover {
+    border-color: var(--border-accent);
+    box-shadow: var(--shadow-card);
+  }
+
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+
+  @media (max-width: 700px) {
+    .about-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .about-stats {
+      position: static;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+</style>
