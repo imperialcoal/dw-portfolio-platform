@@ -17,6 +17,7 @@ import { messagingEnv } from "@dw/validators/messaging-env";
 import { observabilityEnv } from "@dw/validators/observability-env";
 import { qstashEnv } from "@dw/validators/qstash-env";
 import { redisEnv } from "@dw/validators/redis-env";
+import { resumeEnv } from "@dw/validators/resume-env";
 import { supabaseEnv } from "@dw/validators/supabase-env";
 
 export const env = createEnv({
@@ -29,6 +30,7 @@ export const env = createEnv({
     observabilityEnv(),
     qstashEnv(),
     redisEnv(),
+    resumeEnv(),
     supabaseEnv(),
     vercel(),
   ],
@@ -39,15 +41,16 @@ export const env = createEnv({
   /**
    * Server-side environment variables.
    * Cloud service keys validated in their respective env functions above.
-   * DEMO_MODE is declared here explicitly so env.DEMO_MODE is typed on
-   * the composed env object — the value is validated by authEnv() above.
+   *
+   * DEMO_MODE, RECRUITER_EMAILS, and DEMO_USER_CLERK_ID are intentionally
+   * NOT redeclared here — they are defined once in authEnv() (auth-env.ts)
+   * and typed on the composed `env` object automatically via `extends`.
+   * Redeclaring them here would just be duplication; t3-env merges every
+   * extended schema's keys into the final type without needing a local copy.
    */
   server: {
     ...databaseSchema,
     ...redisSchema,
-    DEMO_MODE: z.string().optional(),
-    RECRUITER_EMAILS: z.string().optional(),
-    DEMO_USER_CLERK_ID: z.string().optional(),
   },
   /**
    * Client-side environment variables (NEXT_PUBLIC_ prefix required).
