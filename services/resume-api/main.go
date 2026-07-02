@@ -6,6 +6,7 @@
 //	ANTHROPIC_API_KEY — required for generation endpoints
 //	RESUME_API_KEY   — shared secret for X-API-Key auth (empty = disabled in dev)
 //	ALLOWED_ORIGIN   — CORS allowed origin (default: *)
+//	CAREER_DATA_URL  — base URL of the career-data service (required)
 package main
 
 import (
@@ -17,6 +18,7 @@ import (
 
 	"github.com/imperialcoal/dw-resume-api/api"
 	ai "github.com/imperialcoal/dw-resume-api/internal/anthropic"
+	cc "github.com/imperialcoal/dw-resume-api/internal/careerclient"
 	"github.com/imperialcoal/dw-resume-api/internal/resume"
 )
 
@@ -25,14 +27,18 @@ func main() {
 	anthropicKey := os.Getenv("ANTHROPIC_API_KEY")
 	apiKey := os.Getenv("RESUME_API_KEY")
 	allowedOrigin := getenv("ALLOWED_ORIGIN", "*")
+	careerDataURL := os.Getenv("CAREER_DATA_URL")
 
 	if anthropicKey == "" {
 		log.Fatal("ANTHROPIC_API_KEY is required")
 	}
+	if careerDataURL == "" {
+		log.Fatal("CAREER_DATA_URL is required")
+	}
 
-	// Wire dependencies
 	aiClient := ai.New(anthropicKey)
-	generator := resume.NewGenerator(aiClient)
+	careerClient := cc.New(careerDataURL)
+	generator := resume.NewGenerator(aiClient, careerClient)
 	handlers := api.NewHandlers(generator)
 	router := api.NewRouter(handlers, apiKey, allowedOrigin)
 
@@ -40,12 +46,12 @@ func main() {
 		Addr:         ":" + port,
 		Handler:      router,
 		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 90 * time.Second, // generous for LLM calls
+		WriteTimeout: 90 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
 
-	fmt.Printf(`{"level":"info","msg":"dw-resume-api starting","port":"%s","auth":%v}`+"\n",
-		port, apiKey != "")
+	fmt.Printf(`{"level":"info","msg":"dw-resume-api starting","port":"%s","auth":%v,"career_data":"%s"}`+"\n",
+		port, apiKey != "", careerDataURL)
 
 	if err := srv.ListenAndServe(); err != nil {
 		log.Fatalf("server error: %v", err)

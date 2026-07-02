@@ -8,23 +8,20 @@ import (
 )
 
 // NewRouter wires all routes and middleware.
+// Note: /api/profile removed — profile data is now served by career-data.
 func NewRouter(h *Handlers, apiKey, allowedOrigin string) http.Handler {
 	r := chi.NewRouter()
 
-	// Global middleware
 	r.Use(middleware.Recoverer)
 	r.Use(LoggingMiddleware)
 	r.Use(CORSMiddleware(allowedOrigin))
 
-	// Public
 	r.Get("/health", h.Health)
 
-	// Protected API routes
 	r.Group(func(r chi.Router) {
 		r.Use(APIKeyMiddleware(apiKey))
 
 		r.Get("/api/roles", h.Roles)
-		r.Get("/api/profile", h.Profile)
 		r.Post("/api/generate", h.Generate)
 		r.Post("/api/render/html", h.RenderHTML)
 		r.Post("/api/render/pdf", h.RenderPDF)

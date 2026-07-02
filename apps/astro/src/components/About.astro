@@ -1,4 +1,35 @@
 ---
+// Fetch bio from career-data API with graceful fallback for local dev
+// when CAREER_DATA_URL is not set.
+
+interface Bio {
+  short: string;
+  long: string;
+}
+
+const FALLBACK_BIO: Bio = {
+  short: "Full-Stack Software Developer",
+  long: `I'm a software developer who arrived here through a path most resumes don't follow. Before TypeScript, I was diagnosing vehicles, managing operations teams, building computers from components, and figuring out what was actually wrong when something stopped working. That systems-thinking instinct didn't go away when I moved into software — it just found a larger surface area.
+
+Professionally, I spent four years at MarketVision Research building and maintaining custom survey applications, shipping ECharts dashboards for non-technical stakeholders, and co-developing a VS Code extension that automated workflows across the team. Independently, I designed and built dw-portfolio-platform — the system connected to this page. It's a production-grade monorepo with a Next.js platform dashboard, tRPC API, AI agents backed by Anthropic's Claude, eight parallel CI/CD jobs, and all cloud infrastructure managed through Terraform. I built it to show, not tell.`,
+};
+
+async function fetchBio(): Promise<Bio> {
+  const url = import.meta.env.CAREER_DATA_URL;
+  if (!url) return FALLBACK_BIO;
+  try {
+    const res = await fetch(`${url}/profile`, { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) return FALLBACK_BIO;
+    const data = await res.json() as { bio?: Bio };
+    return data.bio ?? FALLBACK_BIO;
+  } catch {
+    return FALLBACK_BIO;
+  }
+}
+
+const bio = await fetchBio();
+// Split long bio on double newline for paragraph rendering
+const paragraphs = bio.long.split("\n\n").filter(Boolean);
 ---
 
 <section id="about">
@@ -8,25 +39,12 @@
     <div class="section-divider" data-reveal data-reveal-delay="1"></div>
 
     <div class="about-body" data-reveal data-reveal-delay="2">
-      <p>
-        I'm a software developer who arrived here through a path most resumes
-        don't follow. Before TypeScript, I was diagnosing vehicles, managing
-        operations teams, building computers from components, and figuring out
-        what was actually wrong when something stopped working. That
-        systems-thinking instinct didn't go away when I moved into software —
-        it just found a larger surface area.
-      </p>
-      <p>
-        Professionally, I spent four years at MarketVision Research building
-        and maintaining custom survey applications, shipping ECharts dashboards
-        for non-technical stakeholders, and co-developing a VS Code extension
-        that automated workflows across the team. Independently, I designed and
-        built <strong>dw-portfolio-platform</strong> — the system connected to
-        this page. It's a production-grade monorepo with a Next.js platform
-        dashboard, tRPC API, AI agents backed by Anthropic's Claude, eight
-        parallel CI/CD jobs, and all cloud infrastructure managed through
-        Terraform. I built it to show, not tell.
-      </p>
+      {paragraphs.map((p) => (
+        <p set:html={p.replace(
+          "dw-portfolio-platform",
+          '<strong>dw-portfolio-platform</strong>'
+        )} />
+      ))}
     </div>
   </div>
 </section>

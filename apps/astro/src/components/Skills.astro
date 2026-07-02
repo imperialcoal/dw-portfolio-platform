@@ -1,30 +1,34 @@
 ---
-const categories = [
-  {
-    label: "Languages & Core",
-    skills: ["TypeScript", "JavaScript", "Perl", "HTML", "CSS", "SQL", "Bash"],
-  },
-  {
-    label: "Frontend & Frameworks",
-    skills: ["Next.js 16", "React 19", "Astro", "tRPC", "Drizzle ORM", "Zod"],
-  },
-  {
-    label: "Cloud & Infrastructure",
-    skills: ["Vercel", "Supabase", "Cloudflare", "Upstash", "Doppler", "Terraform", "Docker"],
-  },
-  {
-    label: "AI & Automation",
-    skills: ["Anthropic SDK", "AI agent loops", "Prompt engineering", "QStash", "Webhook pipelines"],
-  },
-  {
-    label: "CI/CD & Testing",
-    skills: ["GitHub Actions", "Turborepo", "pnpm Workspaces", "Vitest", "Docker Compose", "ESLint 9"],
-  },
-  {
-    label: "Systems & Tools",
-    skills: ["Git", "VS Code", "PC assembly", "Hardware diagnostics", "Vehicle diagnostics", "Ubuntu / Linux"],
-  },
+interface SkillGroup {
+  category: string;
+  skills: string[];
+  roles: string[];
+}
+
+// Astro-display categories (different subset/order than resume roles)
+const FALLBACK_CATEGORIES: SkillGroup[] = [
+  { category: "Languages & Core", skills: ["TypeScript", "JavaScript", "Go", "Perl", "HTML", "CSS", "SQL", "Bash"], roles: [] },
+  { category: "Frontend & Frameworks", skills: ["Next.js 16", "React 19", "Astro", "tRPC", "Drizzle ORM", "Zod"], roles: [] },
+  { category: "Cloud & Infrastructure", skills: ["Vercel", "Supabase", "Cloudflare", "Upstash", "Doppler", "Terraform", "Docker", "Railway"], roles: [] },
+  { category: "AI & Automation", skills: ["Anthropic SDK", "AI agent loops", "Prompt engineering", "QStash", "Webhook pipelines"], roles: [] },
+  { category: "CI/CD & Testing", skills: ["GitHub Actions", "Turborepo", "pnpm Workspaces", "Vitest", "Docker Compose", "ESLint 9"], roles: [] },
+  { category: "Systems & Tools", skills: ["Git", "VS Code", "PC assembly", "Hardware diagnostics", "Vehicle diagnostics", "Ubuntu / Linux"], roles: [] },
 ];
+
+async function fetchSkills(): Promise<SkillGroup[]> {
+  const url = import.meta.env.CAREER_DATA_URL;
+  if (!url) return FALLBACK_CATEGORIES;
+  try {
+    const res = await fetch(`${url}/skills`, { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) return FALLBACK_CATEGORIES;
+    const data = await res.json() as SkillGroup[];
+    return Array.isArray(data) && data.length > 0 ? data : FALLBACK_CATEGORIES;
+  } catch {
+    return FALLBACK_CATEGORIES;
+  }
+}
+
+const categories = await fetchSkills();
 ---
 
 <section id="skills">
@@ -42,7 +46,7 @@ const categories = [
           data-reveal
           data-reveal-delay={String((i % 3) + 1)}
         >
-          <p class="skill-category">{cat.label}</p>
+          <p class="skill-category">{cat.category}</p>
           <div class="skill-pills">
             {cat.skills.map((s) => <span class="skill-pill">{s}</span>)}
           </div>
