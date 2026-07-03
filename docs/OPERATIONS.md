@@ -399,10 +399,9 @@ All secrets are stored in **Doppler** under project `dw-portfolio-platform`.
 
 - **QStash throughput**: Each CI failure, Sentry error, and security alert enqueues one job. At portfolio scale this is negligible. QStash free tier supports 500 requests/day — monitor in the Upstash dashboard if webhook volume grows.
 
-- **Anthropic API costs**: All agents use `claude-sonnet-4-20250514` with a `max_tokens: 1024` cap. Each incident analysis consumes approximately 2–5K tokens total. Add up-front cost tracking if incident volume grows significantly.
+- **Anthropic API costs**: All agents use `claude-sonnet-4-20250514` with a `max_tokens: 1024` cap. Each incident analysis consumes approximately 2-5K tokens total. Add up-front cost tracking if incident volume grows significantly.
 
 - **Edge vs. Node runtime routing**: All stateless webhook receivers and tRPC handlers that don't touch Postgres can move to Edge for better cold start times. The runtime guard in `platform/runtime` will throw immediately if the wrong runtime is used, so the boundary is enforced at development time rather than production.
-
 
 ---
 

@@ -69,7 +69,7 @@ type CTA struct {
 type Project struct {
 	ID              string    `json:"id"`
 	Name            string    `json:"name"`
-	Label           string    `json:"label"` // eyebrow text: "Featured Project", "Project 02"
+	Label           string    `json:"label"` // eyebrow text: "Featured Project", "Project"
 	Description     string    `json:"description"`
 	PrimaryCTA      CTA       `json:"primary_cta"`
 	SourceURL       string    `json:"source_url"`

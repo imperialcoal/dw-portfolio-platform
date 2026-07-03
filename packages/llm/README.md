@@ -72,4 +72,4 @@ Consumed by: `@dw/ai`
 ## Developer Notes
 
 > **Developer Note**
-> The intermediate `const blocks: ContentBlock[]` variable in `analyze.ts` (lines 47–52) is required because TypeScript cannot infer the callback parameter type in `.filter()` when chaining directly on `message.content`. The Anthropic SDK's `ContentBlock` is a union type, and TypeScript needs an explicit type annotation on the array before narrowing works correctly in a filter predicate. Removing the intermediate variable causes a type error even though the runtime behavior is identical.
+> The intermediate `const blocks: ContentBlock[]` variable in `analyze.ts` (lines 47-52) is required because TypeScript cannot infer the callback parameter type in `.filter()` when chaining directly on `message.content`. The Anthropic SDK's `ContentBlock` is a union type, and TypeScript needs an explicit type annotation on the array before narrowing works correctly in a filter predicate. Removing the intermediate variable causes a type error even though the runtime behavior is identical.

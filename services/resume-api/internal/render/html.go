@@ -80,7 +80,7 @@ const htmlTmpl = `<!DOCTYPE html>
     line-height: 1.55;
   }
   .exp-bullets li::before {
-    content: "–";
+    content: "-";
     position: absolute;
     left: 0;
     color: #a1a1aa;
@@ -144,7 +144,7 @@ const htmlTmpl = `<!DOCTYPE html>
   <div class="exp-entry">
     <div class="exp-header">
       <span class="exp-title">{{.Title}}</span>
-      <span class="exp-dates">{{.Start}} – {{.End}}</span>
+      <span class="exp-dates">{{.Start}} - {{.End}}</span>
     </div>
     <div class="exp-meta">{{.Company}} · {{.Location}}</div>
     <ul class="exp-bullets">

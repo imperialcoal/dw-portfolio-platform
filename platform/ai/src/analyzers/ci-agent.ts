@@ -145,7 +145,7 @@ export async function runCiAgent(
   //   - CI failures only (noise reduction — Sentry/security alerts add no context here)
   //   - Same branch (relevance — only failures on this branch matter)
   //   - Last 7 days (recency — older patterns are less actionable)
-  //   - Maximum 5 (token budget — each adds ~100–200 tokens to the prompt)
+  //   - Maximum 5 (token budget — each adds ~100-200 tokens to the prompt)
   //
   // If Redis is unavailable or empty, falls back to stateless analysis (empty array).
 

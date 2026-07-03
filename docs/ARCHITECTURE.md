@@ -363,7 +363,7 @@ sequenceDiagram
 
 - **Edge/Node runtime split**: Webhook receivers (`/api/webhooks/*`) run on Edge for minimal cold-start latency and immediate HMAC verification. AI agent processors (`/api/process/*`) run on Node.js with `maxDuration: 300` because LLM API calls, Postgres connections, and filesystem access require TCP sockets unavailable in Edge. This split is enforced by `platform/runtime/src/capabilities.ts` runtime guards that throw at call time if code accidentally runs in the wrong runtime.
 
-- **QStash as reliability layer**: Instead of calling AI agents synchronously from webhook handlers (which would block for 10–30s and risk timeout), webhooks enqueue a typed job to QStash and immediately return `200`. QStash delivers the job to the processor with automatic retry on 5xx (up to 3 times) and deduplication via `Upstash-Deduplication-Id` headers — preventing double-processing if GitHub retries the webhook.
+- **QStash as reliability layer**: Instead of calling AI agents synchronously from webhook handlers (which would block for 10-30s and risk timeout), webhooks enqueue a typed job to QStash and immediately return `200`. QStash delivers the job to the processor with automatic retry on 5xx (up to 3 times) and deduplication via `Upstash-Deduplication-Id` headers — preventing double-processing if GitHub retries the webhook.
 
 - **Redis as incident memory**: Incidents are stored in Upstash Redis (not Postgres) because they are transient operational data with a 30-day TTL, require sub-millisecond read latency for the dashboard, and benefit from Redis's built-in list operations (`LPUSH`, `LTRIM`) for maintaining an ordered index without migration risk.
 
@@ -388,8 +388,7 @@ sequenceDiagram
 > `platform/runtime/src/singletons.ts` exports `runtimeDb()` and `runtimeRedis()`, which wrap `getDb()`/`getRedis()` with an `assertNodeRuntime()` call. The tRPC context factory (`packages/api/src/trpc.ts`) uses `createRuntimeContext()` which calls these singletons. This means tRPC routes implicitly require Node.js runtime — annotate any tRPC route handler with `export const runtime = "nodejs"` if you're unsure.
 
 > **Developer Note**
-> The `ContentBlock` type narrowing in `packages/llm/src/analyze.ts` (lines 47–53) assigns the SDK's response `message.content` to an explicitly typed `const blocks: ContentBlock[]` before calling `.filter()`. This is required because the Anthropic SDK's union type is complex enough that TypeScript needs an explicit intermediate type annotation to correctly narrow the callback parameter type in the filter predicate. Chaining `.filter()` directly on `message.content` without the intermediate variable causes a type error.
-
+> The `ContentBlock` type narrowing in `packages/llm/src/analyze.ts` (lines 47-53) assigns the SDK's response `message.content` to an explicitly typed `const blocks: ContentBlock[]` before calling `.filter()`. This is required because the Anthropic SDK's union type is complex enough that TypeScript needs an explicit intermediate type annotation to correctly narrow the callback parameter type in the filter predicate. Chaining `.filter()` directly on `message.content` without the intermediate variable causes a type error.
 
 ---
 
