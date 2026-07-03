@@ -36,7 +36,7 @@ type TaggedExperience struct {
 	Title    string   `json:"title"`
 	Company  string   `json:"company"`
 	Location string   `json:"location"`
-	Dates    string   `json:"dates"`    // display: "Nov 2021 – Apr 2025"
+	Dates    string   `json:"dates"`    // display: "Nov 2021 - Apr 2025"
 	Start    string   `json:"start"`    // resume: "November 2021"
 	End      string   `json:"end"`      // resume: "April 2025"
 	Summary  string   `json:"summary"`  // portfolio timeline card

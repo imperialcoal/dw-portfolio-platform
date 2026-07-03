@@ -1,5 +1,14 @@
 ---
-const roles = [
+interface Role {
+  title: string;
+  company: string;
+  location: string;
+  dates: string;
+  summary: string;
+  tags: string[];
+}
+
+const FALLBACK_ROLES: Role[] = [
   {
     title: "Survey Programmer & Software Developer",
     company: "MarketVision Research",
@@ -46,6 +55,21 @@ const roles = [
     tags: ["Customer Service", "Adaptability"],
   },
 ];
+
+async function fetchExperience(): Promise<Role[]> {
+  const url = import.meta.env.CAREER_DATA_URL;
+  if (!url) return FALLBACK_ROLES;
+  try {
+    const res = await fetch(`${url}/experience`, { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) return FALLBACK_ROLES;
+    const data = await res.json() as Role[];
+    return Array.isArray(data) && data.length > 0 ? data : FALLBACK_ROLES;
+  } catch {
+    return FALLBACK_ROLES;
+  }
+}
+
+const roles = await fetchExperience();
 ---
 
 <section id="experience">
