@@ -1,4 +1,6 @@
 ---
+import { fetchWithFallback } from "../lib/fetch-with-fallback";
+
 interface SkillGroup {
   category: string;
   skills: string[];
@@ -15,20 +17,12 @@ const FALLBACK_CATEGORIES: SkillGroup[] = [
   { category: "Systems & Tools", skills: ["Git", "VS Code", "PC assembly", "Hardware diagnostics", "Vehicle diagnostics", "Ubuntu / Linux"], roles: [] },
 ];
 
-async function fetchSkills(): Promise<SkillGroup[]> {
-  const url = import.meta.env.CAREER_DATA_URL;
-  if (!url) return FALLBACK_CATEGORIES;
-  try {
-    const res = await fetch(`${url}/skills`, { signal: AbortSignal.timeout(5000) });
-    if (!res.ok) return FALLBACK_CATEGORIES;
-    const data = await res.json() as SkillGroup[];
-    return Array.isArray(data) && data.length > 0 ? data : FALLBACK_CATEGORIES;
-  } catch {
-    return FALLBACK_CATEGORIES;
-  }
-}
-
-const categories = await fetchSkills();
+const categories = await fetchWithFallback(FALLBACK_CATEGORIES, {
+  baseUrl: import.meta.env.CAREER_DATA_URL,
+  path: "/skills",
+  parse: (json) =>
+    Array.isArray(json) && json.length > 0 ? (json as SkillGroup[]) : undefined,
+});
 ---
 
 <section id="skills">

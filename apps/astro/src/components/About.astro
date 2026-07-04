@@ -1,4 +1,6 @@
 ---
+import { fetchWithFallback } from "../lib/fetch-with-fallback";
+
 // Fetch bio from career-data API with graceful fallback for local dev
 // when CAREER_DATA_URL is not set.
 
@@ -14,20 +16,13 @@ const FALLBACK_BIO: Bio = {
 Professionally, I spent four years at MarketVision Research building and maintaining custom survey applications, shipping ECharts dashboards for non-technical stakeholders, and co-developing a VS Code extension that automated workflows across the team. Independently, I designed and built dw-portfolio-platform — the system connected to this page. It's a production-grade monorepo with a Next.js platform dashboard, tRPC API, AI agents backed by Anthropic's Claude, eight parallel CI/CD jobs, and all cloud infrastructure managed through Terraform. I built it to show, not tell.`,
 };
 
-async function fetchBio(): Promise<Bio> {
-  const url = import.meta.env.CAREER_DATA_URL;
-  if (!url) return FALLBACK_BIO;
-  try {
-    const res = await fetch(`${url}/profile`, { signal: AbortSignal.timeout(5000) });
-    if (!res.ok) return FALLBACK_BIO;
-    const data = await res.json() as { bio?: Bio };
-    return data.bio ?? FALLBACK_BIO;
-  } catch {
-    return FALLBACK_BIO;
-  }
-}
-
-const bio = await fetchBio();
+// /profile returns { contact, bio } — extract just bio, unlike Skills/
+// Experience/Project which fetch endpoints that return an array directly.
+const bio = await fetchWithFallback(FALLBACK_BIO, {
+  baseUrl: import.meta.env.CAREER_DATA_URL,
+  path: "/profile",
+  parse: (json) => (json as { bio?: Bio }).bio,
+});
 // Split long bio on double newline for paragraph rendering
 const paragraphs = bio.long.split("\n\n").filter(Boolean);
 ---

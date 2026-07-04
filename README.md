@@ -16,12 +16,7 @@ This is not a template or tutorial project. It runs on real infrastructure, hand
 
 Platform dashboard: [dev.dw-portfolio.dev/platform](https://dev.dw-portfolio.dev/platform)
 
-| Credential | Value                   |
-| ---------- | ----------------------- |
-| Email      | `demo@dw-portfolio.dev` |
-| Password   | `ViewerDemo2026!`       |
-
-The demo account has `viewer` role — full read access, no destructive actions.
+Recruiter access is provisioned automatically — visit [dev.dw-portfolio.dev](https://dev.dw-portfolio.dev) and use "Try the Demo" for one-click sign-in via Clerk. No credentials, no request process, no waiting. The demo session carries the `recruiter` role — full read/write access to the platform dashboard, identical to admin capabilities except for toggling demo mode itself (see `packages/auth/src/roles.ts`).
 
 ---
 
@@ -33,7 +28,7 @@ dw-portfolio-platform/
 │   └── nextjs/          # Next.js 16 app (App Router)
 ├── packages/
 │   ├── api/             # tRPC router + procedures
-│   ├── auth/            # Clerk RBAC (admin / viewer / user)
+│   ├── auth/            # Clerk RBAC (admin / recruiter / user)
 │   ├── contracts/       # Shared TypeScript types for AI events
 │   ├── db/              # Drizzle ORM + Supabase PG16 schema
 │   ├── llm/             # Anthropic SDK + prompt library
@@ -91,7 +86,7 @@ APP_ENV=preview pnpm dw infra tf.apply
 
 **Frontend**: Next.js 16, React 19, Tailwind CSS 4, shadcn/ui, tRPC 11
 **Backend**: Drizzle ORM, Supabase PostgreSQL 16, Upstash Redis, QStash
-**Auth**: Clerk v7 (RBAC: admin / viewer / user roles)
+**Auth**: Clerk v7 (RBAC: admin / recruiter / user roles)
 **AI**: Anthropic Claude 3.5 Sonnet via SDK
 **Infra**: Terraform, Vercel, Cloudflare, Doppler, Sentry, Resend
 **Tooling**: Turborepo, pnpm workspaces, Vitest, GitHub Actions CI

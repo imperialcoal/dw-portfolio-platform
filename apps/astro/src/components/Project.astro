@@ -1,4 +1,6 @@
 ---
+import { fetchWithFallback } from "../lib/fetch-with-fallback";
+
 interface Feature {
   title: string;
   description: string;
@@ -54,22 +56,14 @@ const FALLBACK_PROJECTS: Project[] = [
   },
 ];
 
-async function fetchProjects(): Promise<Project[]> {
-  const url = import.meta.env.CAREER_DATA_URL;
-  if (!url) return FALLBACK_PROJECTS;
-  try {
-    const res = await fetch(`${url}/projects`, { signal: AbortSignal.timeout(5000) });
-    if (!res.ok) return FALLBACK_PROJECTS;
-    const data = await res.json() as Project[];
-    return Array.isArray(data) && data.length > 0
-      ? data.sort((a, b) => a.order - b.order)
-      : FALLBACK_PROJECTS;
-  } catch {
-    return FALLBACK_PROJECTS;
-  }
-}
-
-const projects = await fetchProjects();
+const projects = await fetchWithFallback(FALLBACK_PROJECTS, {
+  baseUrl: import.meta.env.CAREER_DATA_URL,
+  path: "/projects",
+  parse: (json) =>
+    Array.isArray(json) && json.length > 0
+      ? (json as Project[]).sort((a, b) => a.order - b.order)
+      : undefined,
+});
 ---
 
 <section id="project">

@@ -77,6 +77,18 @@ jobs:
       - name: LLM Unit Tests
         run: pnpm test:llm
 
+  # Astro: fetch-with-fallback pattern (career-data unreachable, non-2xx,
+  # timeout, malformed/empty payload). Pure logic, mocked global fetch —
+  # no infra, no APP_ENV/DB/Redis env needed.
+  astro-unit-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup
+        uses: ./platform/standards/github/setup
+      - name: Astro Unit Tests
+        run: pnpm test:astro
+
   # ── Infrastructure tests (Docker required) ─────────────────────────────
   infrastructure-test:
     runs-on: ubuntu-latest

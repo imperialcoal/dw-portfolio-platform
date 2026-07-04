@@ -131,6 +131,10 @@
     "ai:memory:test": {
       "outputs": ["coverage/**"],
       "cache": false
+    },
+    "astro:unit:test": {
+      "outputs": ["coverage/**"],
+      "cache": true
     }
   },
   "globalEnv": [

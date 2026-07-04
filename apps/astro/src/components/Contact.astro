@@ -59,7 +59,11 @@
     };
 
     try {
-      const res = await fetch("https://dw-portfolio.dev/api/trpc/contact.send", {
+      // Dev/preview only — this Astro app is recruiter-facing and is not
+      // wired to production (DEMO_MODE=false there; see README "Live demo").
+      // If this app is ever repurposed for production traffic, this target
+      // needs to become environment-aware rather than a literal string.
+      const res = await fetch("https://dev.dw-portfolio.dev/api/trpc/contact.send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ json: data }),

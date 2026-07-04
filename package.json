@@ -34,6 +34,7 @@
     "test:contracts": "pnpm turbo run contracts:unit:test",
     "test:llm": "pnpm turbo run llm:unit:test",
     "test:ai:memory": "pnpm turbo run ai:memory:test",
+    "test:astro": "pnpm turbo run astro:unit:test",
     "dev:tunnel": "cloudflared tunnel run dw-portfolio-dev",
     "dev": "turbo watch dev --continue",
     "dev:check": "bash platform/dev-tools/scripts/shell/wait-for-docker.sh && pnpm dev",

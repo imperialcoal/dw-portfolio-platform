@@ -23,7 +23,9 @@ const {
     <meta property="og:type" content="website" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:url" content="https://portfolio.dw-portfolio.dev" />
+    <!-- Preview domain, not portfolio.dw-portfolio.dev (production) — that
+         domain has never had a deploy triggered. See astro.config.ts. -->
+    <meta property="og:url" content="https://dev.portfolio.dw-portfolio.dev" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary" />
