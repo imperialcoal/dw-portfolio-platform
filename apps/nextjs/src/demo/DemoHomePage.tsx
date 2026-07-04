@@ -15,18 +15,34 @@ import { ContactForm } from "~/app/_components/contact-form";
 // This component owns:
 //   - The nav with GitHub, LinkedIn, Auth Demo, Open Dashboard links
 //   - The hero section with live system badges and headline
-//   - The demo access request card (replaces hardcoded credentials)
 //   - The AI pipeline visualization
 //   - The feature cards
 //   - The tech stack tags
-//   - The contact form section (Resend showcase)
+//   - The contact form section (Resend showcase + optional named-account request)
 //
-// Security note: credentials are never hardcoded here. Recruiters request
-// access via the contact form — you add their email to RECRUITER_EMAILS in
-// Doppler and they receive a provisioned recruiter account. This ensures
-// only known, identified recruiters access the live platform.
+// Primary demo entry point: the Astro portfolio's "Try the Demo" CTA hits
+// /api/demo, which mints a single-use Clerk sign-in ticket for the
+// pre-provisioned DEMO_USER_CLERK_ID and redirects straight to /platform.
+// No request, no waiting, no visible credentials — this is the path most
+// recruiters take, and the one the portfolio site promotes.
 //
-// To remove: delete src/demo/ and revert src/app/page.tsx.
+// Secondary path (still supported, not removed): a recruiter who wants
+// their own named account instead of the shared demo identity can still
+// reach out via the contact form below. Add their email to
+// RECRUITER_EMAILS in Doppler and they're auto-provisioned with the
+// `recruiter` role on their next Clerk sign-up — see
+// apps/nextjs/src/demo/auth/recruiter-emails.ts. This file previously had
+// a "Live Demo Access" card pointing visitors at that flow directly; it's
+// been removed because /api/demo is now the front door, but the contact
+// form itself still works as a fallback for anyone who wants persistent,
+// named access.
+//
+// Security note: credentials are never hardcoded here. The shared demo
+// identity is a single pre-provisioned Clerk user referenced only by ID
+// (DEMO_USER_CLERK_ID); named recruiter accounts are provisioned purely
+// from an email allowlist. Neither path stores or displays a password.
+//
+// To remove demo mode entirely: delete src/demo/ and revert src/app/page.tsx.
 // ─────────────────────────────────────────────
 
 const PIPELINE_STEPS = [
@@ -130,7 +146,8 @@ const FEATURES = [
     subtitle: "Live DevOps control center",
     description:
       "Real-time incident tracking, one-click rollback with migration risk analysis, database health monitoring with RLS advisories, Clerk user activity, Sentry observability, and a ⌘K command palette.",
-    detail: "Full recruiter access provisioned on request · All systems live",
+    detail:
+      "Instant recruiter access via one-click demo sign-in · All systems live",
   },
 ];
 
@@ -206,42 +223,6 @@ export function DemoHomePage() {
           incident pipeline. Two fully independent environments provisioned by
           Terraform. Real CI, real deployments, real data.
         </p>
-
-        {/* ── Demo access request card ─────────────────────
-            Credentials are provisioned per-recruiter via RECRUITER_EMAILS in
-            Doppler — never hardcoded. Recruiters request access via the
-            contact form below; a provisioned account is created on response.
-        ─────────────────────────────────────────────────── */}
-        <div className="border-border bg-muted/30 mt-10 inline-block rounded-xl border p-5">
-          <p className="text-muted-foreground mb-3 text-xs font-semibold tracking-widest uppercase">
-            Live Demo Access
-          </p>
-          <p className="text-foreground mb-4 max-w-sm text-sm leading-relaxed">
-            The platform dashboard is live and running on real infrastructure.
-            Request access below — a provisioned recruiter account will be
-            created for your email with full read access to the control center.
-          </p>
-          <div className="flex flex-wrap gap-3 text-xs">
-            <div className="border-border bg-muted/60 text-muted-foreground flex items-center gap-1.5 rounded border px-2.5 py-1">
-              <span className="text-emerald-500">✓</span>
-              Full platform dashboard
-            </div>
-            <div className="border-border bg-muted/60 text-muted-foreground flex items-center gap-1.5 rounded border px-2.5 py-1">
-              <span className="text-emerald-500">✓</span>
-              Live AI incident pipeline
-            </div>
-            <div className="border-border bg-muted/60 text-muted-foreground flex items-center gap-1.5 rounded border px-2.5 py-1">
-              <span className="text-emerald-500">✓</span>
-              Real infrastructure data
-            </div>
-          </div>
-          <a
-            href="#contact"
-            className="bg-primary text-primary-foreground mt-4 inline-block rounded-md px-4 py-2 text-sm font-medium transition-opacity hover:opacity-80"
-          >
-            Request access via contact form ↓
-          </a>
-        </div>
       </section>
 
       {/* ── AI Pipeline visualization ─────────────────────── */}
@@ -343,7 +324,7 @@ export function DemoHomePage() {
         </div>
       </section>
 
-      {/* ── Contact (Resend showcase) ──────────────────────── */}
+      {/* ── Contact (Resend showcase + optional named-account request) ──── */}
       <div id="contact">
         <ContactForm />
       </div>
