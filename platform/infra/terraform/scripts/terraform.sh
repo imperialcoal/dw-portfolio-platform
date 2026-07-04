@@ -10,5 +10,6 @@ export TF_VAR_upstash_api_key="$UPSTASH_API_KEY"
 export TF_VAR_supabase_access_token="$SUPABASE_ACCESS_TOKEN"
 export TF_VAR_supabase_db_password="$SUPABASE_DB_PASSWORD"
 export TF_VAR_doppler_token="$DOPPLER_TOKEN"
+export TF_VAR_railway_api_token="$RAILWAY_API_TOKEN"
 
 terraform "$@"

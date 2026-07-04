@@ -24,6 +24,10 @@ terraform {
       source  = "supabase/supabase"
       version = "~> 1.9.1"
     }
+    railway = {
+      source  = "terraform-community-providers/railway"
+      version = "~> 0.6.2"
+    }
   }
 
   # Terraform state stored in Cloudflare R2

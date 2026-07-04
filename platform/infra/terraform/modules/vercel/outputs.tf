@@ -7,7 +7,7 @@ output "deployment_url" {
   description = "Primary deployment URL for this environment"
   value = (
     var.environment == "production"
-    ? "https://dw-portfolio.dev"
-    : "https://dev.dw-portfolio.dev"
+    ? "https://${var.production_domain}"
+    : "https://${var.preview_domain}"
   )
 }

@@ -139,6 +139,7 @@ jobs:
           TF_VAR_supabase_access_token: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           TF_VAR_supabase_db_password: ${{ secrets.SUPABASE_DB_PASSWORD }}
           TF_VAR_doppler_token: ${{ secrets.DOPPLER_TOKEN }}
+          TF_VAR_railway_api_token: ${{ secrets.RAILWAY_API_TOKEN }}
         run: |
           terraform plan \
             -var-file="environments/${{ matrix.environment }}.tfvars" \
@@ -264,6 +265,7 @@ jobs:
           TF_VAR_supabase_access_token: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           TF_VAR_supabase_db_password: ${{ secrets.SUPABASE_DB_PASSWORD }}
           TF_VAR_doppler_token: ${{ secrets.DOPPLER_TOKEN }}
+          TF_VAR_railway_api_token: ${{ secrets.RAILWAY_API_TOKEN }}
         run: |
           set +e
           terraform plan \

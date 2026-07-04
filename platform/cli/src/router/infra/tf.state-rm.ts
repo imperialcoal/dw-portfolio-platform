@@ -1,40 +1,12 @@
-import * as readline from "readline";
 import { execa } from "execa";
 
 import type { CLICommand } from "../../types/command.js";
+import type { ResourceKey } from "./tf.resources.js";
+import { prompt } from "../../utils/prompt.js";
+import { RESOURCES } from "./tf.resources.js";
 
 export const description =
   "Remove infrastructure resources from Terraform state";
-
-const RESOURCES = {
-  upstash: "module.upstash.upstash_redis_database.main",
-  supabase: "module.supabase.supabase_project.main",
-  vercel_preview: "module.vercel.vercel_project_domain.preview[0]",
-  vercel_production: "module.vercel.vercel_project_domain.production[0]",
-  vercel_www: "module.vercel.vercel_project_domain.www[0]",
-  cloudflare_apex: "module.cloudflare.cloudflare_dns_record.apex[0]",
-  cloudflare_www: "module.cloudflare.cloudflare_dns_record.www[0]",
-  cloudflare_preview: "module.cloudflare.cloudflare_dns_record.preview[0]",
-  cloudflare_tunnel: "module.cloudflare.cloudflare_dns_record.tunnel[0]",
-  cloudflare_spf: "module.cloudflare.cloudflare_dns_record.spf[0]",
-  cloudflare_dmarc: "module.cloudflare.cloudflare_dns_record.dmarc[0]",
-} as const;
-
-type ResourceKey = keyof typeof RESOURCES;
-
-function prompt(question: string): Promise<string> {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
-  return new Promise((resolve) => {
-    rl.question(question, (answer) => {
-      rl.close();
-      resolve(answer.trim());
-    });
-  });
-}
 
 const command: CLICommand = async () => {
   const env = process.env.APP_ENV === "production" ? "production" : "preview";
