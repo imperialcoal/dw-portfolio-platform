@@ -15,6 +15,32 @@ interface Bio {
 const BIO_FALLBACK: Bio = { short: "fallback-short", long: "fallback-long" };
 const bioParse = (json: unknown) => (json as { bio?: Bio }).bio;
 
+// Minimal shape of what fetchWithFallback actually reads off a Response —
+// avoids pulling in the full lib.dom Response type just to mock it, while
+// still typing the mock explicitly enough that no `any` ever gets assigned.
+interface MockResponse {
+  ok: boolean;
+  json: () => Promise<unknown>;
+}
+
+function mockFetchResolvedWith(response: MockResponse): void {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn<(...args: Parameters<typeof fetch>) => Promise<MockResponse>>(() =>
+      Promise.resolve(response),
+    ),
+  );
+}
+
+function mockFetchRejectedWith(error: Error): void {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn<(...args: Parameters<typeof fetch>) => Promise<MockResponse>>(() =>
+      Promise.reject(error),
+    ),
+  );
+}
+
 describe("fetchWithFallback", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -40,12 +66,7 @@ describe("fetchWithFallback", () => {
 
   it("returns live data on a successful non-empty array response (Skills/Experience/Project shape)", async () => {
     const live = [{ id: "live-1" }, { id: "live-2" }];
-    vi.stubGlobal(
-      "fetch",
-      vi
-        .fn()
-        .mockResolvedValue({ ok: true, json: () => Promise.resolve(live) }),
-    );
+    mockFetchResolvedWith({ ok: true, json: () => Promise.resolve(live) });
 
     const result = await fetchWithFallback(ARRAY_FALLBACK, {
       baseUrl: "https://dev.career-data.example.dev",
@@ -56,15 +77,14 @@ describe("fetchWithFallback", () => {
     expect(result).toEqual(live);
     expect(fetch).toHaveBeenCalledWith(
       "https://dev.career-data.example.dev/experience",
-      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      expect.anything(),
     );
+    const [, options] = vi.mocked(fetch).mock.calls.at(0) ?? [];
+    expect(options?.signal).toBeInstanceOf(AbortSignal);
   });
 
   it("returns the fallback when the array response is empty", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve([]) }),
-    );
+    mockFetchResolvedWith({ ok: true, json: () => Promise.resolve([]) });
 
     const result = await fetchWithFallback(ARRAY_FALLBACK, {
       baseUrl: "https://dev.career-data.example.dev",
@@ -76,13 +96,10 @@ describe("fetchWithFallback", () => {
   });
 
   it("returns the fallback when the array response is not an array", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({ unexpected: "shape" }),
-      }),
-    );
+    mockFetchResolvedWith({
+      ok: true,
+      json: () => Promise.resolve({ unexpected: "shape" }),
+    });
 
     const result = await fetchWithFallback(ARRAY_FALLBACK, {
       baseUrl: "https://dev.career-data.example.dev",
@@ -95,13 +112,10 @@ describe("fetchWithFallback", () => {
 
   it("returns live data on a successful nested-object response (About's /profile shape)", async () => {
     const liveBio: Bio = { short: "live-short", long: "live-long" };
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({ bio: liveBio }),
-      }),
-    );
+    mockFetchResolvedWith({
+      ok: true,
+      json: () => Promise.resolve({ bio: liveBio }),
+    });
 
     const result = await fetchWithFallback(BIO_FALLBACK, {
       baseUrl: "https://dev.career-data.example.dev",
@@ -113,10 +127,7 @@ describe("fetchWithFallback", () => {
   });
 
   it("returns the fallback when the nested-object response has no bio field", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({}) }),
-    );
+    mockFetchResolvedWith({ ok: true, json: () => Promise.resolve({}) });
 
     const result = await fetchWithFallback(BIO_FALLBACK, {
       baseUrl: "https://dev.career-data.example.dev",
@@ -128,10 +139,7 @@ describe("fetchWithFallback", () => {
   });
 
   it("returns the fallback when the response is not ok", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({ ok: false, json: () => Promise.resolve([]) }),
-    );
+    mockFetchResolvedWith({ ok: false, json: () => Promise.resolve([]) });
 
     const result = await fetchWithFallback(ARRAY_FALLBACK, {
       baseUrl: "https://dev.career-data.example.dev",
@@ -143,10 +151,7 @@ describe("fetchWithFallback", () => {
   });
 
   it("returns the fallback when fetch throws (network error)", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockRejectedValue(new Error("network down")),
-    );
+    mockFetchRejectedWith(new Error("network down"));
 
     const result = await fetchWithFallback(ARRAY_FALLBACK, {
       baseUrl: "https://dev.career-data.example.dev",
@@ -158,17 +163,9 @@ describe("fetchWithFallback", () => {
   });
 
   it("returns the fallback when the request times out", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockImplementation(
-        () =>
-          new Promise((_resolve, reject) => {
-            reject(
-              new DOMException("The operation was aborted.", "TimeoutError"),
-            );
-          }),
-      ),
-    );
+    const timeoutError = new Error("The operation was aborted.");
+    timeoutError.name = "TimeoutError";
+    mockFetchRejectedWith(timeoutError);
 
     const result = await fetchWithFallback(ARRAY_FALLBACK, {
       baseUrl: "https://dev.career-data.example.dev",
