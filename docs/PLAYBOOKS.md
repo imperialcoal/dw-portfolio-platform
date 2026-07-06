@@ -213,6 +213,44 @@ TTL ci:failure:<runId>
 
 ---
 
+### 7. Dependencies Agent Failures
+
+**Symptoms:**
+
+- A major-version Dependabot PR sits open with no breaking-change analysis comment from the platform agent
+- The `/platform/dependencies` page shows a PR as "not yet analyzed" even after clicking analyze
+- The analysis comment references stale version numbers after the PR branch was updated
+
+**Root Cause:** Unlike the CI/Sentry/Security agents, `deps-agent.ts` (`runDepsAgent`) is **not** webhook-triggered — it only runs when explicitly invoked via `POST /api/platform/deps/analyze` from the dashboard, and only for major-version bumps (minor/patch updates are never analyzed by design). Failures fall into three distinct categories:
+
+1. **No comment appears at all** — `fetchPRBody()` requires `GITHUB_TOKEN` and `GITHUB_REPO`; if either is missing, it silently returns an empty string rather than throwing, so the agent still runs but analyzes with no PR changelog/description context, producing a lower-quality (but not absent) result. If nothing appears at all, the more likely cause is the Anthropic call itself failing, or the admin-only route rejecting the request (`requireAdmin()` — confirm you're signed in with an admin session, not a recruiter/demo session).
+2. **Stale analysis shown for an updated PR** — results are cached in Redis via `storeDepAnalysis`/`getDepAnalysis`, keyed by PR number. If Dependabot force-pushes new commits to the same PR (e.g., after a `@dependabot rebase` or `@dependabot recreate`), the cached analysis from before the rebase can be served instead of a fresh one.
+3. **`recommendation` defaults to `review-required` unexpectedly** — `parseAnalysisXml()` only accepts `merge-safely`, `review-required`, or `block-merge` from Claude's response; any other or malformed value silently falls back to `review-required` rather than erroring, which is a safe default but can mask a parsing problem if it happens on every PR.
+
+**Diagnostic Steps:**
+
+```bash
+# Confirm GITHUB_TOKEN / GITHUB_REPO are set for the environment
+# (these are also required by the CI/Sentry/Security agents, so if those
+# are working, this is unlikely to be the cause)
+
+# Check Vercel Functions logs for /api/platform/deps/analyze
+# Look for the requireAdmin() 403, or errors from getAnthropicClient()
+
+# Check the cached analysis directly if you suspect staleness:
+# Upstash console → search for the dep-analysis Redis key for that PR number
+```
+
+**Resolution Steps:**
+
+1. Re-trigger analysis from `/platform/dependencies` after confirming you're signed in as admin (not a recruiter/demo session — recruiters and admins have identical mutation capability per `packages/auth/src/roles.ts`, so this is unlikely to be a permissions issue in practice, but worth ruling out first since it's the cheapest check).
+2. If the PR was rebased/recreated after the cached analysis was stored, there is currently no automatic cache invalidation tied to the PR's head SHA — manually re-run the analysis; it will overwrite the cached entry.
+3. If `GITHUB_TOKEN`/`GITHUB_REPO` are confirmed present and the comment still doesn't appear, check for an Anthropic API error in the logs (same troubleshooting as scenario 1).
+
+**Prevention:** Consider keying `storeDepAnalysis`/`getDepAnalysis` by PR number **and** head SHA rather than PR number alone, so a rebased PR can't serve a stale result silently.
+
+---
+
 ## Database Migration Runbook
 
 Follow this procedure for every schema change that requires a migration.
@@ -325,18 +363,3 @@ If a third-party service is down, the platform degrades gracefully:
 - **QStash down**: Webhooks return `skipped: "qstash_not_configured"` — no incidents captured during outage.
 - **Anthropic down**: Agent fails, QStash retries up to 3 times. Incident may remain in `"investigating"` state until manually resolved.
 - **Supabase down**: tRPC mutations fail. Auth still works via Clerk (stateless tokens).
-
-
----
-
----
-
----
-
----
-
-## Documentation Drift — 2026-06-02
-
-> Auto-detected by platform-agent · Review and update the sections above · Remove this block when resolved
-
-• New agent `deps` detected without response playbook → Add new subsection under "Common Failure Scenarios" → Create "7. Dependencies Agent Failures" with troubleshooting steps for `platform/ai/src/analyzers/deps-agent.ts`

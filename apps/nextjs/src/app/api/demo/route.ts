@@ -9,6 +9,16 @@
 //   - 302 → / when DEMO_MODE=false
 //   - 302 → / when Clerk is unconfigured or DEMO_USER_CLERK_ID is missing
 //
+// Session handling: a Clerk sign-in ticket is only honored when the
+// requesting browser has no conflicting active session — if one exists,
+// Clerk silently keeps using it and the ticket has no effect. This route
+// unconditionally revokes whatever session is currently active (admin,
+// a previous recruiter session, anyone) before minting the ticket, so
+// this link always produces a fresh recruiter session — including when
+// clicked from a browser that's already signed in as admin for testing.
+// This is a correctness guarantee, not an admin-specific check: the same
+// revoke runs regardless of whose session it is.
+//
 // Sits alongside the existing trigger routes in src/app/api/demo/trigger/*.
 // To remove: delete this file and revert Project.astro CTA href to the
 // plain dev.dw-portfolio.dev URL.
@@ -18,7 +28,7 @@ import { NextResponse } from "next/server";
 
 import { isClerkConfigured } from "@dw/validators/clerk-env";
 
-import { clerkClient } from "~/auth/server";
+import { auth, clerkClient } from "~/auth/server";
 import { isDemoMode } from "~/demo";
 import { env } from "~/env";
 
@@ -56,6 +66,27 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
   try {
     const client = await clerkClient();
+
+    // Revoke any existing session on this browser first — see file-header
+    // comment. Best-effort: if this fails (e.g. session already expired),
+    // we still proceed to mint and redirect the ticket rather than dead-end
+    // the demo link over an unrelated revoke error.
+    const { sessionId: existingSessionId } = await auth();
+    if (existingSessionId) {
+      try {
+        await client.sessions.revokeSession(existingSessionId);
+      } catch (revokeErr) {
+        console.warn(
+          JSON.stringify({
+            level: "warn",
+            demo: "sign-in",
+            reason: "existing-session-revoke-failed",
+            error: String(revokeErr),
+          }),
+        );
+      }
+    }
+
     const result = await client.signInTokens.createSignInToken({
       userId,
       expiresInSeconds: 300, // 5 minutes

@@ -56,12 +56,14 @@ DIRECT_URL=postgresql://postgres:password@localhost:5433/dw_test
 
 ### Authentication (Clerk)
 
-| Variable                            | Purpose                               | Required       | Source          |
-| ----------------------------------- | ------------------------------------- | -------------- | --------------- |
-| `CLERK_SECRET_KEY`                  | Server-side Clerk API key             | Yes (auth)     | Clerk dashboard |
-| `CLERK_WEBHOOK_SECRET`              | Verifies incoming Clerk webhooks      | Yes (auth)     | Clerk dashboard |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Client-side Clerk key                 | Yes (auth)     | Clerk dashboard |
-| `AUTH_REDIRECT_PROXY_URL`           | OAuth redirect proxy for local tunnel | Local dev only | `.env.local`    |
+| Variable                            | Purpose                                                                                  | Required       | Source          |
+| ----------------------------------- | ---------------------------------------------------------------------------------------- | -------------- | --------------- |
+| `CLERK_SECRET_KEY`                  | Server-side Clerk API key                                                                | Yes (auth)     | Clerk dashboard |
+| `CLERK_WEBHOOK_SECRET`              | Verifies incoming Clerk webhooks (`/api/webhooks/clerk`)                                 | Yes (auth)     | Clerk dashboard |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Client-side Clerk key                                                                    | Yes (auth)     | Clerk dashboard |
+| `CLERK_APP_ID`                      | Clerk application identifier — used by CLI/infra tooling that provisions Clerk resources | Optional       | Clerk dashboard |
+| `CLERK_INSTANCE_ID`                 | Clerk instance identifier — paired with `CLERK_APP_ID`                                   | Optional       | Clerk dashboard |
+| `AUTH_REDIRECT_PROXY_URL`           | OAuth redirect proxy for local tunnel                                                    | Local dev only | `.env.local`    |
 
 ### Cache & Queues (Upstash)
 
@@ -85,27 +87,32 @@ UPSTASH_REDIS_REST_TOKEN=<any string matching docker-compose token>
 
 ### AI / DevOps Platform
 
-| Variable                | Purpose                                                  | Required        | Source            |
-| ----------------------- | -------------------------------------------------------- | --------------- | ----------------- |
-| `ANTHROPIC_API_KEY`     | Anthropic Claude API access                              | Yes (AI agents) | Anthropic console |
-| `GITHUB_TOKEN`          | GitHub API — create issues, PR comments, commit files    | Yes (AI agents) | GitHub PAT        |
-| `GITHUB_REPO`           | `owner/repo` format (e.g., `user/dw-portfolio-platform`) | Yes (AI agents) | Doppler           |
-| `GITHUB_WEBHOOK_SECRET` | Verify incoming GitHub webhooks                          | Yes (webhooks)  | GitHub settings   |
-| `GITHUB_BRANCH`         | Target branch for incident doc commits                   | Optional        | Doppler           |
-| `SENTRY_WEBHOOK_SECRET` | Verify incoming Sentry webhooks                          | Yes (webhooks)  | Sentry settings   |
+| Variable                | Purpose                                                                                                                                                                                                             | Required          | Source                                          |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- | ----------------------------------------------- |
+| `ANTHROPIC_API_KEY`     | Anthropic Claude API access                                                                                                                                                                                         | Yes (AI agents)   | Anthropic console                               |
+| `GITHUB_TOKEN`          | GitHub API — create issues, PR comments, commit files                                                                                                                                                               | Yes (AI agents)   | GitHub PAT                                      |
+| `GITHUB_REPO`           | `owner/repo` format (e.g., `user/dw-portfolio-platform`)                                                                                                                                                            | Yes (AI agents)   | Doppler                                         |
+| `GITHUB_WEBHOOK_SECRET` | Verify incoming GitHub webhooks                                                                                                                                                                                     | Yes (webhooks)    | GitHub settings                                 |
+| `GITHUB_BRANCH`         | Target branch for incident doc commits                                                                                                                                                                              | Optional          | Doppler                                         |
+| `SENTRY_WEBHOOK_SECRET` | Verify incoming Sentry webhooks                                                                                                                                                                                     | Yes (webhooks)    | Sentry settings                                 |
+| `CRON_SECRET`           | Bearer-token auth for `/api/cron/*` routes — Vercel injects this automatically for its own cron invocations; GitHub Actions-triggered crons (see Cron Jobs below) must have the matching value set as a repo secret | Yes (cron routes) | Vercel (auto) / Doppler / GitHub Actions secret |
 
 ### Observability (Sentry + Vercel API)
 
-| Variable                          | Purpose                                          | Required            | Source           |
-| --------------------------------- | ------------------------------------------------ | ------------------- | ---------------- |
-| `SENTRY_AUTH_TOKEN`               | Source map upload during build                   | Build only          | Sentry settings  |
-| `SENTRY_ORG`                      | Sentry organization slug                         | Yes (Sentry sensor) | Sentry settings  |
-| `SENTRY_PROJECT`                  | Sentry project slug                              | Yes (Sentry sensor) | Sentry settings  |
-| `SENTRY_TOKEN`                    | Sentry REST API token (distinct from auth token) | Yes (Sentry sensor) | Sentry settings  |
-| `NEXT_PUBLIC_SENTRY_DSN`          | Client-side Sentry DSN                           | Yes                 | Sentry settings  |
-| `VERCEL_API_TOKEN`                | Fetch deployment history for dashboard           | Yes (Vercel sensor) | Vercel settings  |
-| `VERCEL_PROJECT_ID`               | Vercel project ID                                | Yes (Vercel sensor) | Vercel dashboard |
-| `VERCEL_AUTOMATION_BYPASS_SECRET` | Bypass protection on preview QStash callbacks    | Preview env         | Vercel dashboard |
+| Variable                          | Purpose                                                                                           | Required                | Source           |
+| --------------------------------- | ------------------------------------------------------------------------------------------------- | ----------------------- | ---------------- |
+| `SENTRY_AUTH_TOKEN`               | Source map upload during build                                                                    | Build only              | Sentry settings  |
+| `SENTRY_ORG`                      | Sentry organization slug                                                                          | Yes (Sentry sensor)     | Sentry settings  |
+| `SENTRY_PROJECT`                  | Sentry project slug                                                                               | Yes (Sentry sensor)     | Sentry settings  |
+| `SENTRY_TOKEN`                    | Sentry REST API token (distinct from auth token)                                                  | Yes (Sentry sensor)     | Sentry settings  |
+| `NEXT_PUBLIC_SENTRY_DSN`          | Client-side Sentry DSN                                                                            | Yes                     | Sentry settings  |
+| `VERCEL_API_TOKEN`                | Fetch deployment history for dashboard                                                            | Yes (Vercel sensor)     | Vercel settings  |
+| `VERCEL_PROJECT_ID`               | Vercel project ID                                                                                 | Yes (Vercel sensor)     | Vercel dashboard |
+| `VERCEL_TEAM_ID`                  | Vercel team/org ID — scopes API calls that list deployments/projects across the team              | Yes (Vercel sensor)     | Vercel dashboard |
+| `VERCEL_DOMAIN`                   | Base domain used by the uptime sensor (`runUptimeChecks`) to derive URLs to check per environment | Yes (health-check cron) | Doppler          |
+| `VERCEL_AUTOMATION_BYPASS_SECRET` | Bypass protection on preview QStash callbacks                                                     | Preview env             | Vercel dashboard |
+
+> **Note:** Vercel Standard Protection is currently disabled on both `dw-portfolio-platform` and `dw-portfolio-platform-home` Vercel projects (see project history). `VERCEL_AUTOMATION_BYPASS_SECRET` is retained for any automation that still appends it, but is not required for either project while protection stays off.
 
 ### Email (Resend)
 
@@ -224,24 +231,27 @@ GitHub Actions (.github/workflows/ci.yml)
 ├── format    → pnpm format
 ├── typecheck → pnpm typecheck
 └── tests     → .github/workflows/test.yml
-    ├── runtime-test       → pnpm test:runtime (no Docker needed)
+    ├── runtime-test        → pnpm test:runtime (no Docker needed)
     ├── infrastructure-test → Docker + pnpm test:api:infra
-    └── clerk-webhook-test  → Docker + pnpm test:clerk:webhook
+    ├── clerk-webhook-test  → Docker + pnpm test:clerk:webhook
+    └── astro-unit-test     → pnpm test:astro (no Docker needed)
 
         │ (all jobs pass)
         ▼
 Vercel deploys automatically
-├── dev branch  → https://dev.dw-portfolio.dev  (preview)
+├── dev branch  → https://dev.dw-portfolio.dev  (preview, dw-portfolio-platform)
+├── dev branch  → https://dev.portfolio.dw-portfolio.dev  (preview, dw-portfolio-platform-home / Astro)
 └── main branch → https://dw-portfolio.dev      (production)
 ```
 
 ### Vercel Configuration
 
-- Framework: Next.js (auto-detected)
+- Framework: Next.js (auto-detected) for `dw-portfolio-platform`; Astro (static output) for `dw-portfolio-platform-home`
 - Build command: `turbo run build` (with Vercel remote caching via `TURBO_TEAM` + `TURBO_TOKEN`)
 - Environment variables: injected from Doppler via the Vercel integration
 - Sentry source maps uploaded during build using `SENTRY_AUTH_TOKEN`
 - Sentry project dynamically selected: `dw-portfolio-production` for `VERCEL_ENV === "production"`, `dw-portfolio-preview` otherwise
+- Vercel Standard Protection (Deployment Protection) is currently **disabled** on both projects — public marketing/demo routes and the recruiter "Try the Demo" flow depend on this; real access control is enforced by Clerk, not by Vercel's edge auth (see `docs/ARCHITECTURE.md` Key Architectural Decisions)
 
 ### Turbo Remote Caching
 
@@ -256,6 +266,47 @@ CI and Vercel both use Turborepo remote caching via GitHub Actions secrets:
 - `lint` and `typecheck` depend on `^build` (need compiled upstream packages)
 - `dev` and `dev:local` are persistent, never cached
 - `db:generate`, `db:migrate`, `db:push`, `db:studio` are all non-cached and interactive
+
+### Cron Jobs
+
+| Route                     | Purpose                                                                                                                                                                            | Trigger (current)                                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/api/cron/docs-agent`    | Nightly documentation-drift scan — structural diff against the repo, Claude-generated changelog bullets appended to affected docs, drift report committed to `docs/drift-reports/` | GitHub Actions `.github/workflows/cron-docs-agent.yml`, nightly 03:00 UTC, **dev branch only**. Its own header comment references a future `vercel.json` cron for production — that file does not exist yet, and production is intentionally not running automated platform-agent jobs at this time (production is recruiter-facing deploy-history only, not live traffic — see `docs/ARCHITECTURE.md`) |
+| `/api/cron/health-check`  | Synthetic uptime monitoring — derives URLs to check from `VERCEL_DOMAIN` + `APP_ENV`                                                                                               | Its header comment references a `vercel.json` cron; that file does not exist in this repo yet. Currently **not wired to any scheduler** — reachable only via manual invocation or `/api/platform/health-check/trigger` from the dashboard                                                                                                                                                               |
+| `/api/cron/perf-baseline` | Snapshots current P50/P95 response times as the new performance baseline for regression comparison                                                                                 | Not schedule-based despite the `/cron/` path segment — intended to be called from a Vercel deploy hook, or manually from the platform dashboard. No deploy hook is currently configured                                                                                                                                                                                                                 |
+
+All three routes are protected by `CRON_SECRET` via `Authorization: Bearer` header, checked against `config.cron.CRON_SECRET`.
+
+### Platform Dashboard API Routes
+
+All routes below are admin-only (`requireAdmin()`), Node.js runtime, called from `/platform/*` dashboard pages unless noted:
+
+| Route                                  | Method(s) | Purpose                                                                                                                                                                            |
+| -------------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/api/platform/incidents/[id]/resolve` | POST      | Manual incident resolution — updates Redis status, closes the linked GitHub issue if one exists                                                                                    |
+| `/api/platform/deps`                   | GET       | Lists open Dependabot PRs and security alerts for the Dependencies page                                                                                                            |
+| `/api/platform/deps/analyze`           | POST      | Runs the deps-agent breaking-change analysis for a specific major-version Dependabot PR; caches the result                                                                         |
+| `/api/platform/deps/merge`             | POST      | Squash-merges one or more Dependabot PRs via the GitHub API                                                                                                                        |
+| `/api/platform/advisories/sync`        | POST      | Bidirectional sync between Supabase security advisories and Redis incidents — creates incidents for new advisories, resolves incidents whose advisory no longer exists. Idempotent |
+| `/api/platform/docs/trigger`           | POST      | Manually invokes the same docs-agent logic as the nightly cron, for a given branch                                                                                                 |
+| `/api/platform/health-check/trigger`   | POST      | Manually invokes the same uptime sensor as the (currently unscheduled) health-check cron                                                                                           |
+| `/api/platform/maintenance`            | GET, POST | Reads/sets maintenance mode in Redis; `proxy.ts` middleware shows a maintenance page to non-admin users when enabled                                                               |
+| `/api/platform/rollback/preflight`     | GET       | Classifies migration risk for a deployment before rollback is executed                                                                                                             |
+| `/api/platform/rollback/execute`       | POST      | Executes a rollback and records the result                                                                                                                                         |
+| `/api/platform/search`                 | GET       | Federated search across incidents, deployments, user activity, and static deep-links                                                                                               |
+
+### Webhook Handlers
+
+| Route                  | Source                                                                     | Verification                              |
+| ---------------------- | -------------------------------------------------------------------------- | ----------------------------------------- |
+| `/api/webhooks/github` | GitHub (`workflow_run`, `repository_vulnerability_alert`, `issues`)        | HMAC via `GITHUB_WEBHOOK_SECRET`          |
+| `/api/webhooks/sentry` | Sentry (issue alerts)                                                      | HMAC via `SENTRY_WEBHOOK_SECRET`          |
+| `/api/webhooks/clerk`  | Clerk (user lifecycle events — sync, `RECRUITER_EMAILS` role provisioning) | Svix signature via `CLERK_WEBHOOK_SECRET` |
+
+### Other Notable Routes
+
+- **`/api/trpc/[trpc]`** — the tRPC handler mounting all routers from `packages/api` (auth, post, contact). Requires Node.js runtime per the `runtimeDb()`/`runtimeRedis()` singleton guards.
+- **`/api/test-sentry-error`** — a manual Sentry integration smoke-test route (`GET`, captures a synthetic exception with a unique fingerprint). Its own source comment reads `// DELETE THIS FILE AFTER TESTING`. **Open decision, not yet made**: delete it now that Sentry integration is confirmed working, or keep it intentionally (e.g., as a demo-trigger for the AI incident pipeline) and remove the stale comment. Until resolved, the docs-agent will keep flagging it as drift on every run.
 
 ---
 
@@ -340,6 +391,8 @@ The admin dashboard at `/platform` (requires Clerk admin auth) shows:
 - `/platform/deployments` — Vercel deployment history
 - `/platform/insights` — Platform insights
 
+See **Platform Dashboard API Routes** above for the full set of endpoints backing these pages.
+
 ### Log Format
 
 All AI agents and processors emit structured JSON logs. Example:
@@ -367,6 +420,8 @@ Logs are visible in Vercel Functions logs for each serverless invocation.
 4. GitHub issue closed OR Sentry resolved OR security alert dismissed → status: "resolved"
 5. Manual override  → POST /api/platform/incidents/:id/resolve (admin only)
 ```
+
+`IncidentRecord.githubIssueError` (added when GitHub issue creation is attempted but fails — e.g. transient rate limiting) is surfaced in the dashboard as a distinct "⚠ GitHub issue creation failed" badge, separate from incident types that never attempt issue creation at all.
 
 ---
 
@@ -402,38 +457,3 @@ All secrets are stored in **Doppler** under project `dw-portfolio-platform`.
 - **Anthropic API costs**: All agents use `claude-sonnet-4-20250514` with a `max_tokens: 1024` cap. Each incident analysis consumes approximately 2-5K tokens total. Add up-front cost tracking if incident volume grows significantly.
 
 - **Edge vs. Node runtime routing**: All stateless webhook receivers and tRPC handlers that don't touch Postgres can move to Edge for better cold start times. The runtime guard in `platform/runtime` will throw immediately if the wrong runtime is used, so the boundary is enforced at development time rather than production.
-
----
-
----
-
----
-
----
-
-## Documentation Drift — 2026-06-02
-
-> Auto-detected by platform-agent · Review and update the sections above · Remove this block when resolved
-
-• Added cron route `/api/cron/docs-agent` → Update "Build and Deployment Pipeline" section → Add docs agent automated scheduling details
-• Added cron route `/api/cron/health-check` → Update "Build and Deployment Pipeline" section → Add health check cron schedule and monitoring
-• Added cron route `/api/cron/perf-baseline` → Update "Build and Deployment Pipeline" section → Add performance baseline collection schedule
-• Added platform route `/api/platform/advisories/sync` → Update "Infrastructure Overview" section → Add security advisory synchronization endpoint
-• Added platform route `/api/platform/deps/analyze` → Update "Infrastructure Overview" section → Add dependency analysis endpoint
-• Added platform route `/api/platform/deps/merge` → Update "Infrastructure Overview" section → Add dependency merge endpoint
-• Added platform route `/api/platform/deps` → Update "Infrastructure Overview" section → Add dependency management endpoint
-• Added platform route `/api/platform/docs/trigger` → Update "Infrastructure Overview" section → Add documentation trigger endpoint
-• Added platform route `/api/platform/health-check/trigger` → Update "Infrastructure Overview" section → Add manual health check trigger
-• Added platform route `/api/platform/incidents/[id]/resolve` → Update "Infrastructure Overview" section → Add incident resolution endpoint
-• Added platform route `/api/platform/maintenance` → Update "Infrastructure Overview" section → Add maintenance mode management
-• Added platform route `/api/platform/rollback/execute` → Update "Infrastructure Overview" section → Add rollback execution endpoint
-• Added platform route `/api/platform/rollback/preflight` → Update "Infrastructure Overview" section → Add rollback preflight checks
-• Added platform route `/api/platform/search` → Update "Infrastructure Overview" section → Add platform search functionality
-• Added test route `/api/test-sentry-error` → Update "Infrastructure Overview" section → Add Sentry error testing endpoint
-• Added tRPC route `/api/trpc/[trpc]` → Update "Infrastructure Overview" section → Add tRPC API handler documentation
-• Added webhook `/api/webhooks/clerk` → Update "Infrastructure Overview" section → Add Clerk authentication webhook handler
-• Added webhook `/api/webhooks/github` → Update "Infrastructure Overview" section → Add GitHub webhook integration
-• Added webhook `/api/webhooks/sentry` → Update "Infrastructure Overview" section → Add Sentry webhook handler
-• Added environment variables `CLERK_APP_ID`, `CLERK_INSTANCE_ID` → Update "Authentication (Clerk)" section → Add required Clerk configuration variables
-• Added environment variable `CRON_SECRET` → Update "Build and Deployment Pipeline" section → Add cron job authentication secret
-• Added environment variables `VERCEL_TEAM_ID`, `VERCEL_DOMAIN` → Update "Observability (Sentry + Vercel API)" section → Add Vercel integration configuration
