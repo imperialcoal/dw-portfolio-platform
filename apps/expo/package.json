@@ -32,7 +32,7 @@
     "nativewind": "5.0.0-preview.4",
     "react": "catalog:react19",
     "react-dom": "catalog:react19",
-    "react-native": "~0.85.1",
+    "react-native": "~0.86.0",
     "react-native-css": "3.0.7",
     "react-native-gesture-handler": "~2.31.1",
     "react-native-reanimated": "~4.4.0",
