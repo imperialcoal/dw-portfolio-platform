@@ -21,6 +21,7 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
     "@dw/eslint-config": "workspace:*",
+    "@dw/tsconfig": "workspace:*",
     "eslint": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

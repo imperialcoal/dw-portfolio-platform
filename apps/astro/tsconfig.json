@@ -1,7 +1,6 @@
 {
-  "extends": "astro/tsconfigs/strict",
+  "extends": "@dw/tsconfig/base.json",
   "compilerOptions": {
-    "strictNullChecks": true,
     "types": ["astro/client"]
   },
   "include": [".astro/types.d.ts", "**/*"],
