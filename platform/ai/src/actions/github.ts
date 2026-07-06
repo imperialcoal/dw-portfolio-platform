@@ -163,9 +163,49 @@ export async function appendToFile(
   }
 }
 
+// ─────────────────────────────────────────────
+// Retry helper for transient GitHub API failures
+//
+// Only retries conditions likely to self-resolve: 429 (rate limit), 403 with
+// a secondary-rate-limit body (GitHub's abuse-detection mechanism, distinct
+// from a real permissions 403), and 5xx. A genuine 403 (bad token scope) or
+// 422 (validation error) retrying would just fail the same way three times
+// slower, so those throw immediately.
+//
+// This exists because of a real incident: 4 Terraform-workflow incidents
+// (2026-06-08/15) got a committed incident doc + Redis record but no GitHub
+// issue, because createIssue() threw once and Promise.allSettled in the
+// calling agent let the rest of the fan-out proceed anyway. Root cause was
+// never confirmed (no logs survived), but the leading theory is a burst of
+// near-simultaneous CI/Terraform/Dependabot activity during production
+// Supabase provisioning tripped GitHub's secondary rate limit on issue
+// creation specifically. This retry doesn't guarantee it can't happen again
+// (see githubIssueError on IncidentRecord for the visibility half of the fix),
+// but it closes the most likely transient cause.
+// ─────────────────────────────────────────────
+
+const ISSUE_CREATE_MAX_ATTEMPTS = 3;
+const ISSUE_CREATE_BASE_DELAY_MS = 500;
+
+function isRetryableStatus(status: number, body: string): boolean {
+  if (status === 429) return true;
+  if (status >= 500) return true;
+  if (status === 403 && /rate limit/i.test(body)) return true;
+  return false;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 /**
  * Creates a GitHub issue with labels from the AI analysis.
  * Returns the created issue's URL and number.
+ *
+ * Retries up to ISSUE_CREATE_MAX_ATTEMPTS times with exponential backoff on
+ * rate-limit/5xx responses only. Throws immediately on non-retryable errors
+ * (bad auth, validation) so the caller's Promise.allSettled fan-out isn't
+ * held up for something a retry can't fix.
  */
 export async function createIssue(
   title: string,
@@ -187,19 +227,46 @@ export async function createIssue(
 
   const body = `## Summary\n${analysis.summary}\n\n## Root Cause\n${analysis.rootCause}\n\n## Impact\n${analysis.impact}\n\n## Suggested Fix\n${analysis.suggestedFix}\n\n---\n*Created by platform-agent*`;
 
-  const res = await fetch(`${GITHUB_API}/repos/${getRepo()}/issues`, {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify({ title, body, labels }),
-  });
+  let lastError = "unknown error";
 
-  if (!res.ok) {
-    const err = (await res.json()) as { message?: string };
-    throw new Error(`Failed to create issue: ${err.message ?? res.status}`);
+  for (let attempt = 1; attempt <= ISSUE_CREATE_MAX_ATTEMPTS; attempt++) {
+    const res = await fetch(`${GITHUB_API}/repos/${getRepo()}/issues`, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify({ title, body, labels }),
+    });
+
+    if (res.ok) {
+      const issue = (await res.json()) as { html_url: string; number: number };
+      return { url: issue.html_url, number: issue.number };
+    }
+
+    const errBody = await res.text();
+    lastError = `HTTP ${res.status}: ${errBody.slice(0, 300)}`;
+
+    const shouldRetry =
+      attempt < ISSUE_CREATE_MAX_ATTEMPTS &&
+      isRetryableStatus(res.status, errBody);
+
+    console.error(
+      JSON.stringify({
+        level: "error",
+        action: "create_issue",
+        attempt,
+        status: res.status,
+        willRetry: shouldRetry,
+        error: lastError,
+      }),
+    );
+
+    if (!shouldRetry) {
+      throw new Error(`Failed to create issue: ${lastError}`);
+    }
+
+    await sleep(ISSUE_CREATE_BASE_DELAY_MS * 2 ** (attempt - 1));
   }
 
-  const issue = (await res.json()) as { html_url: string; number: number };
-  return { url: issue.html_url, number: issue.number };
+  throw new Error(`Failed to create issue: ${lastError}`);
 }
 
 /**

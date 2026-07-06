@@ -411,6 +411,12 @@ describe("AnalysisResultSchema", () => {
 
 // ─────────────────────────────────────────────
 // Zod schemas — IncidentRecordSchema
+//
+// type now covers all 6 IncidentRecord.type variants (previously only 3 —
+// clerk_event, uptime_failure, and supabase_advisory were missing, which
+// meant a real incident of one of those types would have failed validation
+// had this schema ever been wired into an actual boundary). sentryIssueUrl
+// and githubIssueError were also missing and are now covered below.
 // ─────────────────────────────────────────────
 
 describe("IncidentRecordSchema", () => {
@@ -447,6 +453,36 @@ describe("IncidentRecordSchema", () => {
     expect(result.success).toBe(true);
   });
 
+  it.each([
+    "ci_failure",
+    "sentry_error",
+    "security_alert",
+    "clerk_event",
+    "uptime_failure",
+    "supabase_advisory",
+  ] as const)("validates type '%s'", (type) => {
+    const result = IncidentRecordSchema.safeParse({ ...base, type });
+    expect(result.success).toBe(true);
+  });
+
+  it("validates sentryIssueUrl", () => {
+    const result = IncidentRecordSchema.safeParse({
+      ...base,
+      type: "sentry_error",
+      sentryIssueId: "5551234",
+      sentryIssueUrl: "https://imperial-coal.sentry.io/issues/5551234/",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("validates githubIssueError", () => {
+    const result = IncidentRecordSchema.safeParse({
+      ...base,
+      githubIssueError: "HTTP 403: API rate limit exceeded",
+    });
+    expect(result.success).toBe(true);
+  });
+
   it("rejects invalid status", () => {
     const result = IncidentRecordSchema.safeParse({
       ...base,
@@ -455,10 +491,10 @@ describe("IncidentRecordSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("rejects invalid type", () => {
+  it("rejects a genuinely invalid type", () => {
     const result = IncidentRecordSchema.safeParse({
       ...base,
-      type: "uptime_failure",
+      type: "not_a_real_type",
     });
     expect(result.success).toBe(false);
   });
@@ -497,6 +533,17 @@ describe("toIncidentSummary", () => {
     const summary = toIncidentSummary(fullIncident);
     expect("rootCause" in summary).toBe(false);
     expect("labels" in summary).toBe(false);
+  });
+
+  it("carries githubIssueError through when present", () => {
+    const summary = toIncidentSummary({
+      ...fullIncident,
+      issueUrl: undefined,
+      githubIssueNumber: undefined,
+      githubIssueError: "HTTP 429: rate limited",
+    });
+    expect(summary.githubIssueError).toBe("HTTP 429: rate limited");
+    expect(summary.issueUrl).toBeUndefined();
   });
 });
 

@@ -176,6 +176,15 @@ function IncidentCard({ incident }: { incident: IncidentRecord }) {
             → GitHub Issue
           </a>
         )}
+        {incident.issueUrl === undefined &&
+          incident.githubIssueError !== undefined && (
+            <span
+              title={incident.githubIssueError}
+              className="rounded border border-amber-500/20 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-400"
+            >
+              ⚠ GitHub issue creation failed
+            </span>
+          )}
         {incident.sentryIssueUrl !== undefined && (
           <a
             href={incident.sentryIssueUrl}

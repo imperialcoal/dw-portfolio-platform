@@ -62,6 +62,15 @@ export interface IncidentRecord {
   /** GitHub issue number for webhook resolution matching */
   githubIssueNumber?: number;
   /**
+   * Set when the agent attempted to create a GitHub issue and the call
+   * failed (rate limit, transient 5xx, auth hiccup) — distinguishes a
+   * genuine failure from incident types that never attempt issue creation
+   * (e.g. supabase_advisory). Cleared implicitly once a manual resolve or
+   * a later successful backfill sets issueUrl/githubIssueNumber.
+   * See platform/ai/src/analyzers/{ci,sentry,security}-agent.ts.
+   */
+  githubIssueError?: string;
+  /**
    * Sentry issue ID for sentry_error incidents.
    * Dependabot alert number (as string) for security_alert incidents.
    */
@@ -86,6 +95,7 @@ export interface IncidentSummary {
   timestamp: string;
   updatedAt: string;
   issueUrl?: string;
+  githubIssueError?: string;
   sentryIssueId?: string;
   sentryIssueUrl?: string;
   githubIssueNumber?: number;
@@ -102,6 +112,7 @@ export function toIncidentSummary(record: IncidentRecord): IncidentSummary {
     timestamp: record.timestamp,
     updatedAt: record.updatedAt,
     issueUrl: record.issueUrl,
+    githubIssueError: record.githubIssueError,
     sentryIssueId: record.sentryIssueId,
     sentryIssueUrl: record.sentryIssueUrl,
     githubIssueNumber: record.githubIssueNumber,
