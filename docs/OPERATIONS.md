@@ -56,14 +56,19 @@ DIRECT_URL=postgresql://postgres:password@localhost:5433/dw_test
 
 ### Authentication (Clerk)
 
-| Variable                            | Purpose                                                                                  | Required       | Source          |
-| ----------------------------------- | ---------------------------------------------------------------------------------------- | -------------- | --------------- |
-| `CLERK_SECRET_KEY`                  | Server-side Clerk API key                                                                | Yes (auth)     | Clerk dashboard |
-| `CLERK_WEBHOOK_SECRET`              | Verifies incoming Clerk webhooks (`/api/webhooks/clerk`)                                 | Yes (auth)     | Clerk dashboard |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Client-side Clerk key                                                                    | Yes (auth)     | Clerk dashboard |
-| `CLERK_APP_ID`                      | Clerk application identifier — used by CLI/infra tooling that provisions Clerk resources | Optional       | Clerk dashboard |
-| `CLERK_INSTANCE_ID`                 | Clerk instance identifier — paired with `CLERK_APP_ID`                                   | Optional       | Clerk dashboard |
-| `AUTH_REDIRECT_PROXY_URL`           | OAuth redirect proxy for local tunnel                                                    | Local dev only | `.env.local`    |
+| Variable                            | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Required         | Source          |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | --------------- |
+| `CLERK_SECRET_KEY`                  | Server-side Clerk API key                                                                                                                                                                                                                                                                                                                                                                                                                                   | Yes (auth)       | Clerk dashboard |
+| `CLERK_WEBHOOK_SECRET`              | Verifies incoming Clerk webhooks (`/api/webhooks/clerk`). **Endpoint-specific, not instance-wide** — `stg` and `prd` each have their own registered webhook endpoint on the same Clerk Production instance (see note below), and Clerk issues a distinct signing secret per endpoint. This value differs between `stg` and `prd` even though the instance itself is shared.                                                                                 | Yes (auth)       | Clerk dashboard |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Client-side Clerk key. Same literal value in `stg` and `prd` — see note below.                                                                                                                                                                                                                                                                                                                                                                              | Yes (auth)       | Clerk dashboard |
+| `CLERK_APP_ID`                      | Clerk Application identifier. Confirmed usage: builds the "View in Clerk" deep link on `/platform/users` and `/platform/search` (`https://dashboard.clerk.com/apps/{CLERK_APP_ID}/instances/{CLERK_INSTANCE_ID}/...`) — not used for auth or webhook verification. One Application contains both the Development and Production instances, so this value does not change based on which instance a given environment uses.                                  | Optional         | Clerk dashboard |
+| `CLERK_INSTANCE_ID`                 | Clerk instance identifier, paired with `CLERK_APP_ID` for the same deep-link purpose. **Now identical in `stg` and `prd`** — both point at the same Clerk Production instance (see note below); previously `stg` referenced a separate Development instance, so this value changed as part of that migration.                                                                                                                                               | Optional         | Clerk dashboard |
+| `DEMO_MODE`                         | Master switch for the recruiter demo overlay (`DemoHomePage`, `/api/demo`, recruiter banner, disabled deep links, demo incident triggers). Set to `"true"` in `stg` only — **never `prd`**, since production is intentionally a closed door (deploy-history-only, no live/demo traffic).                                                                                                                                                                    | Yes (`stg` only) | Doppler         |
+| `RECRUITER_EMAILS`                  | Comma-separated allowlist matched against a Clerk user's primary email in the `user.created`/`user.updated` webhook handler — a match assigns the `recruiter` role in both the app's `user` table and Clerk's `publicMetadata`. `stg`-only, alongside `DEMO_MODE`. Uses a real, deliverable email (Gmail plus-addressing, e.g. `you+recruiter-demo@gmail.com`) rather than Clerk's `+clerk_test@` pattern, which only works against a Development instance. | Yes (`stg` only) | Doppler         |
+| `DEMO_USER_CLERK_ID`                | The Clerk `user_...` ID of the single pre-provisioned identity `/api/demo` mints a one-time sign-in ticket for. Created directly via Clerk Dashboard → Users → Create user (no signup/verification flow — the account is provisioned once, by the admin, ahead of time). `stg`-only.                                                                                                                                                                        | Yes (`stg` only) | Clerk dashboard |
+| `AUTH_REDIRECT_PROXY_URL`           | OAuth redirect proxy for local tunnel                                                                                                                                                                                                                                                                                                                                                                                                                       | Local dev only   | `.env.local`    |
+
+> **Note — `stg` authenticates against the same Clerk Production instance as `prd`, not a separate Development instance.** This was a deliberate migration, not an accident: Clerk Development instances rely on a cross-domain "dev browser" JWT passed via querystring (`__clerk_db_jwt`) rather than real first-party cookies, because Development instances aren't bound to a verified custom domain. This mechanism is unreliable for a genuinely new visitor's first request — confirmed directly: the ticket-based `/api/demo` sign-in redirected to Clerk's `*.accounts.dev` Account Portal instead of `/platform` for every fresh browser/device tested, while working inconsistently for browsers that had incidentally already loaded a Clerk-instrumented page on the domain. Clerk Production instances use real `HttpOnly` first-party cookies via a verified CNAME, which doesn't have this failure mode. Clerk explicitly supports one Production instance serving multiple domains — subdomains of a verified primary domain get Frontend API access automatically (hardened further here via Clerk's **Allowed Subdomains** setting, explicitly allowlisting `dev.dw-portfolio.dev` against primary domain `dw-portfolio.dev`) — and Clerk's own session cookies remain strictly scoped per exact domain, so a `stg` recruiter demo session cannot be used to access `prd`. Using the Production instance for `stg` does **not** mean recruiters access the production app — the Vercel project, database, Redis, and `DEMO_MODE` code paths for `stg` remain entirely separate from `prd`; only the underlying Clerk auth infrastructure tier is shared, which is Clerk's own intended pattern for this exact situation.
 
 ### Cache & Queues (Upstash)
 
@@ -297,11 +302,11 @@ All routes below are admin-only (`requireAdmin()`), Node.js runtime, called from
 
 ### Webhook Handlers
 
-| Route                  | Source                                                                     | Verification                              |
-| ---------------------- | -------------------------------------------------------------------------- | ----------------------------------------- |
-| `/api/webhooks/github` | GitHub (`workflow_run`, `repository_vulnerability_alert`, `issues`)        | HMAC via `GITHUB_WEBHOOK_SECRET`          |
-| `/api/webhooks/sentry` | Sentry (issue alerts)                                                      | HMAC via `SENTRY_WEBHOOK_SECRET`          |
-| `/api/webhooks/clerk`  | Clerk (user lifecycle events — sync, `RECRUITER_EMAILS` role provisioning) | Svix signature via `CLERK_WEBHOOK_SECRET` |
+| Route                  | Source                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Verification                              |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------- |
+| `/api/webhooks/github` | GitHub (`workflow_run`, `repository_vulnerability_alert`, `issues`)                                                                                                                                                                                                                                                                                                                                                                                                                              | HMAC via `GITHUB_WEBHOOK_SECRET`          |
+| `/api/webhooks/sentry` | Sentry (issue alerts)                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | HMAC via `SENTRY_WEBHOOK_SECRET`          |
+| `/api/webhooks/clerk`  | Clerk (user lifecycle events — sync, `RECRUITER_EMAILS` role provisioning). Registered as **two separate endpoints** in the same Clerk Production instance — one for `https://dw-portfolio.dev` (`prd`), one for `https://dev.dw-portfolio.dev` (`stg`) — each with its own `CLERK_WEBHOOK_SECRET`. The handler itself (`handler.ts`) has no awareness of which endpoint sent an event; it only verifies the signature against whichever secret is present in that deployment's own environment. | Svix signature via `CLERK_WEBHOOK_SECRET` |
 
 ### Other Notable Routes
 
@@ -390,6 +395,13 @@ The admin dashboard at `/platform` (requires Clerk admin auth) shows:
 - `/platform/incidents` — Full incident list with status, severity, resolution
 - `/platform/deployments` — Vercel deployment history
 - `/platform/insights` — Platform insights
+- `/platform/dependencies` — Dependabot PRs and security alerts, with merge/analyze actions
+- `/platform/users` — Clerk user activity and provisioning status
+- `/platform/database` — Supabase health metrics and advisories
+- `/platform/vercel` — Vercel deployment/project detail
+- `/platform/infrastructure` — Terraform-managed infrastructure overview
+- `/platform/communications` — Resend email activity (contact form + incident alerts)
+- `/platform/observability` — Sentry error/observability summary
 
 See **Platform Dashboard API Routes** above for the full set of endpoints backing these pages.
 
@@ -429,11 +441,11 @@ Logs are visible in Vercel Functions logs for each serverless invocation.
 
 All secrets are stored in **Doppler** under project `dw-portfolio-platform`.
 
-| Config       | Used for                                        |
-| ------------ | ----------------------------------------------- |
-| `dev`        | Local development (pulled via `doppler run --`) |
-| `preview`    | Vercel preview deployments (auto-synced)        |
-| `production` | Vercel production deployments (auto-synced)     |
+| Config | Used for                                                                                                                                          |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dev`  | Local development (pulled via `doppler run --`)                                                                                                   |
+| `stg`  | Vercel preview deployments (`dev` branch), auto-synced. Hosts `DEMO_MODE`/`RECRUITER_EMAILS`/`DEMO_USER_CLERK_ID` and the recruiter demo overlay. |
+| `prd`  | Vercel production deployments (`main` branch), auto-synced. `DEMO_MODE=false` — deploy-history-only, no live/demo traffic.                        |
 
 **Rotating a secret:**
 

@@ -11,12 +11,23 @@
 // is a synthetic run ID, the log fetch will return empty/not-found.
 // The agent handles this gracefully and still produces an incident record
 // based on the payload context alone.
+//
+// head_sha uses crypto.randomUUID() rather than Date.now().toString(16) —
+// buildCiDedupId() in @dw/qstash truncates commitSha to its first 7
+// characters (correct for a real git short-SHA, which is high-entropy
+// throughout). A hex-encoded timestamp is NOT high-entropy in its leading
+// characters — those only change roughly once every two years at current
+// epoch-ms magnitudes — so truncating one collapsed to a near-constant
+// dedup key across every demo trigger for days at a time, silently
+// colliding with QStash's own deduplication window. A random UUID is
+// high-entropy in every character position, matching what the truncation
+// logic actually expects.
 
 import type { CiJobPayload } from "@dw/contracts/queue";
 
 export function buildSyntheticCiPayload(): CiJobPayload {
   const runId = `demo-${Date.now()}`;
-  const commitSha = `demo${Date.now().toString(16)}`;
+  const commitSha = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
   const now = new Date().toISOString();
 
   return {
