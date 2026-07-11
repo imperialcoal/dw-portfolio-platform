@@ -183,7 +183,7 @@ importers:
         version: 8.0.12(expo@54.0.35)(react-native@0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.7))(react@19.2.7)
       expo-router:
         specifier: ~6.0.13
-        version: 6.0.24(e0f89d3c8cd2db8a96a14a726bbddfe3)
+        version: 6.0.24(d736e0d4eec6fa603c43cd31668902f1)
       expo-secure-store:
         specifier: ~15.0.7
         version: 15.0.8(expo@54.0.35)
@@ -219,7 +219,7 @@ importers:
         version: 2.31.2(react-native@0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.7))(react@19.2.7)
       react-native-reanimated:
         specifier: ~4.4.0
-        version: 4.4.0(react-native-worklets@0.9.1(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(react-native@0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.7))(react@19.2.7))(react-native@0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.7))(react@19.2.7)
+        version: 4.4.0(react-native-worklets@0.10.1(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(react-native@0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.7))(react@19.2.7))(react-native@0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.7))(react@19.2.7)
       react-native-safe-area-context:
         specifier: ~5.8.0
         version: 5.8.0(react-native@0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.7))(react@19.2.7)
@@ -227,8 +227,8 @@ importers:
         specifier: ~4.25.2
         version: 4.25.2(react-native@0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.7))(react@19.2.7)
       react-native-worklets:
-        specifier: ~0.9.1
-        version: 0.9.1(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(react-native@0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.7))(react@19.2.7)
+        specifier: ~0.10.1
+        version: 0.10.1(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(react-native@0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.7))(react@19.2.7)
       superjson:
         specifier: 'catalog:'
         version: 2.2.6
@@ -7960,8 +7960,8 @@ packages:
       react: '*'
       react-native: '>=0.82.0'
 
-  react-native-worklets@0.9.1:
-    resolution: {integrity: sha512-kb6lGtBI5Ap41tvBPM09Np472r2GXuJ+jRApIFy1eXBk699eChG3U+lyqRC2/wz/VDpaJAy6i5XPcceNOoH3mA==}
+  react-native-worklets@0.10.1:
+    resolution: {integrity: sha512-62mRM19bDpfpdI8HLkEErcdOsrAPDtE9lA/sw+5lLRpzBHNhxaoj9QyY2KjXqUmirelxkX4zuPGTC3VdA0feJA==}
     peerDependencies:
       '@babel/core': '*'
       '@react-native/metro-config': '*'
@@ -8062,8 +8062,8 @@ packages:
   regjsgen@0.8.0:
     resolution: {integrity: sha512-RvwtGe3d7LvWiDQXeQw8p5asZUmfU1G/l6WbUXeHta7Y2PEIvBTwH6E2EfmYUK8pxcxEdEmaomqyp0vZZ7C+3Q==}
 
-  regjsparser@0.13.1:
-    resolution: {integrity: sha512-dLsljMd9sqwRkby8zhO1gSg3PnJIBFid8f4CQj/sXx+7cKx+E7u0PKhZ+U4wmhx7EfmtvnA318oVaIkAB1lRJw==}
+  regjsparser@0.13.2:
+    resolution: {integrity: sha512-NgRBy2Nx/bE+9F27nVHnqcN5HjyLmecqsqx2PJHu3/IEtADD4WuxuXIVExD5PoSDFVrl78dOonfcOe5O+5nbzQ==}
     hasBin: true
 
   request-light@0.5.8:
@@ -9578,7 +9578,7 @@ snapshots:
     dependencies:
       '@babel/compat-data': 7.29.7
       '@babel/helper-validator-option': 7.29.7
-      browserslist: 4.28.2
+      browserslist: 4.28.4
       lru-cache: 5.1.1
       semver: 6.3.1
 
@@ -10425,7 +10425,7 @@ snapshots:
       wrap-ansi: 7.0.0
       ws: 8.21.0
     optionalDependencies:
-      expo-router: 6.0.24(e0f89d3c8cd2db8a96a14a726bbddfe3)
+      expo-router: 6.0.24(d736e0d4eec6fa603c43cd31668902f1)
       react-native: 0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.7)
     transitivePeerDependencies:
       - bufferutil
@@ -14134,7 +14134,7 @@ snapshots:
 
   core-js-compat@3.49.0:
     dependencies:
-      browserslist: 4.28.2
+      browserslist: 4.28.4
 
   cross-spawn@7.0.6:
     dependencies:
@@ -14840,7 +14840,7 @@ snapshots:
       react: 19.2.7
       react-native: 0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.7)
 
-  expo-router@6.0.24(e0f89d3c8cd2db8a96a14a726bbddfe3):
+  expo-router@6.0.24(d736e0d4eec6fa603c43cd31668902f1):
     dependencies:
       '@expo/metro-runtime': 6.1.2(expo@54.0.35)(react-dom@19.2.7(react@19.2.7))(react-native@0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.7))(react@19.2.7)
       '@expo/schema-utils': 0.1.8
@@ -14875,7 +14875,7 @@ snapshots:
     optionalDependencies:
       react-dom: 19.2.7(react@19.2.7)
       react-native-gesture-handler: 2.31.2(react-native@0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.7))(react@19.2.7)
-      react-native-reanimated: 4.4.0(react-native-worklets@0.9.1(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(react-native@0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.7))(react@19.2.7))(react-native@0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.7))(react@19.2.7)
+      react-native-reanimated: 4.4.0(react-native-worklets@0.10.1(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(react-native@0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.7))(react@19.2.7))(react-native@0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.7))(react@19.2.7)
     transitivePeerDependencies:
       - '@react-native-masked-view/masked-view'
       - '@types/react'
@@ -16694,12 +16694,12 @@ snapshots:
       react: 19.2.7
       react-native: 0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.7)
 
-  react-native-reanimated@4.4.0(react-native-worklets@0.9.1(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(react-native@0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.7))(react@19.2.7))(react-native@0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.7))(react@19.2.7):
+  react-native-reanimated@4.4.0(react-native-worklets@0.10.1(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(react-native@0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.7))(react@19.2.7))(react-native@0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.7))(react@19.2.7):
     dependencies:
       react: 19.2.7
       react-native: 0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.7)
       react-native-is-edge-to-edge: 1.3.1(react-native@0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.7))(react@19.2.7)
-      react-native-worklets: 0.9.1(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(react-native@0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.7))(react@19.2.7)
+      react-native-worklets: 0.10.1(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(react-native@0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.7))(react@19.2.7)
       semver: 7.8.1
 
   react-native-safe-area-context@5.8.0(react-native@0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.7))(react@19.2.7):
@@ -16714,7 +16714,7 @@ snapshots:
       react-native: 0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.7)
       warn-once: 0.1.1
 
-  react-native-worklets@0.9.1(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(react-native@0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.7))(react@19.2.7):
+  react-native-worklets@0.10.1(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(react-native@0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.7))(react@19.2.7):
     dependencies:
       '@babel/core': 7.29.7
       '@babel/plugin-transform-arrow-functions': 7.29.7(@babel/core@7.29.7)
@@ -16726,11 +16726,12 @@ snapshots:
       '@babel/plugin-transform-template-literals': 7.29.7(@babel/core@7.29.7)
       '@babel/plugin-transform-unicode-regex': 7.29.7(@babel/core@7.29.7)
       '@babel/preset-typescript': 7.29.7(@babel/core@7.29.7)
+      '@babel/types': 7.29.7
       '@react-native/metro-config': 0.86.0(@babel/core@7.29.7)
       convert-source-map: 2.0.0
       react: 19.2.7
       react-native: 0.86.0(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.7)
-      semver: 7.8.1
+      semver: 7.8.5
     transitivePeerDependencies:
       - supports-color
 
@@ -16857,13 +16858,13 @@ snapshots:
       regenerate: 1.4.2
       regenerate-unicode-properties: 10.2.2
       regjsgen: 0.8.0
-      regjsparser: 0.13.1
+      regjsparser: 0.13.2
       unicode-match-property-ecmascript: 2.0.0
       unicode-match-property-value-ecmascript: 2.2.1
 
   regjsgen@0.8.0: {}
 
-  regjsparser@0.13.1:
+  regjsparser@0.13.2:
     dependencies:
       jsesc: 3.1.0
 
