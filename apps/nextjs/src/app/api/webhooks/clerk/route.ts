@@ -66,6 +66,10 @@ export async function POST(req: Request) {
       // knowledge of demo mode or RECRUITER_EMAILS directly.
       // To remove: delete src/demo/ and remove these two lines.
       recruiterEmails: isDemoMode() ? getRecruiterEmails() : [],
+      // Outside DEMO_MODE (i.e. prd), restrict user.created/user.updated
+      // writes to the owner only — see the comment on this field in
+      // handler.ts's ClerkWebhookDeps for the full reasoning.
+      restrictWritesToOwner: !isDemoMode(),
     });
 
     return new Response("OK", { status: 200 });

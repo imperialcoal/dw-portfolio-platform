@@ -32,6 +32,7 @@ const SESSION_EVENT_TYPES = new Set([
   "session.ended",
   "session.removed",
   "session.revoked",
+  "session.pending",
 ] as const);
 
 type SessionEventType =
@@ -56,6 +57,16 @@ export interface ClerkWebhookDeps {
   // Optional extension point — demo module injects recruiterEmails via route.ts.
   // The handler has no knowledge of RECRUITER_EMAILS or demo mode directly.
   recruiterEmails?: string[];
+  // Optional extension point — route.ts sets this to true outside of
+  // DEMO_MODE. When true, user.created/user.updated events for anyone but
+  // the owner are silently no-op'd rather than written to the database.
+  // This exists because a single Clerk instance's webhook fires identically
+  // to every registered endpoint regardless of which domain the event
+  // actually originated from — without this, stg's demo/recruiter traffic
+  // would also write into prd's database. Same injection pattern as
+  // recruiterEmails: the handler applies the flag but has no knowledge of
+  // DEMO_MODE, "prd", or environment naming itself.
+  restrictWritesToOwner?: boolean;
 }
 
 const FAILED_SESSION_INCIDENT_THRESHOLD = 5;
@@ -64,7 +75,13 @@ export async function handleClerkWebhook(
   evt: SupportedClerkEvents,
   deps: ClerkWebhookDeps,
 ): Promise<void> {
-  const { db, redis, ownerEmails, recruiterEmails = [] } = deps;
+  const {
+    db,
+    redis,
+    ownerEmails,
+    recruiterEmails = [],
+    restrictWritesToOwner = false,
+  } = deps;
 
   // ── user.created / user.updated ─────────────────────────────────────────
 
@@ -79,6 +96,19 @@ export async function handleClerkWebhook(
 
     const isOwner = ownerEmails.includes(primaryEmail.email_address);
     const isRecruiter = recruiterEmails.includes(primaryEmail.email_address);
+
+    if (restrictWritesToOwner && !isOwner) {
+      console.log(
+        JSON.stringify({
+          level: "info",
+          webhook: "clerk",
+          event: evt.type,
+          note: "restrict_writes_to_owner_skipped_non_owner_event",
+          userId: data.id,
+        }),
+      );
+      return;
+    }
 
     // Role priority: admin > recruiter > user.
     // recruiterEmails is an optional injection — empty by default.
@@ -275,6 +305,52 @@ export async function handleClerkWebhook(
     }
 
     const isAbandoned = data.status === "abandoned";
+
+    // session.pending is new in Clerk's event catalog and its exact
+    // semantics aren't confirmed here — likely a session awaiting an
+    // additional step (e.g. MFA) rather than a terminal state, i.e. the
+    // opposite lifecycle stage from "ended". Logged distinctly rather than
+    // folded into the eventType: "session.ended" fallthrough below, and
+    // deliberately excluded from the abandoned-session incident counter
+    // until the real semantics are verified against Clerk's docs.
+    //
+    // `evt.type as string`: the installed @clerk/backend SDK's types don't
+    // model "session.pending" yet (confirmed via TS2367 — Extract<> in
+    // isSessionEvent()'s return type silently drops it from the narrowed
+    // union since it isn't a real member of SessionWebhookEvent), even
+    // though SESSION_EVENT_TYPES.has() correctly matches it at runtime.
+    // This cast is intentional forward-compatibility, not a type error
+    // being suppressed — revisit once the SDK's types catch up.
+    if ((evt.type as string) === "session.pending") {
+      console.log(
+        JSON.stringify({
+          level: "info",
+          webhook: "clerk",
+          event: "session.pending",
+          note: "semantics unconfirmed — see handler.ts comment",
+          userId,
+          sessionId,
+        }),
+      );
+
+      await logUserActivity({
+        id: `clerk-session-${sessionId}-pending`,
+        // eventType reuses "session.created" here because
+        // UserActivityEventType has no "pending" member yet — not a claim
+        // that this IS a creation event. The console.log above is what
+        // actually flags it as pending; metadata has no free-form field
+        // for this (UserActivityRecord.metadata only accepts ipAddress,
+        // userAgent, oauthProvider, previousRole, newRole, isOwner).
+        eventType: "session.created",
+        userId,
+        userEmail: null,
+        userName: null,
+        timestamp: new Date().toISOString(),
+        metadata: {},
+      }).catch(() => undefined);
+
+      return;
+    }
 
     await logUserActivity({
       id: `clerk-session-${sessionId}-${evt.type.replace("session.", "")}`,
