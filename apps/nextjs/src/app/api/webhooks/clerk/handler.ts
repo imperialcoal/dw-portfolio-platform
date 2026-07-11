@@ -56,17 +56,10 @@ export interface ClerkWebhookDeps {
   ownerEmails: string[];
   // Optional extension point — demo module injects recruiterEmails via route.ts.
   // The handler has no knowledge of RECRUITER_EMAILS or demo mode directly.
+  // Set in both stg and prd Doppler configs so role computation agrees
+  // across both — DEMO_MODE itself (the recruiter overlay/UI) stays
+  // stg-only; this is just data, same as ownerEmails.
   recruiterEmails?: string[];
-  // Optional extension point — route.ts sets this to true outside of
-  // DEMO_MODE. When true, user.created/user.updated events for anyone but
-  // the owner are silently no-op'd rather than written to the database.
-  // This exists because a single Clerk instance's webhook fires identically
-  // to every registered endpoint regardless of which domain the event
-  // actually originated from — without this, stg's demo/recruiter traffic
-  // would also write into prd's database. Same injection pattern as
-  // recruiterEmails: the handler applies the flag but has no knowledge of
-  // DEMO_MODE, "prd", or environment naming itself.
-  restrictWritesToOwner?: boolean;
 }
 
 const FAILED_SESSION_INCIDENT_THRESHOLD = 5;
@@ -75,13 +68,7 @@ export async function handleClerkWebhook(
   evt: SupportedClerkEvents,
   deps: ClerkWebhookDeps,
 ): Promise<void> {
-  const {
-    db,
-    redis,
-    ownerEmails,
-    recruiterEmails = [],
-    restrictWritesToOwner = false,
-  } = deps;
+  const { db, redis, ownerEmails, recruiterEmails = [] } = deps;
 
   // ── user.created / user.updated ─────────────────────────────────────────
 
@@ -97,19 +84,6 @@ export async function handleClerkWebhook(
     const isOwner = ownerEmails.includes(primaryEmail.email_address);
     const isRecruiter = recruiterEmails.includes(primaryEmail.email_address);
 
-    if (restrictWritesToOwner && !isOwner) {
-      console.log(
-        JSON.stringify({
-          level: "info",
-          webhook: "clerk",
-          event: evt.type,
-          note: "restrict_writes_to_owner_skipped_non_owner_event",
-          userId: data.id,
-        }),
-      );
-      return;
-    }
-
     // Role priority: admin > recruiter > user.
     // recruiterEmails is an optional injection — empty by default.
     // The demo module populates it via route.ts when DEMO_MODE=true.
@@ -119,21 +93,23 @@ export async function handleClerkWebhook(
         ? ROLES.RECRUITER
         : ROLES.USER;
 
-    // ── Stale row cleanup (user.created only) ───────────────────────────────
+    // ── Stale row cleanup (user.created only) ─────────────────────────
     //
-    // When a user deletes their Clerk account and recreates with the same email,
-    // Clerk issues a new user_id. Tombstone any existing row with the same email
-    // but a different user_id to free the unique constraint without losing history.
+    // When a user deletes their Clerk account and recreates with the same
+    // email, Clerk issues a new user_id. Tombstone any existing row with
+    // the same email but a different user_id to free the unique
+    // constraint without losing history.
     //
-    // Discovered via a real incident (Clerk Development → Production migration,
-    // 2026-07): a webhook registered against a new Clerk instance only receives
-    // events going forward — it never sees the original user.created for an
-    // identity that already existed before the endpoint was registered. That
-    // meant this cleanup never ran automatically for the pre-existing owner
-    // account, and the old row's posts stayed attached to it after a manual
-    // fix. Reassigning post.authorId here, before the tombstone, closes that
-    // gap so it self-heals whenever this path *does* run, rather than only
-    // being correct when handled manually.
+    // Discovered via a real incident (Clerk Development → Production
+    // migration, 2026-07): a webhook registered against a new Clerk
+    // instance only receives events going forward — it never sees the
+    // original user.created for an identity that already existed before
+    // the endpoint was registered. That meant this cleanup never ran
+    // automatically for the pre-existing owner account, and the old
+    // row's posts stayed attached to it after a manual fix. Reassigning
+    // post.authorId here, before the tombstone, closes that gap so it
+    // self-heals whenever this path *does* run, rather than only being
+    // correct when handled manually.
     if (evt.type === "user.created") {
       const staleRows = await db
         .select({ id: user.id })
@@ -201,19 +177,22 @@ export async function handleClerkWebhook(
 
     await redis.del(cacheKeys.userById(data.id));
 
-    // Sync role to Clerk publicMetadata so the JWT carries the correct role.
-    // Promise.resolve() tolerates a non-Promise return (e.g. vi.fn() in tests).
+    // Sync role to Clerk publicMetadata so the JWT carries the correct
+    // role. Promise.resolve() tolerates a non-Promise return (e.g.
+    // vi.fn() in tests).
     //
-    // On failure, this is surfaced as a real dashboard incident, not just a
-    // console.warn — discovered via a real 2026-07-11 case where this call
-    // failed silently, leaving Clerk's publicMetadata (and therefore the
-    // session JWT and the client-side useUserRole()/useIsAdmin()/useIsUser()
-    // hooks in packages/auth/src/hooks.ts) showing a stale role for over an
-    // hour while Postgres — the actual source of truth for server-side
-    // authorization via getAuthorityContext() — was already correct. Not a
-    // security gap (server-side enforcement was unaffected throughout), but
-    // a real client-UI correctness bug with no visibility until someone
-    // happened to check Clerk's dashboard directly.
+    // On failure, this is surfaced as a real dashboard incident, not
+    // just a console.warn — discovered via a real 2026-07-11 case where
+    // this call failed silently, leaving Clerk's publicMetadata (and
+    // therefore the session JWT and the client-side
+    // useUserRole()/useIsAdmin()/useIsUser() hooks in
+    // packages/auth/src/hooks.ts) showing a stale role for over an hour
+    // while Postgres — the actual source of truth for server-side
+    // authorization via getAuthorityContext() — was already correct.
+    // Not a security gap (server-side enforcement was unaffected
+    // throughout), but a real client-UI correctness bug with no
+    // visibility until someone happened to check Clerk's dashboard
+    // directly.
     await Promise.resolve(
       deps.clerk.updateUserMetadata(data.id, {
         publicMetadata: { role },
