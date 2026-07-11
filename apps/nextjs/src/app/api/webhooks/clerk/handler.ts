@@ -12,7 +12,7 @@ import {
 } from "@dw/ai/memory";
 import { ROLES } from "@dw/auth";
 import { and, eq, sql } from "@dw/db";
-import { user } from "@dw/db/schema";
+import { Post, user } from "@dw/db/schema";
 import { cacheKeys } from "@dw/redis";
 
 // ─────────────────────────────────────────────
@@ -124,6 +124,16 @@ export async function handleClerkWebhook(
     // When a user deletes their Clerk account and recreates with the same email,
     // Clerk issues a new user_id. Tombstone any existing row with the same email
     // but a different user_id to free the unique constraint without losing history.
+    //
+    // Discovered via a real incident (Clerk Development → Production migration,
+    // 2026-07): a webhook registered against a new Clerk instance only receives
+    // events going forward — it never sees the original user.created for an
+    // identity that already existed before the endpoint was registered. That
+    // meant this cleanup never ran automatically for the pre-existing owner
+    // account, and the old row's posts stayed attached to it after a manual
+    // fix. Reassigning post.authorId here, before the tombstone, closes that
+    // gap so it self-heals whenever this path *does* run, rather than only
+    // being correct when handled manually.
     if (evt.type === "user.created") {
       const staleRows = await db
         .select({ id: user.id })
@@ -136,6 +146,11 @@ export async function handleClerkWebhook(
         );
 
       for (const stale of staleRows) {
+        await db
+          .update(Post)
+          .set({ authorId: data.id })
+          .where(eq(Post.authorId, stale.id));
+
         await db
           .update(user)
           .set({
@@ -188,11 +203,24 @@ export async function handleClerkWebhook(
 
     // Sync role to Clerk publicMetadata so the JWT carries the correct role.
     // Promise.resolve() tolerates a non-Promise return (e.g. vi.fn() in tests).
+    //
+    // On failure, this is surfaced as a real dashboard incident, not just a
+    // console.warn — discovered via a real 2026-07-11 case where this call
+    // failed silently, leaving Clerk's publicMetadata (and therefore the
+    // session JWT and the client-side useUserRole()/useIsAdmin()/useIsUser()
+    // hooks in packages/auth/src/hooks.ts) showing a stale role for over an
+    // hour while Postgres — the actual source of truth for server-side
+    // authorization via getAuthorityContext() — was already correct. Not a
+    // security gap (server-side enforcement was unaffected throughout), but
+    // a real client-UI correctness bug with no visibility until someone
+    // happened to check Clerk's dashboard directly.
     await Promise.resolve(
       deps.clerk.updateUserMetadata(data.id, {
         publicMetadata: { role },
       }),
     ).catch((err: unknown) => {
+      const errorMessage = String(err);
+
       console.warn(
         JSON.stringify({
           level: "warn",
@@ -200,9 +228,26 @@ export async function handleClerkWebhook(
           event: evt.type,
           note: "failed to sync role to Clerk metadata",
           userId: data.id,
-          error: String(err),
+          error: errorMessage,
         }),
       );
+
+      const incidentId = `clerk-metadata-sync-${data.id}-${Date.now()}`;
+
+      void logIncident({
+        type: "clerk_event",
+        id: incidentId,
+        service: "clerk",
+        timestamp: new Date().toISOString(),
+        summary: `Failed to sync role "${role}" to Clerk publicMetadata for user ${data.id}`,
+        rootCause: `updateUserMetadata call failed: ${errorMessage}. Postgres role is correct and server-side authorization is unaffected; Clerk's publicMetadata — and therefore the session JWT and client-side role hooks — will show the previous role until the next successful sync.`,
+        severity: "medium",
+        labels: ["auth", "clerk", "metadata-sync"],
+        commitSha: undefined,
+        branch: undefined,
+      }).catch(() => undefined);
+
+      void markIncidentOpen(incidentId).catch(() => undefined);
     });
 
     await logUserActivity({
