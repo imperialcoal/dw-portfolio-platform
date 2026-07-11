@@ -8,7 +8,6 @@ import { createRuntimeContext } from "@dw/runtime/context";
 import type { SupportedClerkEvents } from "./handler";
 import type { WebhookEvent } from "~/auth/server";
 import { clerkClient } from "~/auth/server";
-import { isDemoMode } from "~/demo";
 import { getRecruiterEmails } from "~/demo/auth/recruiter-emails";
 import { handleClerkWebhook } from "./handler";
 
@@ -61,11 +60,18 @@ export async function POST(req: Request) {
       },
       ownerEmails:
         config.auth.OWNER_EMAILS?.split(",").map((s) => s.trim()) ?? [],
-      // Demo overlay — recruiterEmails is only populated when DEMO_MODE=true.
-      // The handler treats this as a generic optional injection and has no
-      // knowledge of demo mode or RECRUITER_EMAILS directly.
-      // To remove: delete src/demo/ and remove these two lines.
-      recruiterEmails: isDemoMode() ? getRecruiterEmails() : [],
+      // Read unconditionally, same as ownerEmails above — RECRUITER_EMAILS
+      // is role-classification data present in both stg and prd Doppler
+      // configs, not gated by DEMO_MODE. getRecruiterEmails() already
+      // returns [] safely if the variable is unset in a given environment,
+      // so no isDemoMode() check is needed here at all. (Previously this
+      // was `isDemoMode() ? getRecruiterEmails() : []` — that gate meant
+      // prd always received [] regardless of its own RECRUITER_EMAILS
+      // value, which was the actual cause of role computation disagreeing
+      // between stg and prd for the same identity. DEMO_MODE still
+      // exclusively gates the demo UI/overlay itself — src/demo/ — not
+      // this data.)
+      recruiterEmails: getRecruiterEmails(),
     });
 
     return new Response("OK", { status: 200 });
