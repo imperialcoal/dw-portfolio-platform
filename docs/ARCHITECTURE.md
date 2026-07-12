@@ -406,3 +406,32 @@ The tRPC layer (`packages/api`, mounted at `/api/trpc/[trpc]`) is not a third-pa
 
 > **Developer Note**
 > `apps/astro/src/lib/fetch-with-fallback.ts` is deliberately framework-agnostic — it takes `baseUrl` as a parameter rather than reading `import.meta.env.CAREER_DATA_URL` internally, and takes a `parse` callback rather than assuming every career-data endpoint returns an array. This lets one shared, unit-tested module cover both the array-shaped endpoints (`/skills`, `/experience`, `/projects`) and the nested-object `/profile` endpoint (`{ bio }`) without a false abstraction forcing one shape onto the other.
+
+
+---
+
+## Documentation Drift — 2026-07-12
+
+> Auto-detected by platform-agent · Review and update the sections above · Remove this block when resolved
+
+- New scheduled cron routes added → **System Architecture Diagram** / **Primary Data Flow**: document `/api/cron/docs-agent`, `/api/cron/health-check`, and `/api/cron/perf-baseline` as scheduled jobs, including trigger source (cron scheduler) and downstream systems they call.
+
+- New demo/testing trigger endpoints added → **Monorepo Structure**: add `/api/demo/trigger/ci` and `/api/demo/trigger/sentry` under `apps/nextjs` route listing, noting they exist for demo/test purposes only.
+
+- New dependency-advisory sync route added → **Primary Data Flow**: document `/api/platform/advisories/sync` and how it feeds advisory data into the platform data flow.
+
+- New dependency analysis/merge endpoints added → **Package Dependency Graph**: document `/api/platform/deps/analyze`, `/api/platform/deps/merge`, and `/api/platform/deps` as the API surface backing the dependency graph, including how they relate to the graph generation process.
+
+- New docs automation trigger route added → **Primary Data Flow**: add `/api/platform/docs/trigger` as an entry point that kicks off documentation generation/update flow.
+
+- New health-check trigger route added → **System Architecture Diagram**: add `/api/platform/health-check/trigger` as a manual trigger path complementing the `/api/cron/health-check` scheduled job.
+
+- New incident resolution endpoint added → **Primary Data Flow**: document `/api/platform/incidents/[id]/resolve` as part of the incident-handling flow, including who/what invokes it.
+
+- New maintenance-mode route added → **System Architecture Diagram**: add `/api/platform/maintenance` and describe its role in toggling platform maintenance state.
+
+- New rollback execution/preflight endpoints added → **Primary Data Flow**: document `/api/platform/rollback/preflight` and `/api/platform/rollback/execute` as the two-step rollback flow, including validation and execution responsibilities.
+
+- New platform search endpoint added → **Package Dependency Graph** or **Overview**: add `/api/platform/search` and describe what it indexes/queries across the platform.
+
+- New Sentry test route added → **Monorepo Structure**: add `/api/test-sentry-error` under `apps/nextjs` routes, noting it's a diagnostic/testing-only endpoint.
