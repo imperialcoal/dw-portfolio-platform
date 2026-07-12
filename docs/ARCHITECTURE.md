@@ -18,7 +18,7 @@
 | **PostgreSQL** (Supabase) | Primary relational database                                            | 16                            |
 | **Upstash Redis**         | Incident memory store, rate limiting, dedup cache                      | 7.x (local), REST API (cloud) |
 | **Upstash QStash**        | Durable job queue with retries for AI agents                           | v2                            |
-| **Anthropic Claude**      | AI analysis of CI failures, Sentry errors, security alerts             | `claude-sonnet-4-20250514`    |
+| **Anthropic Claude**      | AI analysis of CI failures, Sentry errors, security alerts             | `claude-sonnet-5`             |
 | **Clerk**                 | Authentication and user management                                     | 7.x                           |
 | **Resend**                | Transactional email (contact form + incident alerts)                   | 6.x                           |
 | **Sentry**                | Error tracking and performance monitoring                              | @sentry/nextjs                |
@@ -328,7 +328,7 @@ sequenceDiagram
     CIA->>CIA: normalizeGitHubWorkflowRun(payload, jobLogs)
     CIA->>RDS: logEvent(normalizedEvent)
 
-    CIA->>ANT: messages.create({ model: claude-sonnet-4-20250514, system, user })
+    CIA->>ANT: messages.create({ model: claude-sonnet-5, system, user })
     ANT-->>CIA: XML response { summary, rootCause, impact, suggestedFix, severity, labels }
     CIA->>CIA: parseAnalysisXml(rawText)
 

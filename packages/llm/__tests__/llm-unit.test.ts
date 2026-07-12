@@ -340,8 +340,8 @@ describe("buildSecurityAlertUserPrompt", () => {
 // ─────────────────────────────────────────────
 
 describe("ANALYSIS_MODEL", () => {
-  it("is pinned to claude-sonnet-4-20250514", () => {
-    expect(ANALYSIS_MODEL).toBe("claude-sonnet-4-20250514");
+  it("is pinned to claude-sonnet-5", () => {
+    expect(ANALYSIS_MODEL).toBe("claude-sonnet-5");
   });
 });
 

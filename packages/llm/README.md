@@ -39,7 +39,7 @@ export interface AnalysisResult {
 
 // Client (for direct use if needed)
 export function getAnthropicClient(): Anthropic;
-export const ANALYSIS_MODEL: "claude-sonnet-4-20250514";
+export const ANALYSIS_MODEL: "claude-sonnet-5";
 ```
 
 ### Response Format
@@ -61,7 +61,7 @@ All prompts instruct Claude to respond in XML:
 
 Requires `ANTHROPIC_API_KEY` in `config.devops`. Call `isDevopsConfigured()` from `@dw/validators/devops-env` before calling `analyzeEvent()` in code paths where the key may be absent (e.g., local dev without Doppler).
 
-The model is pinned to `claude-sonnet-4-20250514` — the right balance of quality and cost for DevOps analysis. To change the model, update `ANALYSIS_MODEL` in `src/client.ts`.
+The model is pinned to `claude-sonnet-5` — the right balance of quality and cost for DevOps analysis. To change the model, update `ANALYSIS_MODEL` in `src/client.ts`. The previous pin, `claude-sonnet-4-20250514`, reached end-of-life on 2026-06-15 and began returning a hard 404 on every call — worth periodically checking Anthropic's model deprecation schedule (docs.claude.com) rather than only discovering an EOL via a live failure.
 
 ## Dependencies
 

@@ -24,4 +24,20 @@ export function getAnthropicClient(): Anthropic {
 }
 
 // All agents use Sonnet — right balance of quality and cost for DevOps analysis.
-export const ANALYSIS_MODEL = "claude-sonnet-4-20250514" as const;
+//
+// claude-sonnet-4-20250514 reached end-of-life on 2026-06-15 and now
+// returns a hard 404 (not_found_error) on every request. Discovered via
+// the demo CI/Sentry trigger panel silently failing on first attempt and
+// getting swallowed by QStash's retry-then-dedup-skip behavior on the
+// second — the same 404 would have been silently dropping every REAL
+// GitHub/Sentry-triggered incident since the EOL date too, since all
+// three agents (ci-agent.ts, sentry-agent.ts, security-agent.ts) import
+// this single constant.
+//
+// Set to "claude-sonnet-5" — worth confirming against Anthropic's current
+// model list (docs.claude.com) whether a specific dated snapshot exists
+// for this generation, the way "-20250514" pinned the previous one; if so,
+// prefer that over this generational alias so a future deprecation shows
+// up as a deliberate version bump you control, rather than a silent
+// rolling alias change or another surprise EOL.
+export const ANALYSIS_MODEL = "claude-sonnet-5" as const;
