@@ -469,3 +469,22 @@ All secrets are stored in **Doppler** under project `dw-portfolio-platform`.
 - **Anthropic API costs**: All agents use `claude-sonnet-5` with a `max_tokens: 1024` cap. (Previous pin `claude-sonnet-4-20250514` reached end-of-life 2026-06-15 and silently broke the entire incident pipeline until caught via the demo trigger panel — worth periodically checking Anthropic's deprecation schedule rather than only via a live failure.) Each incident analysis consumes approximately 2-5K tokens total. Add up-front cost tracking if incident volume grows significantly.
 
 - **Edge vs. Node runtime routing**: All stateless webhook receivers and tRPC handlers that don't touch Postgres can move to Edge for better cold start times. The runtime guard in `platform/runtime` will throw immediately if the wrong runtime is used, so the boundary is enforced at development time rather than production.
+
+
+---
+
+## Documentation Drift — 2026-07-12
+
+> Auto-detected by platform-agent · Review and update the sections above · Remove this block when resolved
+
+- **New cron routes undocumented**: `/api/cron/docs-agent`, `/api/cron/health-check`, `/api/cron/perf-baseline` exist in code but aren't listed anywhere in OPERATIONS.md → add a new "Cron Jobs" subsection (or extend Infrastructure Overview) documenting each route's schedule, purpose, and required `CRON_SECRET` auth header.
+
+- **New webhook handlers undocumented**: `/api/webhooks/github` and `/api/webhooks/sentry` → add a "Webhooks" subsection under Infrastructure Overview describing payload source, verification secrets (`GITHUB_WEBHOOK_SECRET`, `SENTRY_WEBHOOK_SECRET`), and what each triggers downstream.
+
+- **New demo/testing routes undocumented**: `/api/demo/trigger/ci`, `/api/demo/trigger/sentry`, `/api/test-sentry-error` → add a "Demo & Test Endpoints" note under Infrastructure Overview clarifying these are non-production/testing-only routes and how to invoke them safely.
+
+- **New platform automation routes undocumented** (11 routes): `/api/platform/advisories/sync`, `/api/platform/deps` (+ `/analyze`, `/merge`), `/api/platform/docs/trigger`, `/api/platform/health-check/trigger`, `/api/platform/incidents/[id]/resolve`, `/api/platform/maintenance`, `/api/platform/rollback/execute`, `/api/platform/rollback/preflight`, `/api/platform/search` → add a new "Platform Automation API" section listing each route, its trigger mechanism (manual/cron/webhook), and expected request/response contract.
+
+- **`CRON_SECRET`** (from `cron-env` validator) undocumented → add to Environment Variables, likely under a new "Cron / Automation" subsection, noting it's required to authenticate all `/api/cron/*` and `/api/platform/*/trigger` routes.
+
+- **DevOps automation env vars** (`ANTHROPIC_API_KEY`, `GITHUB_TOKEN`, `GITHU
