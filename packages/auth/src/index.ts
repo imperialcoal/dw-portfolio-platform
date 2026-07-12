@@ -14,7 +14,7 @@ export {
   assertUser,
   assertRole,
   assertAdmin,
-  assertViewerOrAdmin,
+  assertRecruiterOrAdmin,
   assertPlatformMutator,
   assertNotBanned,
 } from "./rbac";

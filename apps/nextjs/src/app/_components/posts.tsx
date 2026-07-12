@@ -130,7 +130,7 @@ export function PostList() {
         <PostCardSkeleton pulse={false} />
 
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/10">
-          <p className="text-2xl font-bold text-white">No posts yet</p>
+          <p className="text-foreground text-2xl font-bold">No posts yet</p>
         </div>
       </div>
     );
@@ -168,17 +168,26 @@ export function PostCard(props: {
   );
 
   return (
-    <div className="bg-muted flex flex-row rounded-lg p-4">
+    <div
+      className={cn(
+        "bg-muted/40 hover:bg-muted/60 flex flex-row items-start rounded-xl border p-4 transition-colors",
+        "border-border border-l-primary border-l-[3px]",
+      )}
+    >
       <div className="grow">
-        <h2 className="text-primary text-2xl font-bold">{props.post.title}</h2>
-        <p className="mt-2 text-sm">{props.post.content}</p>
+        <h2 className="text-foreground text-base font-semibold">
+          {props.post.title}
+        </h2>
+        <p className="text-muted-foreground mt-1 text-sm">
+          {props.post.content}
+        </p>
       </div>
 
       {isAdmin && (
-        <div>
+        <div className="ml-4 shrink-0">
           <Button
             variant="ghost"
-            className="text-primary cursor-pointer text-sm font-bold uppercase hover:bg-transparent hover:text-white"
+            className="text-muted-foreground hover:text-destructive h-auto cursor-pointer px-2 py-1 text-xs font-medium uppercase transition-colors hover:bg-transparent"
             onClick={() => deletePost.mutate(props.post.id)}
           >
             Delete
@@ -192,11 +201,16 @@ export function PostCard(props: {
 export function PostCardSkeleton(props: { pulse?: boolean }) {
   const { pulse = true } = props;
   return (
-    <div className="bg-muted flex flex-row rounded-lg p-4">
+    <div
+      className={cn(
+        "bg-muted/40 flex flex-row rounded-xl border p-4",
+        "border-border border-l-primary border-l-[3px]",
+      )}
+    >
       <div className="grow">
         <h2
           className={cn(
-            "bg-primary w-1/4 rounded-sm text-2xl font-bold",
+            "bg-muted-foreground/20 w-1/4 rounded text-base font-semibold",
             pulse && "animate-pulse",
           )}
         >
@@ -204,7 +218,7 @@ export function PostCardSkeleton(props: { pulse?: boolean }) {
         </h2>
         <p
           className={cn(
-            "mt-2 w-1/3 rounded-sm bg-current text-sm",
+            "bg-muted-foreground/10 mt-2 w-1/3 rounded text-sm",
             pulse && "animate-pulse",
           )}
         >

@@ -1,6 +1,6 @@
 import { execa } from "execa";
 
-import { DOPPLER_SECRET_IDS, RESOURCES } from "./tf.import.js";
+import { DOPPLER_SECRET_IDS, RESOURCES } from "./tf.resources.js";
 
 // Example usage:
 // RESOURCE=doppler_supabase_publishable_key APP_ENV=preview pnpm dw infra tf.import.single

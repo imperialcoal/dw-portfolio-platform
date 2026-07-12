@@ -1,15 +1,17 @@
 // Shared layout for all /platform/* pages.
-// - Renders the sticky CommandPalette bar at the top
-// - Renders a read-only demo banner when the session role is "viewer"
 //
-// Theme: uses bg-background / text-foreground tokens on the root wrapper
-// so the global ThemeToggleMenu (fixed bottom-right in root layout.tsx)
-// works identically here as on every other route. No inline toggle needed —
-// the universal one in the root layout covers /platform/* automatically.
+// Access control:
+//   DEMO_MODE=true  → recruiter and admin both enter; recruiter sees banner
+//   DEMO_MODE=false → admin only; recruiter redirected to / by requireAdmin()
+//
+// To remove demo mode: delete src/demo/, revert to requireAdmin() only,
+// remove isDemoMode import and the isRecruiter banner conditional.
 
 import Link from "next/link";
 
-import { getPlatformAccessLevel } from "~/auth/require-viewer-or-admin";
+import { requireAdmin } from "~/auth/require-admin";
+import { isDemoMode } from "~/demo";
+import { getPlatformAccessLevel } from "~/demo/auth/require-recruiter-or-admin";
 import { CommandPalette } from "./_components/command-palette";
 
 export default async function PlatformLayout({
@@ -17,13 +19,21 @@ export default async function PlatformLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { isReadOnly } = await getPlatformAccessLevel();
+  let isRecruiter = false;
+
+  if (isDemoMode()) {
+    const accessLevel = await getPlatformAccessLevel();
+    isRecruiter = accessLevel.isRecruiter;
+  } else {
+    await requireAdmin();
+  }
 
   return (
     <div className="bg-background text-foreground min-h-screen">
-      {isReadOnly && <ViewerBanner />}
+      {/* Recruiter demo session banner — only shown in demo mode */}
+      {isRecruiter && <RecruiterBanner />}
 
-      {/* Sticky command palette bar and home link*/}
+      {/* Sticky command palette bar */}
       <div className="bg-background/80 sticky top-0 z-40 border-b border-black/5 px-6 py-3 backdrop-blur-sm lg:px-10 dark:border-white/5">
         <div className="flex items-center gap-4">
           <Link
@@ -43,7 +53,7 @@ export default async function PlatformLayout({
   );
 }
 
-function ViewerBanner() {
+function RecruiterBanner() {
   return (
     <div className="flex items-center justify-center gap-3 border-b border-sky-500/20 bg-sky-500/8 px-6 py-2.5">
       <span className="relative flex h-2 w-2 shrink-0">
@@ -51,10 +61,10 @@ function ViewerBanner() {
         <span className="relative inline-flex h-2 w-2 rounded-full bg-sky-400" />
       </span>
       <p className="text-xs text-sky-300">
-        <span className="font-semibold">Read-only demo access</span>
+        <span className="font-semibold">Recruiter demo session</span>
         <span className="mx-2 text-sky-500">·</span>
-        You&apos;re viewing live production data from the AI DevOps platform.
-        Actions that modify system state are disabled.
+        You have full access to the live AI DevOps platform. All actions are
+        real — incidents, rollbacks, and agent runs affect live data.
       </p>
     </div>
   );

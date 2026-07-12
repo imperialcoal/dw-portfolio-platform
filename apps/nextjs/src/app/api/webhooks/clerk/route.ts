@@ -1,7 +1,6 @@
 import { headers } from "next/headers";
 import { Webhook } from "svix";
 
-import { ensureUserProvisioned } from "@dw/auth";
 import { config } from "@dw/config";
 import { bootstrapInfra } from "@dw/runtime/bootstrap";
 import { createRuntimeContext } from "@dw/runtime/context";
@@ -9,11 +8,12 @@ import { createRuntimeContext } from "@dw/runtime/context";
 import type { SupportedClerkEvents } from "./handler";
 import type { WebhookEvent } from "~/auth/server";
 import { clerkClient } from "~/auth/server";
+import { getRecruiterEmails } from "~/demo/auth/recruiter-emails";
 import { handleClerkWebhook } from "./handler";
 
 export async function POST(req: Request) {
-  if (config.app.APP_ENV !== "production") {
-    await bootstrapInfra(); // optional: verifies local dev infra
+  if (config.app.APP_ENV === "local") {
+    await bootstrapInfra();
   }
 
   const { db, redis } = createRuntimeContext();
@@ -23,21 +23,16 @@ export async function POST(req: Request) {
     throw new Error("Missing CLERK_WEBHOOK_SECRET");
   }
 
-  // Get headers
   const headerPayload = await headers();
   const svixId = headerPayload.get("svix-id");
   const svixTimestamp = headerPayload.get("svix-timestamp");
   const svixSignature = headerPayload.get("svix-signature");
 
-  // Validate headers
   if (!svixId || !svixTimestamp || !svixSignature) {
     return new Response("Error: Missing svix headers", { status: 400 });
   }
 
-  // Get body
   const payload = await req.text();
-
-  // Verify webhook
   const wh = new Webhook(WEBHOOK_SECRET);
 
   let evt: WebhookEvent;
@@ -63,13 +58,25 @@ export async function POST(req: Request) {
           await client.users.updateUserMetadata(userId, data);
         },
       },
-      ensureUserProvisioned,
-      ownerEmails: config.auth.OWNER_EMAILS?.split(",") ?? [],
+      ownerEmails:
+        config.auth.OWNER_EMAILS?.split(",").map((s) => s.trim()) ?? [],
+      // Read unconditionally, same as ownerEmails above — RECRUITER_EMAILS
+      // is role-classification data present in both stg and prd Doppler
+      // configs, not gated by DEMO_MODE. getRecruiterEmails() already
+      // returns [] safely if the variable is unset in a given environment,
+      // so no isDemoMode() check is needed here at all. (Previously this
+      // was `isDemoMode() ? getRecruiterEmails() : []` — that gate meant
+      // prd always received [] regardless of its own RECRUITER_EMAILS
+      // value, which was the actual cause of role computation disagreeing
+      // between stg and prd for the same identity. DEMO_MODE still
+      // exclusively gates the demo UI/overlay itself — src/demo/ — not
+      // this data.)
+      recruiterEmails: getRecruiterEmails(),
     });
 
     return new Response("OK", { status: 200 });
-  } catch (error) {
-    console.error("Error processing webhook:", error);
+  } catch (err) {
+    console.error("Error handling webhook:", err);
     return new Response("Error: Internal server error", { status: 500 });
   }
 }

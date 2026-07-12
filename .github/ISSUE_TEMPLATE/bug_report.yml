@@ -1,37 +1,31 @@
 name: 🐞 Bug Report
-description: Create a bug report to help us improve
+description: Report a bug in the platform
 title: "bug: "
-labels: ["🐞❔ unconfirmed bug"]
+labels: ["bug"]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please fill this out as completely as possible.
   - type: textarea
     attributes:
-      label: Provide environment information
-      description: |
-        Run this command in your project root and paste the results in a code block:
-        ```bash
-        npx envinfo --system --binaries
-        ```
+      label: Describe the bug
+      description: A clear description of what the bug is and what you expected to happen.
     validations:
       required: true
   - type: textarea
     attributes:
-      label: Describe the bug
-      description: A clear and concise description of the bug, as well as what you expected to happen when encountering it.
+      label: Steps to reproduce
+      description: How can this bug be reproduced?
     validations:
       required: true
   - type: input
     attributes:
-      label: Link to reproduction
-      description: Please provide a link to a reproduction of the bug. Issues without a reproduction repo may be ignored.
+      label: Environment
+      description: Which environment? (preview / production / local)
     validations:
       required: true
   - type: textarea
     attributes:
-      label: To reproduce
-      description: Describe how to reproduce your bug. Steps, code snippets, reproduction repos etc.
-    validations:
-      required: true
-  - type: textarea
-    attributes:
-      label: Additional information
-      description: Add any other information related to the bug here, screenshots if applicable.
+      label: Additional context
+      description: Screenshots, logs, Sentry issue links, etc.

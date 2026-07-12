@@ -149,21 +149,21 @@ describe("Runtime Capabilities", () => {
   describe("assertNodeRuntime()", () => {
     it("throws with a clear message when called in edge runtime", () => {
       g.EdgeRuntime = "edge";
-      expect(() => assertNodeRuntime("runtimeRedis()")).toThrowError(
+      expect(() => assertNodeRuntime("runtimeRedis()")).toThrow(
         /runtimeRedis\(\) requires Node\.js runtime but is running in "edge" runtime/,
       );
     });
 
     it("throws with a clear message when called in browser runtime", () => {
       g.window = {};
-      expect(() => assertNodeRuntime("runtimeDb()")).toThrowError(
+      expect(() => assertNodeRuntime("runtimeDb()")).toThrow(
         /runtimeDb\(\) requires Node\.js runtime but is running in "browser" runtime/,
       );
     });
 
     it("includes context name in the error message", () => {
       g.EdgeRuntime = "edge";
-      expect(() => assertNodeRuntime("myDatabaseFunction()")).toThrowError(
+      expect(() => assertNodeRuntime("myDatabaseFunction()")).toThrow(
         /myDatabaseFunction\(\)/,
       );
     });

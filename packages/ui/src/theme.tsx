@@ -79,7 +79,7 @@ export const themeDetectorScript = (function () {
       return validThemes.includes(theme as ThemeMode);
     };
 
-    const storedTheme = localStorage.getItem("theme-mode") ?? "auto";
+    const storedTheme = localStorage.getItem("theme-mode") ?? "dark";
     const validTheme = isValidTheme(storedTheme) ? storedTheme : "auto";
 
     if (validTheme === "auto") {

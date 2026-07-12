@@ -1,5 +1,7 @@
-import * as readline from "readline";
 import { execa } from "execa";
+
+import { prompt } from "../../utils/prompt.js";
+import { PRESETS, RESOURCES as TARGETS } from "./tf.resources.js";
 
 // Usage examples:
 //   APP_ENV=production pnpm dw infra tf.apply.target
@@ -10,61 +12,6 @@ import { execa } from "execa";
 // All other managed resources are untouched.
 export const description =
   "Apply Terraform changes for specific resources only (targeted apply)";
-// Mirrors the Terraform module addresses for every managed resource.
-// Keep in sync with RESOURCES in tf.import.ts.
-const TARGETS = {
-  // ── Infrastructure ──────────────────────────────────────────────────────
-  upstash: "module.upstash.upstash_redis_database.main",
-  supabase: "module.supabase.supabase_project.main",
-  vercel_preview: "module.vercel.vercel_project_domain.preview[0]",
-  vercel_production: "module.vercel.vercel_project_domain.production[0]",
-  vercel_www: "module.vercel.vercel_project_domain.www[0]",
-  cloudflare_apex: "module.cloudflare.cloudflare_dns_record.apex[0]",
-  cloudflare_www: "module.cloudflare.cloudflare_dns_record.www[0]",
-  cloudflare_preview: "module.cloudflare.cloudflare_dns_record.preview[0]",
-  cloudflare_tunnel: "module.cloudflare.cloudflare_dns_record.tunnel[0]",
-  cloudflare_spf: "module.cloudflare.cloudflare_dns_record.spf[0]",
-  cloudflare_dmarc: "module.cloudflare.cloudflare_dns_record.dmarc[0]",
-  // ── Doppler secrets ─────────────────────────────────────────────────────
-  doppler_upstash_url: "module.doppler.doppler_secret.upstash_rest_url",
-  doppler_upstash_token: "module.doppler.doppler_secret.upstash_rest_token",
-  doppler_database_url: "module.doppler.doppler_secret.database_url",
-  doppler_direct_url: "module.doppler.doppler_secret.direct_url",
-  doppler_supabase_ref: "module.doppler.doppler_secret.supabase_project_ref",
-  doppler_supabase_publishable_key:
-    "module.doppler.doppler_secret.supabase_publishable_key",
-  doppler_supabase_secret_key:
-    "module.doppler.doppler_secret.supabase_secret_key",
-};
-// Preset groups for common multi-resource operations.
-// Selecting a preset expands to all addresses in that group.
-const PRESETS = {
-  "supabase+doppler": [
-    "supabase",
-    "doppler_database_url",
-    "doppler_direct_url",
-    "doppler_supabase_ref",
-    "doppler_supabase_publishable_key",
-    "doppler_supabase_secret_key",
-  ],
-  "upstash+doppler": [
-    "upstash",
-    "doppler_upstash_url",
-    "doppler_upstash_token",
-  ],
-};
-function prompt(question) {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-  return new Promise((resolve) => {
-    rl.question(question, (answer) => {
-      rl.close();
-      resolve(answer.trim());
-    });
-  });
-}
 const command = async () => {
   const env = process.env.APP_ENV === "production" ? "production" : "preview";
   const dopplerConfig = env === "production" ? "prd" : "stg";

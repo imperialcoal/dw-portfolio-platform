@@ -1,7 +1,7 @@
-import * as readline from "readline";
 import { execa } from "execa";
 
 import type { CLICommand } from "../../types/command.js";
+import { prompt } from "../../utils/prompt.js";
 
 // Safety-hardened apply command.
 //
@@ -19,19 +19,6 @@ import type { CLICommand } from "../../types/command.js";
 
 export const description =
   "Apply Terraform infrastructure changes (with environment confirmation)";
-
-function prompt(question: string): Promise<string> {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-  return new Promise((resolve) => {
-    rl.question(question, (answer) => {
-      rl.close();
-      resolve(answer.trim());
-    });
-  });
-}
 
 const command: CLICommand = async () => {
   const env = process.env.APP_ENV === "production" ? "production" : "preview";

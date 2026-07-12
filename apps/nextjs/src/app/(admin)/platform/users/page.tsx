@@ -5,10 +5,16 @@ import type { UserActivityRecord } from "@dw/contracts";
 import { getUserActivity } from "@dw/ai/memory";
 import { config } from "@dw/config";
 
+import { DEMO_TOOLTIPS, DemoDeepLink, isDemoSession } from "~/demo";
+
+function clerkUrl(path: string, appId: string, instanceId: string) {
+  if (!appId || !instanceId) return "https://dashboard.clerk.com";
+  return `https://dashboard.clerk.com/apps/${appId}/instances/${instanceId}/${path}`;
+}
+
 function timeAgo(ts: string): string {
   const diff = Date.now() - new Date(ts).getTime();
   const m = Math.floor(diff / 60_000);
-  if (m < 1) return "just now";
   if (m < 60) return `${m}m ago`;
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h ago`;
@@ -16,62 +22,54 @@ function timeAgo(ts: string): string {
 }
 
 const EVENT_STYLES: Record<
-  UserActivityRecord["eventType"],
-  { badge: string; label: string; icon: string }
+  string,
+  { badge: string; icon: string; label: string }
 > = {
   "user.created": {
     badge: "bg-green-500/10 text-green-400 border-green-500/20",
-    label: "User Created",
-    icon: "✦",
-  },
-  "user.deleted": {
-    badge: "bg-red-500/10 text-red-400 border-red-500/20",
-    label: "User Deleted",
-    icon: "✕",
+    icon: "+",
+    label: "created",
   },
   "user.updated": {
     badge: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-    label: "User Updated",
-    icon: "✎",
+    icon: "↻",
+    label: "updated",
+  },
+  "user.deleted": {
+    badge: "bg-red-500/10 text-red-400 border-red-500/20",
+    icon: "x",
+    label: "deleted",
   },
   "session.created": {
     badge: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-    label: "Signed In",
     icon: "→",
+    label: "signed in",
   },
   "session.ended": {
-    badge: "bg-muted text-muted-foreground border-border",
-    label: "Session Ended",
+    badge: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
     icon: "←",
-  },
-  "oauth.connected": {
-    badge: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-    label: "OAuth Connected",
-    icon: "⛓",
-  },
-  "oauth.disconnected": {
-    badge: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-    label: "OAuth Disconnected",
-    icon: "⛓",
+    label: "signed out",
   },
 };
-
-function clerkUrl(path: string, appId: string, instanceId: string): string {
-  if (!appId || !instanceId) return "https://dashboard.clerk.com";
-  return `https://dashboard.clerk.com/apps/${appId}/instances/${instanceId}/${path}`;
-}
 
 function ActivityRow({
   record,
   clerkAppId,
   clerkInstanceId,
+  isDemo,
 }: {
   record: UserActivityRecord;
   clerkAppId: string;
   clerkInstanceId: string;
+  isDemo: boolean;
 }) {
-  const style = EVENT_STYLES[record.eventType];
+  const style = EVENT_STYLES[record.eventType] ?? {
+    badge: "bg-muted text-muted-foreground border-border",
+    icon: "·",
+    label: record.eventType,
+  };
   const hasClerkIds = !!clerkAppId && !!clerkInstanceId;
+
   return (
     <div className="border-border flex items-start gap-4 border-b py-3 last:border-0">
       <span
@@ -113,18 +111,17 @@ function ActivityRow({
           {timeAgo(record.timestamp)}
         </span>
         {hasClerkIds && (
-          <a
+          <DemoDeepLink
             href={clerkUrl(
               `users/${record.userId}`,
               clerkAppId,
               clerkInstanceId,
             )}
-            target="_blank"
-            rel="noopener noreferrer"
+            label="Clerk →"
+            tooltip={DEMO_TOOLTIPS.clerkUsers}
+            isDemo={isDemo}
             className="border-border bg-muted/40 text-muted-foreground hover:text-foreground rounded border px-2 py-0.5 text-[10px] transition-colors"
-          >
-            Clerk →
-          </a>
+          />
         )}
       </div>
     </div>
@@ -132,6 +129,7 @@ function ActivityRow({
 }
 
 export default async function UsersPage() {
+  const isDemo = await isDemoSession();
   const activity = await getUserActivity(100).catch(
     () => [] as UserActivityRecord[],
   );
@@ -148,31 +146,39 @@ export default async function UsersPage() {
     (a) => a.eventType === "session.created",
   ).length;
 
+  const headerLinkClass =
+    "border-border bg-muted/40 text-muted-foreground hover:text-foreground rounded border px-3 py-1.5 text-xs transition-colors";
+
   const clerkLinks = [
     {
       label: "All Users",
       desc: "Browse users, roles, metadata",
       href: clerkUrl("users", clerkAppId, clerkInstanceId),
+      tooltip: DEMO_TOOLTIPS.clerkUsers,
     },
     {
       label: "Active Sessions",
       desc: "View and revoke live sessions",
       href: clerkUrl("sessions", clerkAppId, clerkInstanceId),
+      tooltip: DEMO_TOOLTIPS.clerkSessions,
     },
     {
       label: "Audit Log",
       desc: "Full authentication event log",
       href: clerkUrl("logs", clerkAppId, clerkInstanceId),
+      tooltip: DEMO_TOOLTIPS.clerkAuditLog,
     },
     {
       label: "Webhooks",
       desc: "Debug endpoints & signing secrets",
       href: clerkUrl("webhooks", clerkAppId, clerkInstanceId),
+      tooltip: DEMO_TOOLTIPS.clerkWebhooks,
     },
     {
       label: "Email Templates",
       desc: "Magic link, verify, reset emails",
       href: clerkUrl("customization/email", clerkAppId, clerkInstanceId),
+      tooltip: DEMO_TOOLTIPS.clerkUsers,
     },
     {
       label: "Allowlist",
@@ -182,6 +188,7 @@ export default async function UsersPage() {
         clerkAppId,
         clerkInstanceId,
       ),
+      tooltip: DEMO_TOOLTIPS.clerkUsers,
     },
     {
       label: "Blocklist",
@@ -191,6 +198,7 @@ export default async function UsersPage() {
         clerkAppId,
         clerkInstanceId,
       ),
+      tooltip: DEMO_TOOLTIPS.clerkUsers,
     },
     {
       label: "Auth Restrictions",
@@ -200,6 +208,7 @@ export default async function UsersPage() {
         clerkAppId,
         clerkInstanceId,
       ),
+      tooltip: DEMO_TOOLTIPS.clerkUsers,
     },
   ];
 
@@ -224,22 +233,20 @@ export default async function UsersPage() {
             </div>
           </div>
           <div className="flex shrink-0 gap-2">
-            <a
+            <DemoDeepLink
               href={clerkUrl("users", clerkAppId, clerkInstanceId)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="border-border bg-muted/40 text-muted-foreground hover:text-foreground rounded border px-3 py-1.5 text-xs transition-colors"
-            >
-              Clerk Users →
-            </a>
-            <a
+              label="Clerk Users →"
+              tooltip={DEMO_TOOLTIPS.clerkUsers}
+              isDemo={isDemo}
+              className={headerLinkClass}
+            />
+            <DemoDeepLink
               href={clerkUrl("webhooks", clerkAppId, clerkInstanceId)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="border-border bg-muted/40 text-muted-foreground hover:text-foreground rounded border px-3 py-1.5 text-xs transition-colors"
-            >
-              Webhooks →
-            </a>
+              label="Webhooks →"
+              tooltip={DEMO_TOOLTIPS.clerkWebhooks}
+              isDemo={isDemo}
+              className={headerLinkClass}
+            />
           </div>
         </div>
 
@@ -302,6 +309,7 @@ export default async function UsersPage() {
                   record={record}
                   clerkAppId={clerkAppId}
                   clerkInstanceId={clerkInstanceId}
+                  isDemo={isDemo}
                 />
               ))}
             </div>
@@ -313,22 +321,38 @@ export default async function UsersPage() {
             Clerk Quick Access
           </h2>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {clerkLinks.map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="border-border bg-muted/40 hover:border-border hover:bg-muted/60 rounded-xl border p-4 transition-colors"
-              >
-                <p className="text-foreground text-sm font-medium">
-                  {link.label}
-                </p>
-                <p className="text-muted-foreground mt-0.5 text-xs">
-                  {link.desc}
-                </p>
-              </a>
-            ))}
+            {clerkLinks.map((link) => {
+              const cardClass =
+                "border-border bg-muted/40 hover:border-border hover:bg-muted/60 rounded-xl border p-4 transition-colors";
+              if (!isDemo) {
+                return (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cardClass}
+                  >
+                    <p className="text-foreground text-sm font-medium">
+                      {link.label}
+                    </p>
+                    <p className="text-muted-foreground mt-0.5 text-xs">
+                      {link.desc}
+                    </p>
+                  </a>
+                );
+              }
+              return (
+                <DemoDeepLink
+                  key={link.label}
+                  href={link.href}
+                  label={link.label}
+                  tooltip={link.tooltip}
+                  isDemo={isDemo}
+                  className={cardClass}
+                />
+              );
+            })}
           </div>
         </div>
       </div>

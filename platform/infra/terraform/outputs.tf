@@ -32,7 +32,17 @@ output "supabase_database_url" {
   sensitive   = true
 }
 
-output "vercel_deployment_url" {
-  description = "Primary deployment URL"
-  value       = module.vercel.deployment_url
+output "vercel_platform_deployment_url" {
+  description = "Primary platform deployment URL"
+  value       = module.vercel_platform.deployment_url
+}
+
+output "vercel_home_deployment_url" {
+  description = "Astro portfolio deployment URL"
+  value       = module.vercel_home.deployment_url
+}
+
+output "railway_project_id" {
+  description = "Railway project ID"
+  value       = module.railway.project_id
 }

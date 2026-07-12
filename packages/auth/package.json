@@ -17,6 +17,8 @@
     "./roles": "./src/roles.ts"
   },
   "scripts": {
+    "auth:unit:test": "vitest run --config vitest.unit.config.ts",
+    "auth:infrastructure:test": "vitest run --config vitest.infra.config.ts",
     "clean": "git clean -xdf .cache .turbo dist node_modules",
     "format": "prettier --check . --ignore-path ../../.gitignore",
     "lint": "eslint --flag unstable_native_nodejs_ts_config",
@@ -27,6 +29,7 @@
     "@clerk/nextjs": "catalog:",
     "@dw/db": "workspace:*",
     "@dw/redis": "workspace:*",
+    "@dw/runtime": "workspace:*",
     "@t3-oss/env-core": "catalog:",
     "@trpc/server": "catalog:",
     "zod": "catalog:"
@@ -38,7 +41,8 @@
     "@types/node": "catalog:",
     "eslint": "catalog:",
     "prettier": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "prettier": "@dw/prettier-config"
 }

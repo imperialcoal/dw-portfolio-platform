@@ -14,6 +14,8 @@ import {
 } from "@dw/ai/memory";
 import { getLastProductionDeploy } from "@dw/ai/sensors";
 
+import { isDemoSession } from "~/demo";
+import { DemoIncidentTrigger } from "~/demo/triggers/DemoIncidentTrigger";
 import { env } from "~/env";
 import { MaintenanceToggle } from "./_components/maintenance-toggle";
 import { RunDocsAgentButton } from "./_components/run-docs-agent-button";
@@ -31,14 +33,6 @@ function timeAgo(ts: string): string {
   if (h < 24) return `${h}h ago`;
   return `${Math.floor(h / 24)}d ago`;
 }
-
-// ─────────────────────────────────────────────
-// Severity / status style maps
-//
-// Color-coded classes (red, orange, yellow, green, emerald) are kept as-is —
-// they work in both light and dark since they're semantically meaningful.
-// Only the neutral zinc/white-opacity classes are swapped for tokens.
-// ─────────────────────────────────────────────
 
 const SEVERITY_STYLES = {
   critical: {
@@ -382,6 +376,13 @@ export default async function PlatformPage() {
               : `${health.recentSeverity} severity`}
           </div>
         </div>
+
+        {/* ── Demo controls — visible only in DEMO_MODE ────────────────── */}
+        {(await isDemoSession()) && (
+          <div>
+            <DemoIncidentTrigger />
+          </div>
+        )}
 
         {/* Incident status summary */}
         <div>

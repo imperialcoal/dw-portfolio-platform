@@ -29,8 +29,8 @@ export async function loadAuthorityUser(
 
     if (!dbProfile) return null;
 
-    // dbProfile.role is now "admin" | "viewer" | "user" — matches Role exactly.
-    // No cast needed since roleEnum was updated to include "viewer".
+    // dbProfile.role is now "admin" | "recruiter" | "user" — matches Role exactly.
+    // No cast needed since roleEnum was updated to include "recruiter".
     profile = {
       id: dbProfile.id,
       role: dbProfile.role,

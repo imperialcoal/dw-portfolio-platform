@@ -1,0 +1,8 @@
+{
+  "extends": "@dw/tsconfig/base.json",
+  "compilerOptions": {
+    "types": ["astro/client"]
+  },
+  "include": [".astro/types.d.ts", "**/*"],
+  "exclude": ["node_modules", "dist"]
+}

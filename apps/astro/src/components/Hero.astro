@@ -1,0 +1,91 @@
+---
+---
+
+<section id="hero" class="hero">
+  <div class="hero-bg" aria-hidden="true"></div>
+  <div class="container hero-content">
+    <p class="hero-eyebrow" data-reveal>Available for opportunities</p>
+    <h1 class="hero-name" data-reveal data-reveal-delay="1">
+      Derrick Warren
+    </h1>
+    <p class="hero-title" data-reveal data-reveal-delay="2">
+      Full-Stack Software Developer
+    </p>
+    <p class="hero-tagline" data-reveal data-reveal-delay="3">
+      Four years of professional software development — survey applications and
+      internal dashboards in Perl and JavaScript, ECharts data visualization for
+      non-technical stakeholders, production deployments, and collaborative
+      delivery with Git, Jira, and Bitbucket. Independently: full-stack
+      TypeScript systems, AI agent pipelines, cloud infrastructure as code, and
+      CI/CD from scratch. The work spans more than one project card.
+    </p>
+  </div>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    padding: 8rem 0 4rem;
+    overflow: hidden;
+  }
+
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 70% 50% at 50% 0%, rgba(52, 211, 153, 0.05) 0%, transparent 70%),
+      radial-gradient(ellipse 25% 25% at 90% 90%, rgba(52, 211, 153, 0.03) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .hero-content { position: relative; max-width: 680px; }
+
+  .hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1.25rem;
+  }
+
+  .hero-eyebrow::before {
+    content: "";
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.3; transform: scale(0.7); }
+  }
+
+  .hero-name {
+    font-size: clamp(2.8rem, 8vw, 5rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    margin-bottom: 0.6rem;
+  }
+
+  .hero-title {
+    font-size: clamp(1rem, 3vw, 1.3rem);
+    font-weight: 400;
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+  }
+
+  .hero-tagline {
+    font-size: 1.05rem;
+    color: var(--text-muted);
+    line-height: 1.85;
+    max-width: 600px;
+  }
+</style>

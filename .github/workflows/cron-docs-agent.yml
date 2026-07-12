@@ -2,7 +2,7 @@ name: Nightly Docs Agent
 
 on:
   schedule:
-    # 3am UTC nightly — matches the vercel.json schedule for when this moves to production
+    # 3am UTC nightly
     - cron: "0 3 * * *"
   # Allow manual trigger from GitHub Actions UI for testing
   workflow_dispatch:
@@ -16,9 +16,10 @@ jobs:
   docs-agent:
     name: Run Documentation Drift Agent
     runs-on: ubuntu-latest
-    # Only run on the dev branch — this workflow is for preview environment only.
-    # When the AI DevOps system is promoted to production, disable this workflow
-    # and let vercel.json crons take over.
+    # Only run on the dev branch — production is intentionally a closed door
+    # (DEMO_MODE=false, deploy-history only, no live traffic — see
+    # docs/ARCHITECTURE.md Key Architectural Decisions), so this workflow
+    # is expected to remain the only trigger for this cron indefinitely.
     if: github.ref == 'refs/heads/dev' || github.event_name == 'workflow_dispatch'
 
     steps:
@@ -30,7 +31,7 @@ jobs:
           echo "Calling docs-agent on preview deployment (branch: $BRANCH)"
 
           RESPONSE=$(curl -s -w "\n%{http_code}" -X GET \
-            "https://dev.dw-portfolio.dev/api/cron/docs-agent?branch=${BRANCH}&x-vercel-protection-bypass=${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}" \
+            "https://dev.dw-portfolio.dev/api/cron/docs-agent?branch=${BRANCH}" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
             --max-time 300)

@@ -1,0 +1,218 @@
+---
+import { fetchWithFallback } from "../lib/fetch-with-fallback";
+
+interface Role {
+  title: string;
+  company: string;
+  location: string;
+  dates: string;
+  summary: string;
+  tags: string[];
+}
+
+const FALLBACK_ROLES: Role[] = [
+  {
+    title: "Survey Programmer & Software Developer",
+    company: "MarketVision Research",
+    location: "Blue Ash, OH",
+    dates: "Nov 2021 - Apr 2025",
+    summary:
+      "Built and maintained custom market research survey applications across the full lifecycle. Shipped ECharts dashboards, custom UI components, and co-developed a VS Code extension that automated team workflows.",
+    tags: ["Perl", "JavaScript", "HTML/CSS", "Apache ECharts", "SQL"],
+  },
+  {
+    title: "Technology Team Lead",
+    company: "Sam's Club",
+    location: "Alpharetta, GA",
+    dates: "Sep 2016 - Jan 2018",
+    summary:
+      "Led a team of ~10 associates across technology departments. Owned scheduling, training, onboarding, and cross-department operational coordination.",
+    tags: ["Team Leadership", "Operations", "Training"],
+  },
+  {
+    title: "General Mechanic & Office Manager",
+    company: "Master's Automotive",
+    location: "Marietta, GA",
+    dates: "Sep 2014 - Jun 2016",
+    summary:
+      "Performed vehicle diagnostics, emissions testing, brake service, and alignments while simultaneously managing front-office operations and customer communication.",
+    tags: ["Diagnostics", "Office Management", "Customer Relations"],
+  },
+  {
+    title: "Lead Tire Technician & Accounting Associate",
+    company: "Sam's Club",
+    location: "Marietta, GA",
+    dates: "2005 - 2014",
+    summary:
+      "Michelin and Goodyear certified tire technician. Managed inventory and reconciled financial records — dual expertise in technical service and business operations.",
+    tags: ["Michelin Certified", "Goodyear Certified", "Accounting", "Inventory"],
+  },
+  {
+    title: "Rideshare & Delivery Driver",
+    company: "Uber Technologies",
+    location: "Multiple States",
+    dates: "Nov 2015 - Present",
+    summary:
+      "Maintained consistent service ratings through reliability and adaptability across independent, high-volume work environments.",
+    tags: ["Customer Service", "Adaptability"],
+  },
+];
+
+const roles = await fetchWithFallback(FALLBACK_ROLES, {
+  baseUrl: import.meta.env.CAREER_DATA_URL,
+  path: "/experience",
+  parse: (json) =>
+    Array.isArray(json) && json.length > 0 ? (json as Role[]) : undefined,
+});
+---
+
+<section id="experience">
+  <div class="container">
+    <p class="section-label" data-reveal>Experience</p>
+    <h2 class="section-title" data-reveal data-reveal-delay="1">
+      Career arc
+    </h2>
+    <div class="section-divider" data-reveal data-reveal-delay="1"></div>
+
+    <div class="timeline">
+      {
+        roles.map((role, i) => (
+          <div
+            class="timeline-item"
+            data-reveal
+            data-reveal-delay={String((i % 3) + 1)}
+          >
+            <div class="timeline-dot" />
+            <div class="timeline-body">
+              <div class="role-header">
+                <div>
+                  <h3 class="role-title">{role.title}</h3>
+                  <p class="role-company">
+                    {role.company}
+                    <span class="role-location"> · {role.location}</span>
+                  </p>
+                </div>
+                <span class="role-dates">{role.dates}</span>
+              </div>
+              <p class="role-summary">{role.summary}</p>
+              <div class="role-tags">
+                {role.tags.map((tag) => (
+                  <span class="role-tag">{tag}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .timeline {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding-left: 1.5rem;
+    border-left: 2px solid var(--border);
+  }
+
+  .timeline-item {
+    position: relative;
+    padding: 0 0 2.5rem 1.75rem;
+  }
+
+  .timeline-item:last-child {
+    padding-bottom: 0;
+  }
+
+  .timeline-dot {
+    position: absolute;
+    left: -1.5rem;
+    top: 0.35rem;
+    transform: translateX(-50%);
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--bg);
+    box-shadow: 0 0 0 2px var(--border-accent);
+    flex-shrink: 0;
+  }
+
+  .timeline-body {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    transition: border-color var(--transition);
+  }
+
+  .timeline-body:hover {
+    border-color: var(--border-accent);
+  }
+
+  .role-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .role-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 0.2rem;
+  }
+
+  .role-company {
+    font-size: 0.875rem;
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .role-location {
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+
+  .role-dates {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    padding-top: 0.1rem;
+    flex-shrink: 0;
+  }
+
+  .role-summary {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    line-height: 1.7;
+    margin-bottom: 0.85rem;
+  }
+
+  .role-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+
+  .role-tag {
+    font-size: 0.72rem;
+    padding: 0.15rem 0.5rem;
+    background: var(--tag-bg);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+  }
+
+  @media (max-width: 560px) {
+    .role-header {
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+  }
+</style>

@@ -1,0 +1,99 @@
+---
+import { fetchWithFallback } from "../lib/fetch-with-fallback";
+
+interface SkillGroup {
+  category: string;
+  skills: string[];
+  roles: string[];
+}
+
+// Astro-display categories (different subset/order than resume roles)
+const FALLBACK_CATEGORIES: SkillGroup[] = [
+  { category: "Languages & Core", skills: ["TypeScript", "JavaScript", "Go", "Perl", "HTML", "CSS", "SQL", "Bash"], roles: [] },
+  { category: "Frontend & Frameworks", skills: ["Next.js 16", "React 19", "Astro", "tRPC", "Drizzle ORM", "Zod"], roles: [] },
+  { category: "Cloud & Infrastructure", skills: ["Vercel", "Supabase", "Cloudflare", "Upstash", "Doppler", "Terraform", "Docker", "Railway"], roles: [] },
+  { category: "AI & Automation", skills: ["Anthropic SDK", "AI agent loops", "Prompt engineering", "QStash", "Webhook pipelines"], roles: [] },
+  { category: "CI/CD & Testing", skills: ["GitHub Actions", "Turborepo", "pnpm Workspaces", "Vitest", "Docker Compose", "ESLint 9"], roles: [] },
+  { category: "Systems & Tools", skills: ["Git", "VS Code", "PC assembly", "Hardware diagnostics", "Vehicle diagnostics", "Ubuntu / Linux"], roles: [] },
+];
+
+const categories = await fetchWithFallback(FALLBACK_CATEGORIES, {
+  baseUrl: import.meta.env.CAREER_DATA_URL,
+  path: "/skills",
+  parse: (json) =>
+    Array.isArray(json) && json.length > 0 ? (json as SkillGroup[]) : undefined,
+});
+---
+
+<section id="skills">
+  <div class="container">
+    <p class="section-label" data-reveal>Skills</p>
+    <h2 class="section-title" data-reveal data-reveal-delay="1">
+      What I work with
+    </h2>
+    <div class="section-divider" data-reveal data-reveal-delay="1"></div>
+
+    <div class="skills-grid">
+      {categories.map((cat, i) => (
+        <div
+          class="skill-group"
+          data-reveal
+          data-reveal-delay={String((i % 3) + 1)}
+        >
+          <p class="skill-category">{cat.category}</p>
+          <div class="skill-pills">
+            {cat.skills.map((s) => <span class="skill-pill">{s}</span>)}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .skills-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .skill-group {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.1rem 1.25rem;
+    transition: border-color var(--transition);
+  }
+
+  .skill-group:hover {
+    border-color: var(--border-accent);
+  }
+
+  .skill-category {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    margin-bottom: 0.7rem;
+  }
+
+  .skill-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+
+  .skill-pill {
+    font-size: 0.78rem;
+    padding: 0.18rem 0.5rem;
+    background: var(--bg-card-hover);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+  }
+
+  @media (max-width: 600px) {
+    .skills-grid { grid-template-columns: 1fr; }
+  }
+</style>

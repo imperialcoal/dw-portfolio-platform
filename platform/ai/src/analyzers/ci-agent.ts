@@ -145,7 +145,7 @@ export async function runCiAgent(
   //   - CI failures only (noise reduction — Sentry/security alerts add no context here)
   //   - Same branch (relevance — only failures on this branch matter)
   //   - Last 7 days (recency — older patterns are less actionable)
-  //   - Maximum 5 (token budget — each adds ~100–200 tokens to the prompt)
+  //   - Maximum 5 (token budget — each adds ~100-200 tokens to the prompt)
   //
   // If Redis is unavailable or empty, falls back to stateless analysis (empty array).
 
@@ -236,6 +236,10 @@ export async function runCiAgent(
   const githubIssueNumber = issueUrl
     ? parseInt(issueUrl.split("/").pop() ?? "", 10) || undefined
     : undefined;
+  // Only meaningful when createGithubIssue was true and the call rejected —
+  // see IncidentRecord.githubIssueError for why this is tracked at all.
+  const githubIssueError =
+    issueResult.status === "rejected" ? String(issueResult.reason) : undefined;
 
   const incidentDocPath =
     docResult.status === "fulfilled" ? docResult.value.filePath : undefined;
@@ -301,6 +305,7 @@ export async function runCiAgent(
     timestamp: event.timestamp,
     issueUrl,
     githubIssueNumber,
+    githubIssueError,
     incidentDocPath,
     commitSha: event.context.commitSha || undefined,
     branch: event.context.branch || undefined,

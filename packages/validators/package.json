@@ -51,6 +51,10 @@
       "types": "./dist/redis-env.d.ts",
       "default": "./src/redis-env.ts"
     },
+    "./resume-env": {
+      "types": "./dist/resume-env.d.ts",
+      "default": "./src/resume-env.ts"
+    },
     "./supabase-env": {
       "types": "./dist/supabase-env.d.ts",
       "default": "./src/supabase-env.ts"

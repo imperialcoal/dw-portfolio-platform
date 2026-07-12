@@ -6,7 +6,7 @@ terraform {
   required_providers {
     cloudflare = {
       source  = "cloudflare/cloudflare"
-      version = "~> 5.19.1"
+      version = "~> 5.21.0"
     }
     vercel = {
       source  = "vercel/vercel"
@@ -23,6 +23,10 @@ terraform {
     supabase = {
       source  = "supabase/supabase"
       version = "~> 1.9.1"
+    }
+    railway = {
+      source  = "terraform-community-providers/railway"
+      version = "~> 0.6.2"
     }
   }
 

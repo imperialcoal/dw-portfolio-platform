@@ -36,6 +36,11 @@ variable "vercel_project_id" {
   type        = string
 }
 
+variable "vercel_home_project_id" {
+  description = "Vercel project ID for dw-portfolio-platform-home (Astro portfolio)"
+  type        = string
+}
+
 variable "vercel_team_id" {
   description = "Vercel team ID — empty string for personal accounts"
   type        = string
@@ -86,4 +91,22 @@ variable "doppler_token" {
   description = "Doppler service token scoped to target config"
   type        = string
   sensitive   = true
+}
+
+# ── Railway ───────────────────────────────────────────────────────────────────
+
+variable "railway_api_token" {
+  description = "Railway API token"
+  type        = string
+  sensitive   = true
+}
+
+variable "railway_resume_api_cname_target" {
+  description = "CNAME target Railway issued for dev.resume-api.dw-portfolio.dev — sourced manually from the Railway dashboard, provider cannot read it back"
+  type        = string
+}
+
+variable "railway_career_data_cname_target" {
+  description = "CNAME target Railway issued for dev.career-data.dw-portfolio.dev — sourced manually from the Railway dashboard, provider cannot read it back"
+  type        = string
 }

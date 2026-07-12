@@ -93,18 +93,48 @@
       "persistent": true
     },
     "platform:runtime:test": {
-      "outputs": ["coverage/**"], // add coverage flag to vitest later for more metrics during testing
+      "outputs": ["coverage/**"],
       "cache": true
     },
     "api:infrastructure:test": {
       "dependsOn": ["@dw/dev-tools#dev-tools:db:test-setup"],
-      "outputs": ["coverage/**"], // add coverage flag to vitest later for more metrics during testing
+      "outputs": ["coverage/**"],
       "cache": false
     },
     "clerk:webhook:test": {
       "dependsOn": ["@dw/dev-tools#dev-tools:db:test-setup"],
-      "outputs": ["coverage/**"], // add coverage flag to vitest later for more metrics during testing
+      "outputs": ["coverage/**"],
       "cache": false
+    },
+    "auth:unit:test": {
+      "outputs": ["coverage/**"],
+      "cache": true
+    },
+    "auth:infrastructure:test": {
+      "dependsOn": ["@dw/dev-tools#dev-tools:db:test-setup"],
+      "outputs": ["coverage/**"],
+      "cache": false
+    },
+    "api:platform:dashboard:test": {
+      "dependsOn": ["@dw/dev-tools#dev-tools:db:test-setup"],
+      "outputs": ["coverage/**"],
+      "cache": false
+    },
+    "contracts:unit:test": {
+      "outputs": ["coverage/**"],
+      "cache": true
+    },
+    "llm:unit:test": {
+      "outputs": ["coverage/**"],
+      "cache": true
+    },
+    "ai:memory:test": {
+      "outputs": ["coverage/**"],
+      "cache": false
+    },
+    "astro:unit:test": {
+      "outputs": ["coverage/**"],
+      "cache": true
     }
   },
   "globalEnv": [
@@ -121,6 +151,7 @@
     "ANTHROPIC_API_KEY",
     "APP_ENV",
     "AUTH_REDIRECT_PROXY_URL",
+    "CAREER_DATA_URL",
     "CI",
     "CLERK_APP_ID",
     "CLERK_INSTANCE_ID",
@@ -130,6 +161,8 @@
     "CLOUDFLARE_ZONE_ID",
     "CRON_SECRET",
     "DATABASE_URL",
+    "DEMO_USER_CLERK_ID",
+    "DEMO_MODE",
     "DIRECT_URL",
     "DOPPLER_CONFIG",
     "DOPPLER_ENVIRONMENT",
@@ -154,12 +187,15 @@
     "R2_ACCESS_KEY_ID",
     "R2_ENDPOINT",
     "R2_SECRET_ACCESS_KEY",
+    "RECRUITER_EMAILS",
     "RESEND_AGENT_FROM_EMAIL",
     "RESEND_API_KEY",
     "RESEND_FROM_EMAIL",
     "RESEND_TO_EMAIL",
     "RESOURCE",
     "RESOURCE_ID",
+    "RESUME_API_URL",
+    "RESUME_API_KEY",
     "SENTRY_AUTH_TOKEN",
     "SENTRY_ORG",
     "SENTRY_PROJECT",

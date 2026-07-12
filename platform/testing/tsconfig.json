@@ -1,5 +1,9 @@
 {
-  "extends": "@dw/tsconfig/base.json",
+  "extends": "@dw/tsconfig/compiled-package-with-tests.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "emitDeclarationOnly": false
+  },
   "include": ["src", "vitest.env.ts", "vitest.runtime.ts"],
   "exclude": ["node_modules"]
 }

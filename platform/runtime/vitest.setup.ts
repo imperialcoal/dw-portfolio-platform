@@ -1,11 +1,18 @@
-// Local setup for runtime unit tests.
-// Runs before @dw/runtime/init so mock env vars are in place before any
-// validation fires. Does not import vitest.env.ts for this reason.
-process.env.NODE_ENV ??= "test";
-process.env.APP_ENV ??= "test";
+// Local setup for platform/runtime unit tests.
+// Object.assign avoids the readonly NODE_ENV TS error and runs before
+// any module import resolves.
+Object.assign(process.env, {
+  NODE_ENV: process.env.NODE_ENV ?? "test",
+  APP_ENV: process.env.APP_ENV ?? "test",
+  UPSTASH_REDIS_REST_URL:
+    process.env.UPSTASH_REDIS_REST_URL ?? "https://mock-redis.example.com",
+  UPSTASH_REDIS_REST_TOKEN:
+    process.env.UPSTASH_REDIS_REST_TOKEN ?? "mock_token",
+  DATABASE_URL:
+    process.env.DATABASE_URL ??
+    "postgresql://mock:mock@localhost:5432/mock_test",
+  DIRECT_URL:
+    process.env.DIRECT_URL ?? "postgresql://mock:mock@localhost:5432/mock_test",
+});
 
-// Valid HTTPS URLs to pass @dw/env schema validation — no real connections made
-process.env.UPSTASH_REDIS_REST_URL ??= "https://mock-redis.example.com";
-process.env.UPSTASH_REDIS_REST_TOKEN ??= "mock_token";
-process.env.DATABASE_URL ??= "postgresql://mock:mock@localhost:5432/mock_test";
-process.env.DIRECT_URL ??= "postgresql://mock:mock@localhost:5432/mock_test";
+await import("@dw/runtime/init");

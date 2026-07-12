@@ -6,6 +6,7 @@ import { desc, eq } from "@dw/db";
 import { CreatePostSchema, Post } from "@dw/db/schema";
 import { cacheKeys } from "@dw/redis";
 
+import { getCreatePostProcedure } from "../demo";
 // Add protectedProcedure when all registered users have writing privileges
 import { adminProcedure, publicProcedure } from "../trpc";
 
@@ -53,27 +54,12 @@ export const postRouter = {
       return post;
     }),
 
-  // Currently Admin is the only user that can create posts
-  // create: protectedProcedure
-  //   .input(CreatePostSchema)
-  //   .mutation(async ({ ctx, input }) => {
-  //     const result = await ctx.db.insert(Post).values({
-  //       ...input,
-  //       authorId: ctx.user.id,
-  //     });
-
-  //     void ctx.redis.del(cacheKeys.postsAll);
-
-  //     return result;
-  //   }),
-
-  // ADMIN ONLY: Currently only Admin can create posts
-  // In the future, I will change this back to `protectedProcedure`
-  // and add logic to enforce `authorId` matches `ctx.user.id`.
-  create: adminProcedure
+  // Demo overlay: getCreatePostProcedure() returns recruiterOrAdminProcedure
+  // when DEMO_MODE=true, otherwise adminProcedure. This is the only place
+  // the demo overlay needs to be wired in -- see packages/api/src/demo/.
+  create: getCreatePostProcedure()
     .input(CreatePostSchema)
     .mutation(async ({ ctx, input }) => {
-      // ADD .returning()
       const [post] = await ctx.db
         .insert(Post)
         .values({
@@ -87,21 +73,8 @@ export const postRouter = {
       return post;
     }),
 
-  // Currently Admin is the only user that can delete posts
-  // delete: protectedProcedure
-  //   .input(z.string())
-  //   .mutation(async ({ ctx, input }) => {
-  //     const res = await ctx.db.delete(Post).where(eq(Post.id, input));
-
-  //     void Promise.all([
-  //       ctx.redis.del(cacheKeys.postsAll),
-  //       ctx.redis.del(cacheKeys.postById(input)),
-  //     ]);
-
-  //     return res;
-  //   }),
-
-  // ADMIN ONLY: Currently only admin can delete
+  // ADMIN ONLY, always -- delete is never exposed to recruiters even in
+  // demo mode. Destructive actions stay admin-gated regardless of DEMO_MODE.
   delete: adminProcedure.input(z.string()).mutation(async ({ ctx, input }) => {
     const res = await ctx.db.delete(Post).where(eq(Post.id, input));
 

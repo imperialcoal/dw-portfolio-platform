@@ -1,8 +1,10 @@
 {
-  "extends": "@dw/tsconfig/base.json",
-  "compilerOptions": {
-    "types": ["node"]
-  },
-  "include": ["src"],
+  "extends": "@dw/tsconfig/compiled-package-with-tests.json",
+  "include": [
+    "src",
+    "__tests__",
+    "vitest.unit.setup.ts",
+    "vitest.infra.setup.ts"
+  ],
   "exclude": ["node_modules"]
 }

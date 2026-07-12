@@ -22,7 +22,7 @@ src/
 
 Every procedure passes through at least two middlewares:
 
-1. `timingMiddleware` — logs execution time; adds 100–500ms artificial delay in dev to simulate network latency
+1. `timingMiddleware` — logs execution time; adds 100-500ms artificial delay in dev to simulate network latency
 2. A rate limit middleware — configurable per procedure type:
    - `publicProcedure`: 100 req/60s
    - `authProcedure`: 20 req/60s (for login flows)

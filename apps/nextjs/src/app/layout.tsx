@@ -13,20 +13,24 @@ import "~/app/styles.css";
 
 const url = new URL(env.NEXT_PUBLIC_APP_URL);
 
+// ─────────────────────────────────────────────
+// Base metadata — portfolio platform foundation.
+//
+// In demo mode this is overridden by demoMetadata
+// from ~/demo. See src/app/page.tsx for the toggle.
+// ─────────────────────────────────────────────
+
 export const metadata: Metadata = {
   metadataBase: url,
   title: "DW Portfolio",
-  description: "Simple monorepo with shared backend for web & mobile apps",
+  description:
+    "A full-stack portfolio platform with a TypeScript monorepo, tRPC API, Drizzle ORM, Clerk auth, and a production DevOps dashboard.",
   openGraph: {
     title: "DW Portfolio",
-    description: "Simple monorepo with shared backend for web & mobile apps",
+    description:
+      "Full-stack TypeScript monorepo — Next.js, tRPC, Drizzle, Clerk, Supabase, and a live AI DevOps dashboard.",
     url: url,
     siteName: "DW Portfolio",
-  },
-  twitter: {
-    card: "summary_large_image",
-    site: "@my_twitter",
-    creator: "@my_twitter",
   },
 };
 
@@ -63,8 +67,6 @@ export default function RootLayout(props: { children: React.ReactNode }) {
              * Universal theme toggle — fixed bottom-right, visible on every
              * route. Uses ThemeToggleMenu (dropdown) so Light / Dark / System
              * options are always explicit. z-40 keeps it below modals (z-50).
-             * The platform layout renders its own inline toggle in the command
-             * palette bar — both use the same ThemeContext so state is shared.
              */}
             <div className="fixed right-4 bottom-4 z-40">
               <ThemeToggleMenu />

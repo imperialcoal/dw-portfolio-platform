@@ -144,6 +144,8 @@ export async function runSecurityAgent(
   const githubIssueNumber = issueUrl
     ? parseInt(issueUrl.split("/").pop() ?? "", 10) || undefined
     : undefined;
+  const githubIssueError =
+    issueResult.status === "rejected" ? String(issueResult.reason) : undefined;
   const incidentDocPath =
     docResult.status === "fulfilled" ? docResult.value.filePath : undefined;
 
@@ -196,6 +198,7 @@ export async function runSecurityAgent(
     timestamp: event.timestamp,
     issueUrl,
     githubIssueNumber,
+    githubIssueError,
     incidentDocPath,
     sentryIssueId: alertId,
   });
