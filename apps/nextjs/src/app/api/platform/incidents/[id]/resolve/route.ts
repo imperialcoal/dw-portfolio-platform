@@ -1,5 +1,17 @@
 // Manual resolution endpoint — called from the platform dashboard Resolve button.
-// Admin-only. Resolves the Redis incident record AND closes the linked GitHub Issue.
+// Admin OR recruiter. Recruiters have full mutation parity with admin
+// throughout this platform (see packages/auth/src/roles.ts) — this route
+// previously used requireAdmin() specifically, which was the one place
+// that parity was accidentally broken, blocking recruiters from resolving
+// incidents they'd just triggered via the demo panel.
+//
+// Uses getRequestAuthority() + canViewPlatform() directly (same pattern as
+// src/app/api/demo/trigger/ci and .../sentry) rather than importing
+// anything from src/demo/ — this keeps this core platform route free of
+// any dependency on the demo overlay, so deleting src/demo/ later doesn't
+// require touching this file.
+//
+// Resolves the Redis incident record AND closes the linked GitHub Issue.
 //
 // GitHub Issue closure is now awaited (not fire-and-forget) so the close
 // completes before the function returns. This ensures the Vercel function
@@ -14,8 +26,9 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { closeGithubIssue, getIncident, updateIncidentStatus } from "@dw/ai";
+import { canViewPlatform } from "@dw/auth/roles";
 
-import { requireAdmin } from "~/auth/require-admin";
+import { getRequestAuthority } from "~/auth/request-authority";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -24,9 +37,8 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
-  try {
-    await requireAdmin();
-  } catch {
+  const authority = await getRequestAuthority().catch(() => null);
+  if (!authority || !canViewPlatform(authority.user.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
