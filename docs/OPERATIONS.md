@@ -473,18 +473,15 @@ All secrets are stored in **Doppler** under project `dw-portfolio-platform`.
 
 ---
 
-## Documentation Drift — 2026-07-12
+---
+
+## Documentation Drift — 2026-07-13
 
 > Auto-detected by platform-agent · Review and update the sections above · Remove this block when resolved
 
-- **New cron routes undocumented**: `/api/cron/docs-agent`, `/api/cron/health-check`, `/api/cron/perf-baseline` exist in code but aren't listed anywhere in OPERATIONS.md → add a new "Cron Jobs" subsection (or extend Infrastructure Overview) documenting each route's schedule, purpose, and required `CRON_SECRET` auth header.
-
-- **New webhook handlers undocumented**: `/api/webhooks/github` and `/api/webhooks/sentry` → add a "Webhooks" subsection under Infrastructure Overview describing payload source, verification secrets (`GITHUB_WEBHOOK_SECRET`, `SENTRY_WEBHOOK_SECRET`), and what each triggers downstream.
-
-- **New demo/testing routes undocumented**: `/api/demo/trigger/ci`, `/api/demo/trigger/sentry`, `/api/test-sentry-error` → add a "Demo & Test Endpoints" note under Infrastructure Overview clarifying these are non-production/testing-only routes and how to invoke them safely.
-
-- **New platform automation routes undocumented** (11 routes): `/api/platform/advisories/sync`, `/api/platform/deps` (+ `/analyze`, `/merge`), `/api/platform/docs/trigger`, `/api/platform/health-check/trigger`, `/api/platform/incidents/[id]/resolve`, `/api/platform/maintenance`, `/api/platform/rollback/execute`, `/api/platform/rollback/preflight`, `/api/platform/search` → add a new "Platform Automation API" section listing each route, its trigger mechanism (manual/cron/webhook), and expected request/response contract.
-
-- **`CRON_SECRET`** (from `cron-env` validator) undocumented → add to Environment Variables, likely under a new "Cron / Automation" subsection, noting it's required to authenticate all `/api/cron/*` and `/api/platform/*/trigger` routes.
-
-- **DevOps automation env vars** (`ANTHROPIC_API_KEY`, `GITHUB_TOKEN`, `GITHU
+- New cron routes `/api/cron/docs-agent`, `/api/cron/health-check`, `/api/cron/perf-baseline` are undocumented → add to **Infrastructure Overview**, listing each route's purpose, schedule, and invoking scheduler (Vercel Cron/QStash).
+- New demo trigger routes `/api/demo/trigger/ci` and `/api/demo/trigger/sentry` are undocumented → add to **Infrastructure Overview**, describing what each endpoint simulates and when it's safe to invoke.
+- New platform dependency-management routes `/api/platform/deps`, `/api/platform/deps/analyze`, `/api/platform/deps/merge`, and `/api/platform/advisories/sync` are undocumented → add a new subsection under **Infrastructure Overview** (or a "Platform Automation" section) describing the dependency sync/analyze/merge workflow.
+- New platform trigger routes `/api/platform/docs/trigger` and `/api/platform/health-check/trigger` are undocumented → add to the same Platform Automation section, noting what manual/automated processes they kick off.
+- New incident/maintenance routes `/api/platform/incidents/[id]/resolve` and `/api/platform/maintenance` are undocumented → add to Platform Automation section, describing incident resolution flow and maintenance-mode toggling.
+- New rollback routes `/api/platform/rollback/preflight` and `/api/platform/rollback/execute` are undocumented → add to Platform Automation section,
