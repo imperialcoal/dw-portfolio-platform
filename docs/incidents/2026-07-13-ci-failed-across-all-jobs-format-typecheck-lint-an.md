@@ -1,4 +1,4 @@
-# Incident: CI failed across all jobs (format, typecheck, lint, and multiple test suites) on a Dependabot PR bumping @anthropic-ai/sdk to 0.111.0, but no step-level logs were captured to identify the actual failure point.
+# Incident: CI failed across all jobs (format, typecheck, lint, and all unit/runtime test suites) on a Dependabot PR bumping the Terraform Vercel provider, with no step-level detail available to isolate the failing step.
 
 | Field | Value |
 |---|---|
@@ -9,25 +9,25 @@
 
 
 ## Summary
-CI failed across all jobs (format, typecheck, lint, and multiple test suites) on a Dependabot PR bumping @anthropic-ai/sdk to 0.111.0, but no step-level logs were captured to identify the actual failure point.
+CI failed across all jobs (format, typecheck, lint, and all unit/runtime test suites) on a Dependabot PR bumping the Terraform Vercel provider, with no step-level detail available to isolate the failing step.
 
 ## Root Cause
-Cannot be determined from the provided logs. No step-level detail is present for any job, so it is not possible to confirm whether the failures stem from a breaking change in @anthropic-ai/sdk 0.111.0 (e.g., API surface changes affecting the llm-unit-test job or code that imports the SDK), a lockfile/dependency resolution issue in pnpm workspaces triggered by the Dependabot bump, or an unrelated infrastructure issue causing all jobs to fail uniformly. The fact that unrelated jobs (format, astro-unit-test, auth-unit-test) also failed suggests a workspace-wide issue (e.g., pnpm install failure or lockfile conflict) rather than an SDK-specific code break, but this cannot be confirmed without actual error output.
+The logs provided contain no step-level output or error messages for any of the eight jobs, so the specific failing command, file, or line cannot be determined from the available data. Given the branch name (dependabot/terraform/platform/infra/terraform/vercel/vercel-5.4.1), the change is scoped to a Terraform provider version bump in infra/terraform/vercel, which would not normally affect JS/TS build, lint, typecheck, or unit test jobs — the uniform failure across unrelated jobs suggests either a pipeline-wide infrastructure issue (e.g., a shared setup step like pnpm install, turbo cache restore, or a required status check misconfiguration) rather than a code-level regression introduced by the dependency bump itself. This cannot be confirmed without the actual raw logs from the GitHub Actions run.
 
 ## Impact
-PR #275 is blocked from merging; the @anthropic-ai/sdk dependency bump cannot be validated or merged until CI passes. If this is a monorepo-wide install/build failure, it may also indicate a fragile CI pipeline that fails silently without actionable logs, delaying triage for any future PR.
+PR #278 cannot merge; all required CI checks are red, blocking the Terraform Vercel provider version bump from landing. If this is a workflow-level failure (e.g., broken CI config) rather than test failures, it will also block every other open PR targeting the same branch protection rules.
 
 ## Resolution
-1. Re-run the workflow with debug logging enabled (ACTIONS_STEP_DEBUG=true) to capture actual step-level output. 2. Locally checkout the branch and run `pnpm install --frozen-lockfile` to check for lockfile resolution errors introduced by the SDK bump. 3. Run `pnpm turbo run typecheck lint test` locally to reproduce the failure and inspect actual error messages. 4. If the failure is isolated to the llm package, check for breaking API changes in @anthropic-ai/sdk 0.111.0 changelog (e.g., renamed methods, changed response types) and update any code in the llm package that consumes the SDK. 5. Fix the CI/log pipeline itself — logs must always capture step-level stdout/stderr; investigate the log collection/upload step in the CI workflow (e.g., a log-truncation or artifact-upload misconfiguration) since it produced no detail for any of 8 jobs.
+1. Pull the full raw logs from the GitHub Actions run for commit 760697b (the summary provided lacks step output) — check the "Setup" or "Install dependencies" step first since all jobs failed uniformly. 2. Verify pnpm-lock.yaml is in sync with package.json (Dependabot Terraform bumps sometimes trigger unrelated lockfile drift if a postinstall/format check validates it). 3. Confirm the CI workflow file didn't recently change required Node/pnpm/Turbo versions incompatible with the runner image. 4. Re-run the workflow once to rule out a transient runner/infra issue (e.g., pnpm registry timeout, Vercel/Upstash rate limiting during test setup) before assuming code-level regression. 5. Since the diff is Terraform-only, confirm branch protection isn't running unrelated required checks against a PR with no actual code changes — if so, this may just need a workflow re-trigger or an update to path-based job filtering (e.g., turbo.json / GitHub Actions `paths` filters) so infra-only PRs skip unrelated JS test jobs.
 
 ## Context
 - **Workflow**: `CI`
-- **Branch**: `dependabot/npm_and_yarn/anthropic-ai/sdk-0.111.0`
-- **Commit**: `81c927b`
-- **PR**: #275 — 
+- **Branch**: `dependabot/terraform/platform/infra/terraform/vercel/vercel-5.4.1`
+- **Commit**: `760697b`
+- **PR**: #278 — 
 - **Failed step**: Unknown step
 - **Triggered by**: dependabot[bot]
 
 ---
-*Generated by platform-agent on 2026-07-13T08:36:01.581Z*
-*Labels: ci-failure, dependabot, dependency-bump, anthropic-sdk, missing-logs, pnpm, monorepo, needs-investigation*
+*Generated by platform-agent on 2026-07-13T10:55:58.346Z*
+*Labels: ci-failure, dependabot, terraform, insufficient-logs, needs-investigation, vercel-provider*
