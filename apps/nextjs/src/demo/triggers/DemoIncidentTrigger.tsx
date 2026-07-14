@@ -53,14 +53,18 @@ export function DemoIncidentTrigger() {
         "Fires a synthetic GitHub CI failure through the real QStash → Anthropic pipeline.",
       icon: "⬡",
       color: "text-zinc-400",
+      loadingLabel: "Queuing...",
+      successLabel: "✓ Queued — check Incidents",
     },
     {
       type: "sentry" as const,
       label: "Trigger Sentry Error",
       description:
-        "Fires a synthetic Sentry alert through the real QStash → Anthropic pipeline.",
+        "Captures a real exception via the Sentry SDK — Sentry's own webhook then carries it through the same Anthropic pipeline. Takes a few seconds longer than CI since this is a genuine round trip, not a synthetic payload.",
       icon: "✦",
       color: "text-violet-400",
+      loadingLabel: "Capturing in Sentry...",
+      successLabel: "✓ Captured — check Incidents in a few seconds",
     },
   ] as const;
 
@@ -86,34 +90,44 @@ export function DemoIncidentTrigger() {
       </p>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        {TRIGGERS.map(({ type, label, description, icon, color }) => {
-          const state = status[type];
+        {TRIGGERS.map(
+          ({
+            type,
+            label,
+            description,
+            icon,
+            color,
+            loadingLabel,
+            successLabel,
+          }) => {
+            const state = status[type];
 
-          return (
-            <button
-              key={type}
-              onClick={() => void trigger(type)}
-              disabled={state !== "idle"}
-              className="border-border bg-muted/30 hover:bg-muted/60 flex flex-col gap-2 rounded-lg border p-4 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <div className="flex items-center gap-2">
-                <span className={`font-mono text-base ${color}`}>{icon}</span>
-                <span className="text-foreground text-xs font-semibold">
-                  {state === "loading"
-                    ? "Queuing..."
-                    : state === "success"
-                      ? "✓ Queued — check Incidents"
-                      : state === "error"
-                        ? "✗ Failed — try again"
-                        : label}
-                </span>
-              </div>
-              <p className="text-muted-foreground text-[11px] leading-relaxed">
-                {description}
-              </p>
-            </button>
-          );
-        })}
+            return (
+              <button
+                key={type}
+                onClick={() => void trigger(type)}
+                disabled={state !== "idle"}
+                className="border-border bg-muted/30 hover:bg-muted/60 flex flex-col gap-2 rounded-lg border p-4 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <div className="flex items-center gap-2">
+                  <span className={`font-mono text-base ${color}`}>{icon}</span>
+                  <span className="text-foreground text-xs font-semibold">
+                    {state === "loading"
+                      ? loadingLabel
+                      : state === "success"
+                        ? successLabel
+                        : state === "error"
+                          ? "✗ Failed — try again"
+                          : label}
+                  </span>
+                </div>
+                <p className="text-muted-foreground text-[11px] leading-relaxed">
+                  {description}
+                </p>
+              </button>
+            );
+          },
+        )}
       </div>
     </div>
   );
