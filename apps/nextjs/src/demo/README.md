@@ -79,7 +79,6 @@ src/demo/
 ├── triggers/
 │   ├── DemoIncidentTrigger.tsx       # UI component — fires CI/Sentry via fetch
 │   ├── ci-payload.ts                 # buildSyntheticCiPayload()
-│   ├── sentry-payload.ts             # buildSyntheticSentryPayload()
 │   └── index.ts                      # Re-exports
 └── README.md                         # This file
 ```
@@ -140,16 +139,15 @@ To add a recruiter:
 These files import from the demo module and require updates when demo mode
 is removed:
 
-| File                                       | What to change                                            |
-| ------------------------------------------ | --------------------------------------------------------- |
-| `src/app/page.tsx`                         | Remove `isDemoMode()` conditional, remove metadata export |
-| `src/app/(admin)/admin/page.tsx`           | Revert to `requireAdmin()` only                           |
-| `src/app/(admin)/platform/layout.tsx`      | Remove `DemoBanner`, revert to `requireAdmin()`           |
-| `src/app/(admin)/platform/page.tsx`        | Remove `isDemoSession()` + `DemoIncidentTrigger`          |
-| `src/app/(admin)/platform/*/page.tsx`      | Replace `DemoDeepLink` with plain `<a>` tags              |
-| `src/app/api/webhooks/clerk/route.ts`      | Remove `isDemoMode()` + `getRecruiterEmails()`            |
-| `src/app/api/demo/trigger/ci/route.ts`     | Delete file                                               |
-| `src/app/api/demo/trigger/sentry/route.ts` | Delete file                                               |
+| File                                   | What to change                                            |
+| -------------------------------------- | --------------------------------------------------------- |
+| `src/app/page.tsx`                     | Remove `isDemoMode()` conditional, remove metadata export |
+| `src/app/(admin)/admin/page.tsx`       | Revert to `requireAdmin()` only                           |
+| `src/app/(admin)/platform/layout.tsx`  | Remove `DemoBanner`, revert to `requireAdmin()`           |
+| `src/app/(admin)/platform/page.tsx`    | Remove `isDemoSession()` + `DemoIncidentTrigger`          |
+| `src/app/(admin)/platform/*/page.tsx`  | Replace `DemoDeepLink` with plain `<a>` tags              |
+| `src/app/api/webhooks/clerk/route.ts`  | Remove `isDemoMode()` + `getRecruiterEmails()`            |
+| `src/app/api/demo/trigger/ci/route.ts` | Delete file                                               |
 
 ---
 

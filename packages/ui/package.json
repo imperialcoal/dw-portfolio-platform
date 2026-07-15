@@ -40,8 +40,14 @@
     "zod": "catalog:"
   },
   "peerDependencies": {
+    "@types/react": "catalog:react19",
     "react": "catalog:react19",
     "zod": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "@types/react": {
+      "optional": true
+    }
   },
   "prettier": "@dw/prettier-config"
 }
