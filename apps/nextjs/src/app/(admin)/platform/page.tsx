@@ -315,12 +315,14 @@ const NAV_ITEMS = [
 // ─────────────────────────────────────────────
 
 export default async function PlatformPage() {
-  const [health, incidents, lastDeploy, maintenanceMode] = await Promise.all([
-    getSystemHealth(),
-    getIncidents(50),
-    getLastProductionDeploy(),
-    getMaintenanceMode().catch(() => null),
-  ]);
+  const [health, incidents, lastDeploy, maintenanceMode, isDemo] =
+    await Promise.all([
+      getSystemHealth(),
+      getIncidents(50),
+      getLastProductionDeploy(),
+      getMaintenanceMode().catch(() => null),
+      isDemoSession(),
+    ]);
 
   const activeIncidents = incidents.filter(
     (i) => i.status === "open" || i.status === "investigating",
@@ -378,7 +380,7 @@ export default async function PlatformPage() {
         </div>
 
         {/* ── Demo controls — visible only in DEMO_MODE ────────────────── */}
-        {(await isDemoSession()) && (
+        {isDemo && (
           <div>
             <DemoIncidentTrigger />
           </div>
@@ -576,7 +578,7 @@ export default async function PlatformPage() {
           <p className="text-muted-foreground mb-3 text-[10px] font-semibold tracking-widest uppercase">
             Operations
           </p>
-          <MaintenanceToggle initial={maintenanceMode} />
+          <MaintenanceToggle initial={maintenanceMode} isDemo={isDemo} />
         </div>
       </div>
     </div>

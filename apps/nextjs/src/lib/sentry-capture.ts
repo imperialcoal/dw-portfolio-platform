@@ -35,9 +35,21 @@ export function captureSentryTestError(
   const testId = Date.now(); // unique fingerprint per call
   const label = opts.demo ? "[Demo]" : "[Test]";
 
+  // testId is embedded in the message for human readability, but Sentry
+  // groups issues by exception type + stack trace, not message text —
+  // every call here throws from the same file/line, so without an
+  // explicit fingerprint every demo trigger collapses into ONE Sentry
+  // Issue after the first, silently defeating runSentryAgent()'s own
+  // sentry:error:{issueId} dedup for every trigger after that. The
+  // fingerprint below forces each call to be a genuinely distinct Issue.
   const sentryEventId = Sentry.captureException(
     new Error(`${label} Platform agent integration test — ${testId}`),
-    opts.demo ? { tags: { demo: "true" } } : undefined,
+    opts.demo
+      ? {
+          tags: { demo: "true" },
+          fingerprint: ["demo-platform-agent-test", String(testId)],
+        }
+      : undefined,
   );
 
   return { testId, sentryEventId };

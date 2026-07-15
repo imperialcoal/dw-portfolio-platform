@@ -9,8 +9,10 @@ import type { MaintenanceMode } from "@dw/contracts";
 
 export function MaintenanceToggle({
   initial,
+  isDemo = false,
 }: {
   initial: MaintenanceMode | null;
+  isDemo?: boolean;
 }) {
   const [mode, setMode] = useState<MaintenanceMode | null>(initial);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -26,6 +28,29 @@ export function MaintenanceToggle({
   async function toggle(enable: boolean) {
     setLoading(true);
     setError(null);
+
+    if (isDemo) {
+      // Demo mode — simulate the transition in local component state only.
+      // Never calls the real API, so recruiter sessions can't affect the
+      // live site's maintenance state. Same "real UI, safely scoped"
+      // pattern as DemoIncidentTrigger in ~/demo/triggers.
+      setTimeout(() => {
+        setMode(
+          enable
+            ? {
+                enabled: true,
+                message,
+                enabledAt: new Date().toISOString(),
+                enabledBy: "demo",
+              }
+            : null,
+        );
+        setShowConfirm(false);
+        setLoading(false);
+      }, 400);
+      return;
+    }
+
     try {
       const res = await fetch("/api/platform/maintenance", {
         method: "POST",
@@ -85,6 +110,11 @@ export function MaintenanceToggle({
               Enabled {new Date(mode.enabledAt).toLocaleString()}
             </p>
           )}
+          {isActive && isDemo && (
+            <p className="mt-0.5 text-[10px] text-amber-600">
+              Demo mode — simulated only, the live site is unaffected
+            </p>
+          )}
           {!isActive && (
             <p className="mt-1 text-xs text-zinc-600">
               All public traffic is flowing normally
@@ -122,8 +152,9 @@ export function MaintenanceToggle({
               ⚠ Enable Maintenance Mode
             </h3>
             <p className="mt-2 text-xs text-zinc-400">
-              All non-admin traffic to the production site will see a
-              maintenance page. This takes effect immediately.
+              {isDemo
+                ? "Demo mode — this simulates the maintenance toggle for your session only. It won't affect the live site or real visitors."
+                : "All non-admin traffic to the production site will see a maintenance page. This takes effect immediately."}
             </p>
             <div className="mt-4">
               <label className="mb-1 block text-[10px] font-semibold tracking-widest text-zinc-600 uppercase">
