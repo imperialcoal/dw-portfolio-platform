@@ -410,28 +410,26 @@ The tRPC layer (`packages/api`, mounted at `/api/trpc/[trpc]`) is not a third-pa
 
 ---
 
-## Documentation Drift — 2026-07-12
+---
+
+## Documentation Drift — 2026-07-15
 
 > Auto-detected by platform-agent · Review and update the sections above · Remove this block when resolved
 
-- New scheduled cron routes added → **System Architecture Diagram** / **Primary Data Flow**: document `/api/cron/docs-agent`, `/api/cron/health-check`, and `/api/cron/perf-baseline` as scheduled jobs, including trigger source (cron scheduler) and downstream systems they call.
-
-- New demo/testing trigger endpoints added → **Monorepo Structure**: add `/api/demo/trigger/ci` and `/api/demo/trigger/sentry` under `apps/nextjs` route listing, noting they exist for demo/test purposes only.
-
-- New dependency-advisory sync route added → **Primary Data Flow**: document `/api/platform/advisories/sync` and how it feeds advisory data into the platform data flow.
-
-- New dependency analysis/merge endpoints added → **Package Dependency Graph**: document `/api/platform/deps/analyze`, `/api/platform/deps/merge`, and `/api/platform/deps` as the API surface backing the dependency graph, including how they relate to the graph generation process.
-
-- New docs automation trigger route added → **Primary Data Flow**: add `/api/platform/docs/trigger` as an entry point that kicks off documentation generation/update flow.
-
-- New health-check trigger route added → **System Architecture Diagram**: add `/api/platform/health-check/trigger` as a manual trigger path complementing the `/api/cron/health-check` scheduled job.
-
-- New incident resolution endpoint added → **Primary Data Flow**: document `/api/platform/incidents/[id]/resolve` as part of the incident-handling flow, including who/what invokes it.
-
-- New maintenance-mode route added → **System Architecture Diagram**: add `/api/platform/maintenance` and describe its role in toggling platform maintenance state.
-
-- New rollback execution/preflight endpoints added → **Primary Data Flow**: document `/api/platform/rollback/preflight` and `/api/platform/rollback/execute` as the two-step rollback flow, including validation and execution responsibilities.
-
-- New platform search endpoint added → **Package Dependency Graph** or **Overview**: add `/api/platform/search` and describe what it indexes/queries across the platform.
-
-- New Sentry test route added → **Monorepo Structure**: add `/api/test-sentry-error` under `apps/nextjs` routes, noting it's a diagnostic/testing-only endpoint.
+- New scheduled cron route `/api/cron/docs-agent` added → update **System Architecture Diagram** (and add a "Scheduled Jobs" subsection if needed) → document its trigger source (`apps/nextjs/src/app/api/cron/docs-agent/route.ts`) and purpose.
+- New scheduled cron route `/api/cron/health-check` added → update **System Architecture Diagram** → document its trigger source (`route.ts`) and health-check responsibilities.
+- New scheduled cron route `/api/cron/perf-baseline` added → update **System Architecture Diagram** → document its trigger source and performance-baseline function.
+- New demo route `/api/demo/trigger/ci` added → update **Primary Data Flow** → note it manually triggers CI workflows for demonstration purposes.
+- New demo route `/api/demo/trigger/sentry` added → update **Primary Data Flow** → note it manually triggers Sentry error reporting for demonstration purposes.
+- New platform route `/api/platform/advisories/sync` added → update **Primary Data Flow** → describe advisory sync flow and upstream/downstream systems involved.
+- New platform route `/api/platform/deps/analyze` added → update **Primary Data Flow** → describe dependency analysis flow.
+- New platform route `/api/platform/deps/merge` added → update **Primary Data Flow** → describe dependency merge flow and how it relates to `/api/platform/deps/analyze`.
+- New platform route `/api/platform/deps` added → update **Primary Data Flow** → document base dependency endpoint and its relationship to `analyze`/`merge` sub-routes.
+- New platform route `/api/platform/docs/trigger` added → update **Primary Data Flow** → document manual docs-agent trigger flow, linking to `/api/cron/docs-agent`.
+- New platform route `/api/platform/health-check/trigger` added → update **Primary Data Flow** → document manual health-check trigger flow, linking to `/api/cron/health-check`.
+- New platform route `/api/platform/incidents/[id]/resolve` added → update **Primary Data Flow** → document incident resolution flow and dynamic `[id]` parameter handling.
+- New platform route `/api/platform/maintenance` added → update **Primary Data Flow** → document maintenance-mode toggle/status flow.
+- New platform route `/api/platform/rollback/execute` added → update **Primary Data Flow** → document rollback execution flow, referencing `/api/platform/rollback/preflight`.
+- New platform route `/api/platform/rollback/preflight` added → update **Primary Data Flow** → document preflight validation flow preceding rollback execution.
+- New platform route `/api/platform/search` added → update **Primary Data Flow** → document platform search endpoint and its data sources.
+- New route `/api/test-sentry-error` added → update **Overview** or **Primary Data Flow** → note it as a Sentry error-testing utility endpoint (non-production use).
