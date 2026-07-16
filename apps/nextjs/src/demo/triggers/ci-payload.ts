@@ -34,6 +34,7 @@ export function buildSyntheticCiPayload(): CiJobPayload {
     type: "ci.failure",
     runId,
     repoFullName: "imperialcoal/dw-portfolio-platform",
+    isDemo: true,
     githubPayload: {
       action: "completed",
       workflow_run: {
@@ -46,6 +47,15 @@ export function buildSyntheticCiPayload(): CiJobPayload {
         html_url: `https://github.com/imperialcoal/dw-portfolio-platform/actions/runs/${runId}`,
         created_at: now,
         updated_at: now,
+        // normalizeGitHubWorkflowRun() reads run.triggering_actor.login
+        // into context.triggeredBy — NOT the sender field below (that's
+        // real GitHub webhook shape but isn't what gets extracted). Without
+        // this, "Triggered by" silently fell back to "unknown" in every
+        // analysis prompt, discarding the one human-readable breadcrumb
+        // this payload was already trying to provide.
+        triggering_actor: {
+          login: "demo-trigger",
+        },
         head_commit: {
           id: commitSha,
           message: "feat: demo trigger — synthetic CI failure",

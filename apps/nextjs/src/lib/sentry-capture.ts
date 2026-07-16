@@ -6,6 +6,8 @@
 
 import * as Sentry from "@sentry/nextjs";
 
+import { DEMO_SENTRY_MESSAGE_PREFIX } from "@dw/contracts";
+
 export interface SentryCaptureOptions {
   // Adds a real Sentry tag (demo: "true") and a recognizable message
   // prefix, so demo-triggered issues are trivially filterable in Sentry's
@@ -33,7 +35,9 @@ export function captureSentryTestError(
   opts: SentryCaptureOptions = {},
 ): SentryCaptureResult {
   const testId = Date.now(); // unique fingerprint per call
-  const label = opts.demo ? "[Demo]" : "[Test]";
+  const message = opts.demo
+    ? `${DEMO_SENTRY_MESSAGE_PREFIX} — ${testId}`
+    : `[Test] Platform agent integration test — ${testId}`;
 
   // testId is embedded in the message for human readability, but Sentry
   // groups issues by exception type + stack trace, not message text —
@@ -43,7 +47,7 @@ export function captureSentryTestError(
   // sentry:error:{issueId} dedup for every trigger after that. The
   // fingerprint below forces each call to be a genuinely distinct Issue.
   const sentryEventId = Sentry.captureException(
-    new Error(`${label} Platform agent integration test — ${testId}`),
+    new Error(message),
     opts.demo
       ? {
           tags: { demo: "true" },

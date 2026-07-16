@@ -17,7 +17,11 @@ export type {
   IncidentStatus,
   IncidentSummary,
 } from "./ai/incidents";
-export { toIncidentSummary, INCIDENT_STATUSES } from "./ai/incidents";
+export {
+  toIncidentSummary,
+  DEMO_SENTRY_MESSAGE_PREFIX,
+  INCIDENT_STATUSES,
+} from "./ai/incidents";
 
 export type { SentryIssue, SentryIssueDetail } from "./ai/issues";
 

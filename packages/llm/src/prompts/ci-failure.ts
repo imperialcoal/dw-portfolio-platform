@@ -22,6 +22,7 @@ Rules:
 - Suggested fixes must be concrete and immediately actionable.
 - Severity: critical = blocks production deploy, high = blocks PR merge, medium = flaky/intermittent, low = warning only.
 - If a Recent Incident History section is provided, check for recurrence. If this matches a prior incident, say so explicitly in your summary and root cause. A recurring failure is more severe than a first occurrence.
+- If the prompt is marked DEMO MODE, this is a synthetic event triggered from the recruiter demo panel, not a real failure. Say so plainly in the summary (e.g. "Demo trigger: ..."), set severity to low, and include a "demo" label. Do not treat it as evidence of a real recurring issue.
 - Never repeat yourself between fields — each XML field should contain unique information.
 
 Respond ONLY with the following XML. No preamble, no text outside the tags:
@@ -46,6 +47,7 @@ Respond ONLY with the following XML. No preamble, no text outside the tags:
 export function buildCiFailureUserPrompt(
   event: CiFailureEvent,
   recentIncidents?: IncidentRecord[],
+  isDemo = false,
 ): string {
   const historySection = buildIncidentHistorySection(
     event.context.branch,
@@ -53,7 +55,7 @@ export function buildCiFailureUserPrompt(
   );
 
   return `Analyze this CI failure:
-
+${isDemo ? "\n**⚠ DEMO MODE**: This is a synthetic event intentionally triggered from the recruiter-facing demo panel to validate the pipeline end-to-end. It is not a real CI failure and does not indicate any actual problem with the codebase or infrastructure.\n" : ""}
 **Repository**: ${event.service}
 **Workflow**: ${event.context.workflow}
 **Branch**: ${event.context.branch}

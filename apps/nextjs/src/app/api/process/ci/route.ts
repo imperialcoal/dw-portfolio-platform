@@ -79,7 +79,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // argument to fetchCiJobDetails(repo, runId). It's validated by the
   // CiJobPayloadSchema above so it's guaranteed to be a non-empty string.
   try {
-    await runCiAgent(job.githubPayload, job.repoFullName);
+    await runCiAgent(job.githubPayload, job.repoFullName, job.isDemo ?? false);
     return NextResponse.json({ ok: true });
   } catch (err: unknown) {
     console.error(

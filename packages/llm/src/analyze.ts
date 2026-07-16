@@ -30,9 +30,10 @@ type TextBlock = Extract<ContentBlock, { type: "text" }>;
 
 export async function analyzeEvent(
   event: PlatformEvent,
+  isDemo = false,
 ): Promise<AnalysisResult> {
   const client = getAnthropicClient();
-  const { systemPrompt, userPrompt } = buildPrompts(event);
+  const { systemPrompt, userPrompt } = buildPrompts(event, isDemo);
 
   const message = await client.messages.create({
     model: ANALYSIS_MODEL,
@@ -54,7 +55,10 @@ export async function analyzeEvent(
   return parseAnalysisXml(rawText);
 }
 
-function buildPrompts(event: PlatformEvent): {
+function buildPrompts(
+  event: PlatformEvent,
+  isDemo: boolean,
+): {
   systemPrompt: string;
   userPrompt: string;
 } {
@@ -67,7 +71,7 @@ function buildPrompts(event: PlatformEvent): {
     case "sentry_error":
       return {
         systemPrompt: SENTRY_INCIDENT_SYSTEM_PROMPT,
-        userPrompt: buildSentryIncidentUserPrompt(event),
+        userPrompt: buildSentryIncidentUserPrompt(event, isDemo),
       };
     case "security_alert":
       return {

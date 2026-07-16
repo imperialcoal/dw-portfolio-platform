@@ -125,4 +125,5 @@ export const IncidentRecordSchema = z.object({
   incidentDocPath: z.string().optional(),
   commitSha: z.string().optional(),
   branch: z.string().optional(),
+  isDemo: z.boolean().optional(),
 });

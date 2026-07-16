@@ -2,7 +2,11 @@
 // Called by the QStash processing endpoint after webhook enqueue.
 // Never called directly from Edge routes.
 
-import { normalizeSentryWebhook, safeId } from "@dw/contracts";
+import {
+  DEMO_SENTRY_MESSAGE_PREFIX,
+  normalizeSentryWebhook,
+  safeId,
+} from "@dw/contracts";
 import { analyzeEvent } from "@dw/llm";
 import { sendIncidentEmail } from "@dw/messaging";
 
@@ -97,7 +101,8 @@ export async function runSentryAgent(
 
       // Still send an email — the developer needs to know the fix didn't hold
       const event = normalizeSentryWebhook(payload);
-      const analysis = await analyzeEvent(event);
+      const isDemo = event.context.title.includes(DEMO_SENTRY_MESSAGE_PREFIX);
+      const analysis = await analyzeEvent(event, isDemo);
       await sendIncidentEmail({
         event,
         analysis,
@@ -148,7 +153,8 @@ export async function runSentryAgent(
   const event = normalizeSentryWebhook(payload);
   await logEvent(event);
 
-  const analysis = await analyzeEvent(event);
+  const isDemo = event.context.title.includes(DEMO_SENTRY_MESSAGE_PREFIX);
+  const analysis = await analyzeEvent(event, isDemo);
 
   console.log(
     JSON.stringify({
@@ -163,11 +169,13 @@ export async function runSentryAgent(
   );
 
   const [issueResult, docResult] = await Promise.allSettled([
-    createIssue(`[Incident] ${analysis.summary}`, analysis, [
-      "incident",
-      "sentry",
-      event.context.environment,
-    ]),
+    createIssue(
+      `${isDemo ? "[Demo] " : ""}[Incident] ${analysis.summary}`,
+      analysis,
+      isDemo
+        ? ["incident", "sentry", event.context.environment, "demo"]
+        : ["incident", "sentry", event.context.environment],
+    ),
     generateAndCommitIncidentDoc(event, analysis, event.context.issueUrl),
   ]);
 
@@ -233,6 +241,7 @@ export async function runSentryAgent(
     incidentDocPath,
     sentryIssueId: issueId,
     sentryIssueUrl: event.context.issueUrl,
+    isDemo: isDemo || undefined,
   });
 
   await markIncidentOpen(issueId);

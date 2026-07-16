@@ -50,6 +50,7 @@ import { fetchCiJobDetails } from "../sensors/github-ci";
 export async function runCiAgent(
   payload: Record<string, unknown>,
   repoFullName: string,
+  isDemo = false,
 ): Promise<void> {
   // Extract the workflow run object for deduplication keys.
   // normalizeGitHubWorkflowRun() will do the full safe extraction below,
@@ -159,6 +160,7 @@ export async function runCiAgent(
           (i) =>
             i.type === "ci_failure" &&
             i.branch === event.context.branch &&
+            !i.isDemo &&
             i.timestamp >= cutoff,
         )
         .slice(0, 5),
@@ -183,7 +185,11 @@ export async function runCiAgent(
   // analyzeEvent() is stateless by design — this agent adds the memory layer.
 
   const client = getAnthropicClient();
-  const userPrompt = buildCiFailureUserPrompt(event, recentBranchIncidents);
+  const userPrompt = buildCiFailureUserPrompt(
+    event,
+    recentBranchIncidents,
+    isDemo,
+  );
 
   const message = await client.messages.create({
     model: ANALYSIS_MODEL,
@@ -223,7 +229,11 @@ export async function runCiAgent(
       ? postPrComment(prNumber, analysis, "ci_failure")
       : Promise.resolve(null),
     createGithubIssue
-      ? createIssue(`[CI] ${analysis.summary}`, analysis, ["ci", workflowName])
+      ? createIssue(
+          `${isDemo ? "[Demo] " : ""}[CI] ${analysis.summary}`,
+          analysis,
+          isDemo ? ["ci", workflowName, "demo"] : ["ci", workflowName],
+        )
       : Promise.resolve(null),
     generateAndCommitIncidentDoc(event, analysis),
   ]);
@@ -309,6 +319,7 @@ export async function runCiAgent(
     incidentDocPath,
     commitSha: event.context.commitSha || undefined,
     branch: event.context.branch || undefined,
+    isDemo: isDemo || undefined,
   });
 
   await markIncidentOpen(runId);
@@ -324,6 +335,7 @@ export async function runCiAgent(
       incidentDocPath,
       githubIssueNumber,
       historyContextUsed: recentBranchIncidents.length,
+      isDemo,
     }),
   );
 }

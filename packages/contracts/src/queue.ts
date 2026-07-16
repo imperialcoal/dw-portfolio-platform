@@ -9,6 +9,15 @@ export const CiJobPayloadSchema = z.object({
   runId: z.string(),
   repoFullName: z.string(),
   githubPayload: z.record(z.string(), z.unknown()),
+  /**
+   * Explicit, typed demo signal — set only by buildSyntheticCiPayload().
+   * Real GitHub webhook deliveries never set this field, so its absence
+   * is the reliable "this is real" default. Threaded through to
+   * runCiAgent() so it never has to infer demo-ness from message text
+   * or synthetic-looking IDs — matching how the Sentry demo trigger uses
+   * an explicit `tags: { demo: "true" }` rather than relying on inference.
+   */
+  isDemo: z.boolean().optional(),
 });
 
 export type CiJobPayload = z.infer<typeof CiJobPayloadSchema>;

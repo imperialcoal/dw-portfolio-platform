@@ -9,6 +9,7 @@ Rules:
 - Distinguish between: null/undefined errors, type mismatches, DB query failures, auth failures, network timeouts.
 - Suggested fixes must reference actual file paths and code patterns from the stacktrace.
 - Severity: critical = data loss or auth broken, high = feature broken for users, medium = degraded UX, low = cosmetic/logged-only.
+- If the prompt is marked DEMO MODE, this is a synthetic event triggered from the recruiter demo panel, not a real production error. Say so plainly in the summary (e.g. "Demo trigger: ..."), set severity to low, and include a "demo" label.
 
 Respond ONLY with the following XML. No preamble, no text outside the tags:
 
@@ -21,10 +22,14 @@ Respond ONLY with the following XML. No preamble, no text outside the tags:
   <labels>comma,separated,labels</labels>
 </analysis>`;
 
-export function buildSentryIncidentUserPrompt(event: SentryErrorEvent): string {
+export function buildSentryIncidentUserPrompt(
+  event: SentryErrorEvent,
+  isDemo = false,
+): string {
   const { context } = event;
   return `Analyze this production error:
 
+${isDemo ? "**⚠ DEMO MODE**: This is a synthetic event intentionally triggered from the recruiter-facing demo panel to validate the pipeline end-to-end. It is not a real production error.\n" : ""}
 **Project**: ${event.service}
 **Environment**: ${context.environment}
 **Error**: ${context.title}
