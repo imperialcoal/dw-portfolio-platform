@@ -412,24 +412,21 @@ The tRPC layer (`packages/api`, mounted at `/api/trpc/[trpc]`) is not a third-pa
 
 ---
 
-## Documentation Drift — 2026-07-15
+---
+
+## Documentation Drift — 2026-07-16
 
 > Auto-detected by platform-agent · Review and update the sections above · Remove this block when resolved
 
-- New scheduled cron route `/api/cron/docs-agent` added → update **System Architecture Diagram** (and add a "Scheduled Jobs" subsection if needed) → document its trigger source (`apps/nextjs/src/app/api/cron/docs-agent/route.ts`) and purpose.
-- New scheduled cron route `/api/cron/health-check` added → update **System Architecture Diagram** → document its trigger source (`route.ts`) and health-check responsibilities.
-- New scheduled cron route `/api/cron/perf-baseline` added → update **System Architecture Diagram** → document its trigger source and performance-baseline function.
-- New demo route `/api/demo/trigger/ci` added → update **Primary Data Flow** → note it manually triggers CI workflows for demonstration purposes.
-- New demo route `/api/demo/trigger/sentry` added → update **Primary Data Flow** → note it manually triggers Sentry error reporting for demonstration purposes.
-- New platform route `/api/platform/advisories/sync` added → update **Primary Data Flow** → describe advisory sync flow and upstream/downstream systems involved.
-- New platform route `/api/platform/deps/analyze` added → update **Primary Data Flow** → describe dependency analysis flow.
-- New platform route `/api/platform/deps/merge` added → update **Primary Data Flow** → describe dependency merge flow and how it relates to `/api/platform/deps/analyze`.
-- New platform route `/api/platform/deps` added → update **Primary Data Flow** → document base dependency endpoint and its relationship to `analyze`/`merge` sub-routes.
-- New platform route `/api/platform/docs/trigger` added → update **Primary Data Flow** → document manual docs-agent trigger flow, linking to `/api/cron/docs-agent`.
-- New platform route `/api/platform/health-check/trigger` added → update **Primary Data Flow** → document manual health-check trigger flow, linking to `/api/cron/health-check`.
-- New platform route `/api/platform/incidents/[id]/resolve` added → update **Primary Data Flow** → document incident resolution flow and dynamic `[id]` parameter handling.
-- New platform route `/api/platform/maintenance` added → update **Primary Data Flow** → document maintenance-mode toggle/status flow.
-- New platform route `/api/platform/rollback/execute` added → update **Primary Data Flow** → document rollback execution flow, referencing `/api/platform/rollback/preflight`.
-- New platform route `/api/platform/rollback/preflight` added → update **Primary Data Flow** → document preflight validation flow preceding rollback execution.
-- New platform route `/api/platform/search` added → update **Primary Data Flow** → document platform search endpoint and its data sources.
-- New route `/api/test-sentry-error` added → update **Overview** or **Primary Data Flow** → note it as a Sentry error-testing utility endpoint (non-production use).
+- New scheduled cron route `/api/cron/docs-agent` added → update **Primary Data Flow** (or add a "Scheduled Jobs" subsection) → document its trigger schedule and role in the docs-agent automation flow (file: `apps/nextjs/src/app/api/cron/docs-agent/route.ts`).
+- New scheduled cron route `/api/cron/health-check` added → update **Primary Data Flow** → document the health-check cron job and its polling target (file: `apps/nextjs/src/app/api/cron/health-check/route.ts`).
+- New scheduled cron route `/api/cron/perf-baseline` added → update **Primary Data Flow** → document the performance-baseline cron job and what metrics it captures (file: `apps/nextjs/src/app/api/cron/perf-baseline/route.ts`).
+- New demo trigger route `/api/demo/trigger/ci` added → update **System Architecture Diagram** → add a demo/testing node showing CI trigger simulation (file: `apps/nextjs/src/app/api/demo/trigger/ci/route.ts`).
+- New demo trigger route `/api/demo/trigger/sentry` added → update **System Architecture Diagram** → add a demo/testing node showing Sentry error simulation (file: `apps/nextjs/src/app/api/demo/trigger/sentry/route.ts`).
+- New platform route `/api/platform/advisories/sync` added → update **Monorepo Structure** → document the platform advisories sync service under `apps/nextjs/src/app/api/platform` (file: `apps/nextjs/src/app/api/platform/advisories/sync/route.ts`).
+- New platform route `/api/platform/deps/analyze` added → update **Package Dependency Graph** → describe how this endpoint analyzes dependency data for the graph (file: `apps/nextjs/src/app/api/platform/deps/analyze/route.ts`).
+- New platform route `/api/platform/deps/merge` added → update **Package Dependency Graph** → describe its role in merging dependency analysis results (file: `apps/nextjs/src/app/api/platform/deps/merge/route.ts`).
+- New platform route `/api/platform/deps` added → update **Package Dependency Graph** → document as the base endpoint for dependency graph data retrieval (file: `apps/nextjs/src/app/api/platform/deps/route.ts`).
+- New platform route `/api/platform/docs/trigger` added → update **Primary Data Flow** → document as the manual trigger endpoint for the docs-agent flow, complementing `/api/cron/docs-agent` (file: `apps/nextjs/src/app/api/platform/docs/trigger/route.ts`).
+- New platform route `/api/platform/health-check/trigger` added → update **Primary Data Flow** → document as the manual trigger counterpart to `/api/cron/health-check` (file: `apps/nextjs/src/app/api/platform/health-check/trigger/route.ts`).
+- New platform route `/api/platform/incidents
