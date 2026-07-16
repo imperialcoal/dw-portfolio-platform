@@ -477,18 +477,32 @@ All secrets are stored in **Doppler** under project `dw-portfolio-platform`.
 
 ---
 
-## Documentation Drift — 2026-07-15
+---
+
+## Documentation Drift — 2026-07-16
 
 > Auto-detected by platform-agent · Review and update the sections above · Remove this block when resolved
 
-- **New cron endpoints undocumented**: Added `/api/cron/docs-agent`, `/api/cron/health-check`, `/api/cron/perf-baseline` routes → update **Infrastructure Overview** (or add new "Cron Jobs" subsection) with each route's schedule, trigger mechanism (Vercel Cron/QStash), and purpose.
+- **New cron routes added** (`/api/cron/docs-agent`, `/api/cron/health-check`, `/api/cron/perf-baseline`): add a new "Scheduled Jobs / Cron" section (or extend Infrastructure Overview) documenting each route's schedule, purpose, and required `CRON_SECRET` auth header.
 
-- **New demo/testing endpoints undocumented**: Added `/api/demo/trigger/ci`, `/api/demo/trigger/sentry`, and `/api/test-sentry-error` → update **Infrastructure Overview** to note these are non-production demo/testing routes and describe their intended use.
+- **New demo trigger endpoints** (`/api/demo/trigger/ci`, `/api/demo/trigger/sentry`): document under a new "Demo/Test Endpoints" subsection describing what each trigger simulates and any auth requirements.
 
-- **New platform admin/ops API routes undocumented**: Added `/api/platform/advisories/sync`, `/api/platform/deps`, `/api/platform/deps/analyze`, `/api/platform/deps/merge`, `/api/platform/docs/trigger`, `/api/platform/health-check/trigger`, `/api/platform/incidents/[id]/resolve`, `/api/platform/maintenance`, `/api/platform/rollback/execute`, `/api/platform/rollback/preflight`, `/api/platform/search` → update **Infrastructure Overview** with a new "Platform API" subsection listing each route, its purpose, and required auth/role.
+- **New platform dependency management routes** (`/api/platform/deps`, `/api/platform/deps/analyze`, `/api/platform/deps/merge`): add to Infrastructure Overview / new "Platform API" section describing dependency scan, analysis, and merge workflow.
 
-- **New webhook handlers undocumented**: Added `/api/webhooks/github` and `/api/webhooks/sentry` → update **Infrastructure Overview** with a "Webhooks" subsection describing payload sources, signature verification, and secrets used.
+- **New platform advisories sync route** (`/api/platform/advisories/sync`): document trigger mechanism (manual or scheduled) and expected response in the Platform API section.
 
-- **Cron authentication env var missing**: `CRON_SECRET` used by `cron-env` validator → add to **Environment Variables > Core Application** (or new Cron subsection) with description of its role in authenticating cron route calls.
+- **New platform docs trigger route** (`/api/platform/docs/trigger`): document how it invokes the docs-agent pipeline and any payload/auth requirements.
 
-- **DevOps automation env vars missing**: `
+- **New platform health-check trigger route** (`/api/platform/health-check/trigger`): document as manual invocation counterpart to the `/api/cron/health-check` scheduled job.
+
+- **New incident resolution route** (`/api/platform/incidents/[id]/resolve`): add to Platform API section describing incident ID param, resolution payload, and side effects.
+
+- **New maintenance mode route** (`/api/platform/maintenance`): document how to toggle maintenance mode and its effect on traffic/routing.
+
+- **New rollback routes** (`/api/platform/rollback/preflight`, `/api/platform/rollback/execute`): document the two-step rollback flow (preflight check then execute) including required params and safety checks.
+
+- **New platform search route** (`/api/platform/search`): document query params and scope of searchable data.
+
+- **New Sentry test error route** (`/api/test-sentry-error`): document as a diagnostic endpoint for verifying Sentry error reporting integration.
+
+- **New webhook handlers** (`/api/webhooks/github
