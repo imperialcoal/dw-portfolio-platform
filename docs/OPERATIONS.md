@@ -481,8 +481,17 @@ All secrets are stored in **Doppler** under project `dw-portfolio-platform`.
 
 ---
 
-## Documentation Drift — 2026-07-17
+---
+
+## Documentation Drift — 2026-07-18
 
 > Auto-detected by platform-agent · Review and update the sections above · Remove this block when resolved
 
-
+- New cron endpoint `/api/cron/docs-agent` added → update **Infrastructure Overview** (or add "Cron Jobs" subsection) → document route path, trigger schedule, and purpose (docs agent automation).
+- New cron endpoint `/api/cron/health-check` added → update **Infrastructure Overview** → add route path, schedule, and description of health-check sweep behavior.
+- New cron endpoint `/api/cron/perf-baseline` added → update **Infrastructure Overview** → add route path, schedule, and note on performance baseline snapshotting.
+- New webhook handler `/api/webhooks/github` added → update **Infrastructure Overview** → document endpoint, expected GitHub event types, and signature verification via `GITHUB_WEBHOOK_SECRET`.
+- New webhook handler `/api/webhooks/sentry` added → update **Infrastructure Overview** → document endpoint and verification via `SENTRY_WEBHOOK_SECRET`.
+- New demo trigger routes `/api/demo/trigger/ci` and `/api/demo/trigger/sentry` added → update **Infrastructure Overview** → note these are manual test-trigger endpoints, not for production use.
+- New diagnostic route `/api/test-sentry-error` added → update **Infrastructure Overview** → document as a manual Sentry error-testing endpoint.
+- New Platform Admin API surface added (`/api/platform/deps`, `/api/platform/deps/analyze`, `/api/platform/deps/merge`
