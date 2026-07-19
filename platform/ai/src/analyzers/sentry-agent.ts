@@ -61,6 +61,26 @@ export async function runSentryAgent(
     }),
   );
 
+  // Alert Rule webhooks carry `data.event`, not `data.issue` — issueId is
+  // always empty for this payload shape, and there's no real content to
+  // analyze (title/stacktrace/culprit all fall back to defaults in
+  // normalizeSentryWebhook()). Before the dedup-ID fix, QStash silently
+  // collapsed this against the payload-bearing "created"/"triggered"
+  // delivery for the same issue; now that both are delivered separately,
+  // this guard stops the data-free one from creating its own thin,
+  // duplicate GitHub issue on every single Sentry event.
+  if (issueId === "") {
+    console.log(
+      JSON.stringify({
+        level: "info",
+        agent: "sentry",
+        event: "no_issue_data_skip",
+        action,
+      }),
+    );
+    return;
+  }
+
   if (
     action !== "created" &&
     action !== "triggered" &&
