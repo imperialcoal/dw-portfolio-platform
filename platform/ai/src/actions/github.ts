@@ -198,6 +198,30 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function extractInvalidLabels(status: number, body: string): string[] | null {
+  if (status !== 422) return null;
+  try {
+    const parsed = JSON.parse(body) as {
+      errors?: {
+        resource?: string;
+        field?: string;
+        code?: string;
+        value?: string;
+      }[];
+    };
+    const invalid = (parsed.errors ?? [])
+      .filter(
+        (e) =>
+          e.resource === "Label" && e.field === "name" && e.code === "invalid",
+      )
+      .map((e) => e.value)
+      .filter((v): v is string => typeof v === "string");
+    return invalid.length > 0 ? invalid : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Creates a GitHub issue with labels from the AI analysis.
  * Returns the created issue's URL and number.
@@ -225,6 +249,8 @@ export async function createIssue(
     ...additionalLabels,
   ];
 
+  let effectiveLabels = labels;
+
   const body = `## Summary\n${analysis.summary}\n\n## Root Cause\n${analysis.rootCause}\n\n## Impact\n${analysis.impact}\n\n## Suggested Fix\n${analysis.suggestedFix}\n\n---\n*Created by platform-agent*`;
 
   let lastError = "unknown error";
@@ -233,7 +259,7 @@ export async function createIssue(
     const res = await fetch(`${GITHUB_API}/repos/${getRepo()}/issues`, {
       method: "POST",
       headers: getHeaders(),
-      body: JSON.stringify({ title, body, labels }),
+      body: JSON.stringify({ title, body, labels: effectiveLabels }),
     });
 
     if (res.ok) {
@@ -243,6 +269,28 @@ export async function createIssue(
 
     const errBody = await res.text();
     lastError = `HTTP ${res.status}: ${errBody.slice(0, 300)}`;
+
+    const invalidLabels = extractInvalidLabels(res.status, errBody);
+    if (invalidLabels && invalidLabels.length > 0) {
+      const before = effectiveLabels.length;
+      effectiveLabels = effectiveLabels.filter(
+        (l) => !invalidLabels.includes(l),
+      );
+      console.error(
+        JSON.stringify({
+          level: "error",
+          action: "create_issue",
+          attempt,
+          status: res.status,
+          event: "dropping_invalid_labels",
+          invalidLabels,
+          remainingLabels: effectiveLabels.length,
+        }),
+      );
+      // Deterministic fix, not a transient failure — retry immediately,
+      // no backoff needed, as long as we actually dropped something.
+      if (effectiveLabels.length < before) continue;
+    }
 
     const shouldRetry =
       attempt < ISSUE_CREATE_MAX_ATTEMPTS &&

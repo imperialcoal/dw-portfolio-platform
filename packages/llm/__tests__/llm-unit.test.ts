@@ -369,3 +369,27 @@ describe("analyzeEvent (mocked)", () => {
     );
   });
 });
+
+describe("buildSentryIncidentUserPrompt — demo mode", () => {
+  it("includes the DEMO MODE banner when isDemo is true", () => {
+    const prompt = buildSentryIncidentUserPrompt(sentryEvent, true);
+    expect(prompt).toContain("DEMO MODE");
+  });
+
+  it("omits the DEMO MODE banner by default", () => {
+    const prompt = buildSentryIncidentUserPrompt(sentryEvent);
+    expect(prompt).not.toContain("DEMO MODE");
+  });
+});
+
+describe("buildCiFailureUserPrompt — demo mode", () => {
+  it("includes the DEMO MODE banner when isDemo is true", () => {
+    const prompt = buildCiFailureUserPrompt(ciEvent, undefined, true);
+    expect(prompt).toContain("DEMO MODE");
+  });
+
+  it("omits the DEMO MODE banner by default", () => {
+    const prompt = buildCiFailureUserPrompt(ciEvent);
+    expect(prompt).not.toContain("DEMO MODE");
+  });
+});

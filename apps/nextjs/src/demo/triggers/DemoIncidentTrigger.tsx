@@ -60,11 +60,12 @@ export function DemoIncidentTrigger() {
       type: "sentry" as const,
       label: "Trigger Sentry Error",
       description:
-        "Captures a real exception via the Sentry SDK — Sentry's own webhook then carries it through the same Anthropic pipeline. Takes a few seconds longer than CI since this is a genuine round trip, not a synthetic payload.",
+        "Captures a real exception via the Sentry SDK — Sentry's own webhook then carries it through the same Anthropic pipeline. This is a genuine round trip through Sentry's real infrastructure, not a synthetic payload — expect several minutes, not seconds, before it appears below.",
       icon: "✦",
       color: "text-violet-400",
       loadingLabel: "Capturing in Sentry...",
-      successLabel: "✓ Captured — check Incidents in a few seconds",
+      successLabel:
+        "✓ Captured — this flows through Sentry's real infrastructure, so it can take several minutes to appear in Incidents",
     },
   ] as const;
 

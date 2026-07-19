@@ -74,6 +74,18 @@ export const DEMO_TOOLTIPS = {
     "Supabase security advisor — RLS policy analysis and performance recommendations.",
   supabaseLogs:
     "Supabase database logs — query performance, connection pooling, and error logs.",
+
+  // ── Interactive demo features ────────────────────────────────────────────
+  // Unlike the deep links above (external consoles, always disabled+tooltip
+  // in demo mode), these features actually run for real in demo mode —
+  // this copy explains *how to safely try them*, shown in the feature's own
+  // idle-state UI before the recruiter clicks anything.
+  maintenanceMode:
+    "Safe to try — in demo mode this only updates what you see. The live site is never touched.",
+  ciTrigger:
+    "Fires a synthetic CI failure through the real QStash → Anthropic pipeline. Creates a real GitHub issue, tagged so it's never confused with an actual CI failure.",
+  sentryTrigger:
+    "Captures a real exception via the Sentry SDK — a genuine round trip through Sentry's own infrastructure, not a synthetic payload. Expect several minutes, not seconds, before it appears in Incidents.",
 } as const;
 
 export type DemoTooltipKey = keyof typeof DEMO_TOOLTIPS;

@@ -112,7 +112,7 @@ export async function publishSentryJob(
     url: getProcessorUrl("/api/process/sentry"),
     body: payload,
     headers: {
-      "Upstash-Deduplication-Id": `sentry-${payload.issueId}`,
+      "Upstash-Deduplication-Id": `sentry-${payload.issueId}-${payload.action}`,
       "Upstash-Retries": "3",
     },
   });

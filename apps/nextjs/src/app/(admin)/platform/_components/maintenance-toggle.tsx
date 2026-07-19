@@ -7,12 +7,20 @@ import { useRouter } from "next/navigation";
 
 import type { MaintenanceMode } from "@dw/contracts";
 
+const MAINTENANCE_MODE_INFO =
+  "Maintenance Mode gates all non-admin traffic behind a public 'Under Maintenance' page — used during deploys, migrations, or emergency lockdown. Takes effect immediately across the live site.";
+
 export function MaintenanceToggle({
   initial,
   isDemo = false,
+  demoHelperText,
 }: {
   initial: MaintenanceMode | null;
   isDemo?: boolean;
+  // Passed down from page.tsx (which owns the ~/demo import) rather than
+  // imported here directly — keeps this component demo-agnostic beyond
+  // the isDemo boolean itself, same boundary as ~/lib/sentry-capture.ts.
+  demoHelperText?: string;
 }) {
   const [mode, setMode] = useState<MaintenanceMode | null>(initial);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -101,6 +109,12 @@ export function MaintenanceToggle({
             >
               {isActive ? "Maintenance Mode Active" : "Maintenance Mode Off"}
             </p>
+            <span
+              title={MAINTENANCE_MODE_INFO}
+              className="inline-flex h-3.5 w-3.5 cursor-help items-center justify-center rounded-full border border-zinc-600 text-[9px] font-bold text-zinc-500 hover:border-zinc-400 hover:text-zinc-300"
+            >
+              ?
+            </span>
           </div>
           {isActive && mode.message && (
             <p className="mt-1 text-xs text-zinc-500">{mode.message}</p>
@@ -119,6 +133,9 @@ export function MaintenanceToggle({
             <p className="mt-1 text-xs text-zinc-600">
               All public traffic is flowing normally
             </p>
+          )}
+          {!isActive && isDemo && demoHelperText && (
+            <p className="mt-1 text-xs text-sky-500">{demoHelperText}</p>
           )}
         </div>
 

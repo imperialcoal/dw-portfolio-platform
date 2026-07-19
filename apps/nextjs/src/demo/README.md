@@ -31,6 +31,7 @@ where `DEMO_MODE` is not set to `"true"`.
 | `/platform` guard      | Allows recruiter role; shows `DemoBanner` for recruiter sessions            |
 | Platform deep links    | Disabled with tooltips for recruiter sessions via `DemoDeepLink`            |
 | Demo controls          | `DemoIncidentTrigger` shown on platform overview for recruiter sessions     |
+| Maintenance Mode       | Simulated (no real API call) for recruiter sessions via `MaintenanceToggle` |
 | Recruiter provisioning | Emails in `RECRUITER_EMAILS` auto-provisioned as `recruiter` role on signup |
 
 Everything else — the tRPC API, incident pipeline, AI agents, rollback,
@@ -68,7 +69,9 @@ src/demo/
 ├── index.ts                          # Single export point — import everything from here
 ├── is-demo-mode.ts                   # isDemoMode() — reads DEMO_MODE env var
 ├── demo-metadata.ts                  # generateDemoMetadata() — recruiter OG/title metadata
-├── demo-deep-links.ts                # DEMO_TOOLTIPS — centralized tooltip copy catalog
+├── demo-deep-links.ts                # DEMO_TOOLTIPS — centralized tooltip copy for every
+│                                      # demo-aware feature: disabled console deep links AND
+│                                      # interactive features (trigger panel, maintenance mode)
 ├── DemoHomePage.tsx                  # Full recruiter landing page component
 ├── DemoBanner.tsx                    # "Recruiter demo session" persistent banner
 ├── DemoDeepLink.tsx                  # Demo-aware anchor/disabled-button wrapper
@@ -113,6 +116,19 @@ All tooltip strings live in `demo-deep-links.ts` — edit there, reflects
 everywhere. Covers: Upstash, Vercel, Sentry, GitHub, Clerk, Resend, Doppler,
 Supabase.
 
+### Interactive demo features
+
+`DEMO_TOOLTIPS` also covers features that actually _run_ in demo mode
+(rather than being disabled like the deep links above) — `maintenanceMode`,
+`ciTrigger`, `sentryTrigger`. These entries explain _how to safely try the
+feature_, not _why you can't access it_, and are surfaced in the feature's
+own idle-state UI so a recruiter never needs foreknowledge of how the
+pipeline works. `maintenance-toggle.tsx` is the reference implementation:
+it stays demo-agnostic beyond a plain `isDemo: boolean` + `demoHelperText:
+string` prop pair — the `~/demo` import lives in `page.tsx`, not in the
+component itself, matching the same core/demo boundary used by
+`~/lib/sentry-capture.ts`.
+
 ---
 
 ## Recruiter provisioning (`getRecruiterEmails`)
@@ -139,16 +155,25 @@ To add a recruiter:
 These files import from the demo module and require updates when demo mode
 is removed:
 
-| File                                                          | What to change                                                                                          |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `src/app/page.tsx`                                            | Remove `isDemoMode()` conditional, remove metadata export                                               |
-| `src/app/(admin)/admin/page.tsx`                              | Revert to `requireAdmin()` only                                                                         |
-| `src/app/(admin)/platform/layout.tsx`                         | Remove `DemoBanner`, revert to `requireAdmin()`                                                         |
-| `src/app/(admin)/platform/page.tsx`                           | Remove `isDemoSession()` + `DemoIncidentTrigger`                                                        |
-| `src/app/(admin)/platform/_components/maintenance-toggle.tsx` | Remove `isDemo` prop and the local-simulation branch in `toggle()`; component always calls the real API |
-| `src/app/(admin)/platform/*/page.tsx`                         | Replace `DemoDeepLink` with plain `<a>` tags                                                            |
-| `src/app/api/webhooks/clerk/route.ts`                         | Remove `isDemoMode()` + `getRecruiterEmails()`                                                          |
-| `src/app/api/demo/trigger/ci/route.ts`                        | Delete file                                                                                             |
+| File                                                          | What to change                                                                                                                                 |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/app/page.tsx`                                            | Remove `isDemoMode()` conditional, remove metadata export                                                                                      |
+| `src/app/(admin)/admin/page.tsx`                              | Revert to `requireAdmin()` only                                                                                                                |
+| `src/app/(admin)/platform/layout.tsx`                         | Remove `DemoBanner`, revert to `requireAdmin()`                                                                                                |
+| `src/app/(admin)/platform/page.tsx`                           | Remove `isDemoSession()` + `DemoIncidentTrigger`; remove `DEMO_TOOLTIPS` import; drop `isDemo`/`demoHelperText` props from `MaintenanceToggle` |
+| `src/app/(admin)/platform/_components/maintenance-toggle.tsx` | Remove `isDemo`/`demoHelperText` props and the local-simulation branch in `toggle()`; component always calls the real API                      |
+| `src/app/(admin)/platform/*/page.tsx`                         | Replace `DemoDeepLink` with plain `<a>` tags                                                                                                   |
+| `src/app/api/webhooks/clerk/route.ts`                         | Remove `isDemoMode()` + `getRecruiterEmails()`                                                                                                 |
+| `src/app/api/demo/trigger/ci/route.ts`                        | Delete file                                                                                                                                    |
+| `src/app/api/demo/trigger/sentry/route.ts`                    | Delete file — but see note below                                                                                                               |
+
+> **Note:** `src/app/api/demo/trigger/sentry/route.ts` imports
+> `captureSentryTestError` from `src/lib/sentry-capture.ts`, which lives
+> **outside** `src/demo/` and is also used by
+> `src/app/api/test-sentry-error/route.ts` (a permanent, non-demo
+> integration smoke-test endpoint). When removing demo mode, delete only
+> the trigger route itself — `src/lib/sentry-capture.ts` and
+> `test-sentry-error/route.ts` are core and must stay.
 
 ---
 

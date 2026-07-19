@@ -14,7 +14,7 @@ import {
 } from "@dw/ai/memory";
 import { getLastProductionDeploy } from "@dw/ai/sensors";
 
-import { isDemoSession } from "~/demo";
+import { DEMO_TOOLTIPS, isDemoSession } from "~/demo";
 import { DemoIncidentTrigger } from "~/demo/triggers/DemoIncidentTrigger";
 import { env } from "~/env";
 import { MaintenanceToggle } from "./_components/maintenance-toggle";
@@ -578,7 +578,11 @@ export default async function PlatformPage() {
           <p className="text-muted-foreground mb-3 text-[10px] font-semibold tracking-widest uppercase">
             Operations
           </p>
-          <MaintenanceToggle initial={maintenanceMode} isDemo={isDemo} />
+          <MaintenanceToggle
+            initial={maintenanceMode}
+            isDemo={isDemo}
+            demoHelperText={DEMO_TOOLTIPS.maintenanceMode}
+          />
         </div>
       </div>
     </div>
