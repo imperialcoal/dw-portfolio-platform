@@ -44,8 +44,8 @@ catalogs:
   react19:
     '@types/react': ~19.2.14
     '@types/react-dom': ~19.2.3
-    react: 19.2.7
-    react-dom: 19.2.7
+    react: 19.2.8
+    react-dom: 19.2.8
 
 linkWorkspacePackages: true
 
