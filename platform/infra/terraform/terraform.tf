@@ -22,7 +22,7 @@ terraform {
     }
     supabase = {
       source  = "supabase/supabase"
-      version = "~> 1.9.1"
+      version = "~> 1.11.0"
     }
     railway = {
       source  = "terraform-community-providers/railway"
