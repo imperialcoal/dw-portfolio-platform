@@ -114,6 +114,37 @@ updates:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
 
+      # Expo SDK 58 matrix (RN 0.88 requires exact react 19.3.0): move only via an
+      # SDK upgrade (`expo install --fix`). Update types are explicit so these rules
+      # gate version updates only and security updates can still open PRs.
+      - dependency-name: "expo"
+        update-types: ["version-update:semver-major", "version-update:semver-minor", "version-update:semver-patch"]
+      - dependency-name: "expo-*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor", "version-update:semver-patch"]
+      - dependency-name: "@expo/*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor", "version-update:semver-patch"]
+      - dependency-name: "react-native"
+        update-types: ["version-update:semver-major", "version-update:semver-minor", "version-update:semver-patch"]
+      - dependency-name: "react-native-*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor", "version-update:semver-patch"]
+      - dependency-name: "nativewind" # upgrade together with react-native-css
+        update-types: ["version-update:semver-major", "version-update:semver-minor", "version-update:semver-patch"]
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major", "version-update:semver-minor", "version-update:semver-patch"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major", "version-update:semver-minor", "version-update:semver-patch"]
+      - dependency-name: "lightningcss" # pinned 1.30.1 for react-native-css (see pnpm-workspace.yaml)
+        update-types: ["version-update:semver-major", "version-update:semver-minor", "version-update:semver-patch"]
+
+      # Types track the pinned React runtime; typescript-eslint caps typescript <6.1.0.
+      # Patches still flow.
+      - dependency-name: "@types/react"
+        update-types: ["version-update:semver-minor"]
+      - dependency-name: "@types/react-dom"
+        update-types: ["version-update:semver-minor"]
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-minor"]
+
   # ─── Terraform infrastructure ─────────────────────────────────────────────
   - package-ecosystem: "terraform"
     directory: "/platform/infra/terraform"

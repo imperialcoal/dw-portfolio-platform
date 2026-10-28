@@ -30,7 +30,7 @@
     }
   },
   "scripts": {
-    "ai:memory:test": "vitest",
+    "ai:memory:test": "vitest run",
     "build": "tsc",
     "clean": "git clean -xdf .cache .turbo dist node_modules",
     "dev": "tsc",

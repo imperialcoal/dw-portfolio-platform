@@ -12,7 +12,7 @@
     "lint": "eslint --flag unstable_native_nodejs_ts_config",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "clerk:webhook:test": "vitest",
+    "clerk:webhook:test": "vitest run",
     "with-env": "dotenv -e ../../.env.local --"
   },
   "dependencies": {

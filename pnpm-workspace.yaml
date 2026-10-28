@@ -35,33 +35,39 @@ catalog:
   superjson: 2.2.6
   tailwindcss: ^4.2.1
   tsx: ^4.21.0
-  typescript: ^5.9.3
+  typescript: ~6.0.3
   vite: 8.1.4
   vitest: ^4.1.10
   zod: ^4.1.12
 
 catalogs:
+  nativewind:
+    # react-native-css 3.0.x (and 3.1.0-rc.0) fail on lightningcss >=1.31 ("failed to
+    # deserialize; expected an object-like struct named Specifier"):
+    # parcel-bundler/lightningcss#1081, nativewind/react-native-css#280.
+    # Remove when fixed upstream AND `expo export` passes on the latest lightningcss.
+    lightningcss: 1.30.1
   react19:
-    '@types/react': ~19.2.14
-    '@types/react-dom': ~19.2.3
-    react: 19.2.7
-    react-dom: 19.2.7
+    # Pinned to Expo SDK 58 (React Native 0.88 requires this exact react).
+    # Change only together with an SDK upgrade.
+    '@types/react': ~19.3.0
+    '@types/react-dom': ~19.3.0
+    react: 19.3.0
+    react-dom: 19.3.0
 
 linkWorkspacePackages: true
-
-minimumReleaseAgeExclude:
-  - react-dom@19.2.7
-  - react@19.2.7
 
 onlyBuiltDependencies:
   - '@tailwindcss/oxide'
   - esbuild
 
 overrides:
+  # react-native-css gets its lightningcss peer from the app AND through @expo/metro-config.
+  # Keep both on the catalogs.nativewind pin (1.30.1 satisfies metro-config's ^1.30.1).
+  '@expo/metro-config>lightningcss': 'catalog:nativewind'
   '@types/minimatch': 6.0.0
-  '@types/react-test-renderer>@types/react': ~19.2.14
+  '@types/react-test-renderer>@types/react': ~19.3.0
   esbuild: ^0.28.1
-  lightningcss: 1.32.0
   js-cookie: ^3.0.7
   path-to-regexp: ^6.3.0
   undici: ^6.27.0

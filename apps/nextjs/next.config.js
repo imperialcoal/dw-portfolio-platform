@@ -1,3 +1,4 @@
+import path from "node:path";
 import { withSentryConfig } from "@sentry/nextjs";
 import { createJiti } from "jiti";
 
@@ -8,6 +9,10 @@ await jiti.import("./src/env");
 
 /** @type {import("next").NextConfig} */
 const config = {
+  turbopack: {
+    root: path.resolve(import.meta.dirname, "../.."),
+  },
+
   /** Enables hot reloading for local packages without a build step */
   transpilePackages: [
     "@dw/ai",
